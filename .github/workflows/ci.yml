@@ -20,7 +20,7 @@ jobs:
 
       - name: Check commit messages
         run: |
-          git log --format=%s origin/${{ github.base_ref }}..HEAD | while IFS= read -r msg; do
+          git log --no-merges --format=%s origin/${{ github.base_ref }}..HEAD | while IFS= read -r msg; do
             node scripts/check-commit-msg.js "$msg"
           done
 
@@ -36,6 +36,7 @@ jobs:
 
       - run: npm ci
       - run: npm run lint
+      - run: npx next typegen
       - run: npm run type-check
       - run: npm run build
 
@@ -46,6 +47,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install gitleaks
+        run: |
+          curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.21.2/gitleaks_8.21.2_linux_x64.tar.gz | tar -xz gitleaks
+          sudo mv gitleaks /usr/local/bin/gitleaks
+
+      - name: Run gitleaks
+        run: gitleaks detect --source . --redact -v
