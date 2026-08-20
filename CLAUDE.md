@@ -1,10 +1,14 @@
 # FinLover — Agent Notes
 
-Expense tracker: Next.js (App Router) + TypeScript + Tailwind + MongoDB/Mongoose + bcrypt/JWT. Single-root repo, npm only (no monorepo).
+Expense tracker: Next.js (App Router) + TypeScript + Tailwind + shadcn/ui + lucide-react + MongoDB/Mongoose + bcrypt/JWT. Single-root repo, npm only (no monorepo).
+
+## UI rules
+- Base components MUST use shadcn/ui (`src/components/ui`, add via `npx shadcn add <name>`). Don't hand-roll a button/dialog/input/etc if a shadcn equivalent exists.
+- Icons MUST come from `lucide-react` unless a task explicitly specifies otherwise.
 
 ## Layout
 - `src/app/` — pages/routes, `src/app/api/` — backend route handlers
-- `src/components/` — UI components
+- `src/components/` — UI components (`ui/` = shadcn base components)
 - `src/lib/` — `db.ts` (mongoose singleton), `auth.ts` (jwt/bcrypt)
 - `src/models/` — mongoose schemas
 - `src/types/`, `src/hooks/`
