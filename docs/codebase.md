@@ -1,6 +1,6 @@
 # FinLover — Codebase Layout
 
-Expense tracker web app. Stack: Next.js (App Router) + TypeScript + Tailwind CSS + MongoDB/Mongoose + bcrypt/JWT auth. Single-root repo, npm (no monorepo/workspaces).
+Expense tracker web app. Stack: Next.js (App Router) + TypeScript + Tailwind CSS + shadcn/ui + lucide-react icons + MongoDB/Mongoose + bcrypt/JWT auth. Single-root repo, npm (no monorepo/workspaces).
 
 ## Folder structure
 
@@ -18,7 +18,8 @@ Expense tracker web app. Stack: Next.js (App Router) + TypeScript + Tailwind CSS
 │   │   ├── api/                     route handlers (backend), e.g. /api/auth, /api/expenses
 │   │   ├── layout.tsx
 │   │   └── page.tsx
-│   ├── components/                  shared/reusable UI components
+│   ├── components/
+│   │   └── ui/                      shadcn/ui components (button, etc)
 │   ├── lib/
 │   │   ├── db.ts                    mongoose connection singleton
 │   │   ├── auth.ts                  jwt sign/verify, bcrypt hash/compare
