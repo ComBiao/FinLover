@@ -14,24 +14,48 @@ Expense tracker web app. Stack: Next.js (App Router) + TypeScript + Tailwind CSS
 │   └── check-branch-name.js         branch name validator (CI)
 ├── public/
 ├── src/
-│   ├── app/                         App Router pages/layouts/routes
-│   │   ├── api/                     route handlers (backend), e.g. /api/auth, /api/expenses
-│   │   ├── layout.tsx
-│   │   └── page.tsx
+│   ├── app/                         PAGES + ROUTES only. Folder name = URL. No business logic here.
+│   │   ├── layout.tsx               root layout (wraps every page — nav, fonts, etc)
+│   │   ├── page.tsx                 → /
+│   │   ├── login/page.tsx           → /login
+│   │   ├── dashboard/page.tsx       → /dashboard
+│   │   ├── expenses/
+│   │   │   ├── page.tsx             → /expenses (list)
+│   │   │   └── [id]/page.tsx        → /expenses/:id (dynamic, one item)
+│   │   └── api/                     BACKEND endpoints. route.ts, not page.tsx.
+│   │       ├── auth/route.ts        → POST /api/auth
+│   │       └── expenses/route.ts    → GET/POST /api/expenses
 │   ├── components/
-│   │   └── ui/                      shadcn/ui components (button, etc)
-│   ├── lib/
+│   │   ├── ui/                      shadcn/ui base components ONLY (button, input, dialog...). Never hand-edit — regenerate with `npx shadcn add`.
+│   │   └── [Name].tsx               shared custom components used on 2+ pages (Navbar, ExpenseCard...)
+│   ├── lib/                         cross-cutting helpers, no UI
 │   │   ├── db.ts                    mongoose connection singleton
 │   │   ├── auth.ts                  jwt sign/verify, bcrypt hash/compare
-│   │   └── utils.ts
-│   ├── models/                      mongoose schemas (User, Expense, Category, ...)
-│   ├── types/                       shared TS types/interfaces
-│   └── hooks/                       custom React hooks
+│   │   └── utils.ts                 generic helpers (cn, formatCurrency, ...)
+│   ├── models/                      mongoose schemas, one file per collection (User.ts, Expense.ts, Category.ts)
+│   ├── types/                       shared TS interfaces/types (Expense, User, ApiResponse...)
+│   └── hooks/                       custom React hooks (useAuth, useExpenses...)
 ├── .env.example
 ├── docs/                            this file + HTML version
 ├── AGENT.md / CLAUDE.md             brief conventions for AI coding agents
 └── package.json
 ```
+
+## Where does my file go?
+
+| I'm building... | Goes in | Naming |
+|---|---|---|
+| A new page/screen (e.g. `/budget`) | `src/app/budget/page.tsx` | folder = URL path, lowercase-kebab |
+| A new backend endpoint (e.g. `/api/budget`) | `src/app/api/budget/route.ts` | folder = URL path |
+| A component used on 2+ pages | `src/components/BudgetCard.tsx` | PascalCase |
+| A component used on only 1 page | colocate next to that page, e.g. `src/app/budget/BudgetChart.tsx` | PascalCase |
+| A shadcn base component (button, dialog...) | `src/components/ui/` via `npx shadcn add <name>` — don't write by hand | lowercase, shadcn default |
+| Database schema | `src/models/Budget.ts` | PascalCase, singular |
+| Shared TS type/interface | `src/types/budget.ts` | camelCase file, PascalCase type |
+| Reusable logic (not UI, not route) | `src/lib/` (e.g. `lib/date.ts`) | camelCase |
+| A custom hook | `src/hooks/useBudget.ts` | camelCase, `use` prefix |
+
+Rule of thumb: `app/` only holds pages/routes — no business logic, no reusable component definitions inside `app/api` beyond the route handler itself.
 
 ## Conventions
 

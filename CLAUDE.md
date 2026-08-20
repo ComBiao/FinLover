@@ -7,12 +7,13 @@ Expense tracker: Next.js (App Router) + TypeScript + Tailwind + shadcn/ui + luci
 - Icons MUST come from `lucide-react` unless a task explicitly specifies otherwise.
 
 ## Layout
-- `src/app/` — pages/routes, `src/app/api/` — backend route handlers
-- `src/components/` — UI components (`ui/` = shadcn base components)
-- `src/lib/` — `db.ts` (mongoose singleton), `auth.ts` (jwt/bcrypt)
-- `src/models/` — mongoose schemas
-- `src/types/`, `src/hooks/`
-- Full detail: `docs/codebase.md`
+- `src/app/` — PAGES + ROUTES only, folder name = URL path. No business logic here.
+- `src/app/api/` — backend route handlers (`route.ts`, not `page.tsx`)
+- `src/components/` — shared UI components (`ui/` = shadcn base components, don't hand-edit)
+- `src/lib/` — `db.ts` (mongoose singleton), `auth.ts` (jwt/bcrypt), `utils.ts`
+- `src/models/` — mongoose schemas, one file per collection
+- `src/types/` — shared TS types, `src/hooks/` — custom hooks (`use` prefix)
+- Full "where does my file go" table: `docs/codebase.md`
 
 ## Commit message
 `tag: message`, e.g. `init: initialize repo`. Case-insensitive, space after colon optional.

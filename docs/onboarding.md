@@ -28,14 +28,36 @@ Open http://localhost:3000
 ## 4. Project structure
 ```
 src/
-├── app/            pages + routes (what user sees, App Router)
-│   └── api/        backend endpoints (login, expenses, etc)
-├── components/     reusable UI pieces (buttons, cards, forms)
-├── lib/            shared logic — db.ts (database connect), auth.ts (jwt/bcrypt)
-├── models/         Mongoose schemas (User, Expense, Category)
-├── types/          shared TypeScript types
-└── hooks/          custom React hooks
+├── app/                 PAGES + ROUTES only. Folder name = URL. No logic here.
+│   ├── page.tsx          → /
+│   ├── login/page.tsx    → /login
+│   ├── expenses/
+│   │   ├── page.tsx       → /expenses
+│   │   └── [id]/page.tsx  → /expenses/:id
+│   └── api/              backend endpoints, route.ts (not page.tsx)
+│       └── expenses/route.ts → /api/expenses
+├── components/
+│   ├── ui/               shadcn base components ONLY — add via `npx shadcn add <name>`, don't hand-write
+│   └── [Name].tsx         shared components used on 2+ pages
+├── lib/                  db.ts (database connect), auth.ts (jwt/bcrypt), utils.ts
+├── models/               Mongoose schemas (User.ts, Expense.ts, Category.ts)
+├── types/                shared TypeScript types
+└── hooks/                custom React hooks (useX)
 ```
+
+### Where does my file go?
+| Building... | Put it in |
+|---|---|
+| New page (`/budget`) | `src/app/budget/page.tsx` |
+| New backend endpoint | `src/app/api/budget/route.ts` |
+| Component used on 2+ pages | `src/components/BudgetCard.tsx` |
+| Component used on 1 page only | next to that page's `page.tsx` |
+| Base UI piece (button, dialog...) | `npx shadcn add <name>` → `src/components/ui/` |
+| Icon | `import { X } from "lucide-react"` (unless told otherwise) |
+| Database schema | `src/models/Budget.ts` |
+| Custom hook | `src/hooks/useBudget.ts` |
+
+Full detail: `docs/codebase.md`
 
 ## 5. Branch naming rule
 ```
@@ -60,3 +82,7 @@ Same tag list as branch. Colon required, case doesn't matter.
 6. Merge
 
 Direct push to `main` is blocked — always go through a branch + PR.
+
+## 8. UI rule
+- Base components (button, input, dialog, card...) MUST be shadcn/ui — never hand-write one that already has a shadcn version.
+- Icons MUST be from `lucide-react`, unless a task explicitly says otherwise.
