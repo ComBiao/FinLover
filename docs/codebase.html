@@ -14,7 +14,7 @@
 </head>
 <body>
 <h1>FinLover — Codebase Layout</h1>
-<p>Expense tracker web app. Stack: Next.js (App Router) + TypeScript + Tailwind CSS + MongoDB/Mongoose + bcrypt/JWT auth. Single-root repo, npm (no monorepo/workspaces).</p>
+<p>Expense tracker web app. Stack: Next.js (App Router) + TypeScript + Tailwind CSS + shadcn/ui + lucide-react icons + MongoDB/Mongoose + bcrypt/JWT auth. Single-root repo, npm (no monorepo/workspaces).</p>
 
 <h2>Folder structure</h2>
 <pre>
@@ -27,16 +27,25 @@
 │   └── check-branch-name.js         branch name validator (CI)
 ├── public/
 ├── src/
-│   ├── app/                         App Router pages/layouts/routes
-│   │   ├── api/                     route handlers (backend), e.g. /api/auth, /api/expenses
-│   │   ├── layout.tsx
-│   │   └── page.tsx
-│   ├── components/                  shared/reusable UI components
-│   ├── lib/
+│   ├── app/                         PAGES + ROUTES only. Folder name = URL. No business logic here.
+│   │   ├── layout.tsx               root layout (wraps every page — nav, fonts, etc)
+│   │   ├── page.tsx                 → /
+│   │   ├── login/page.tsx           → /login
+│   │   ├── dashboard/page.tsx       → /dashboard
+│   │   ├── expenses/
+│   │   │   ├── page.tsx             → /expenses (list)
+│   │   │   └── [id]/page.tsx        → /expenses/:id (dynamic, one item)
+│   │   └── api/                     BACKEND endpoints. route.ts, not page.tsx.
+│   │       ├── auth/route.ts        → POST /api/auth
+│   │       └── expenses/route.ts    → GET/POST /api/expenses
+│   ├── components/
+│   │   ├── ui/                      shadcn/ui base components ONLY. Never hand-edit — regenerate with `npx shadcn add`.
+│   │   └── [Name].tsx               shared custom components used on 2+ pages
+│   ├── lib/                         cross-cutting helpers, no UI
 │   │   ├── db.ts                    mongoose connection singleton
 │   │   ├── auth.ts                  jwt sign/verify, bcrypt hash/compare
-│   │   └── utils.ts
-│   ├── models/                      mongoose schemas (User, Expense, Category, ...)
+│   │   └── utils.ts                 generic helpers (cn, formatCurrency, ...)
+│   ├── models/                      mongoose schemas, one file per collection
 │   ├── types/                       shared TS types/interfaces
 │   └── hooks/                       custom React hooks
 ├── .env.example
@@ -44,6 +53,21 @@
 ├── AGENT.md / CLAUDE.md             brief conventions for AI coding agents
 └── package.json
 </pre>
+
+<h2>Where does my file go?</h2>
+<table>
+<tr><th>I'm building...</th><th>Goes in</th><th>Naming</th></tr>
+<tr><td>New page (e.g. /budget)</td><td><code>src/app/budget/page.tsx</code></td><td>folder = URL, lowercase-kebab</td></tr>
+<tr><td>New backend endpoint</td><td><code>src/app/api/budget/route.ts</code></td><td>folder = URL</td></tr>
+<tr><td>Component used on 2+ pages</td><td><code>src/components/BudgetCard.tsx</code></td><td>PascalCase</td></tr>
+<tr><td>Component used on 1 page only</td><td>colocate next to that page</td><td>PascalCase</td></tr>
+<tr><td>shadcn base component</td><td><code>src/components/ui/</code> via <code>npx shadcn add</code></td><td>don't hand-write</td></tr>
+<tr><td>Database schema</td><td><code>src/models/Budget.ts</code></td><td>PascalCase, singular</td></tr>
+<tr><td>Shared TS type</td><td><code>src/types/budget.ts</code></td><td>camelCase file</td></tr>
+<tr><td>Reusable non-UI logic</td><td><code>src/lib/</code></td><td>camelCase</td></tr>
+<tr><td>Custom hook</td><td><code>src/hooks/useBudget.ts</code></td><td><code>use</code> prefix</td></tr>
+</table>
+<p>Rule of thumb: <code>app/</code> only holds pages/routes — no business logic, no reusable component definitions beyond the route handler itself.</p>
 
 <h2>Conventions</h2>
 <h3>Commit message</h3>
