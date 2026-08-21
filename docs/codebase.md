@@ -39,12 +39,11 @@ npm test        # run unit tests
 ```
 /
 ├── .github/
-│   ├── workflows/ci.yml             CI: commit-msg + branch-name lint, build, secret scan
+│   ├── workflows/ci.yml             CI: commit-msg lint, build, secret scan
 │   └── pull_request_template.md
 ├── .husky/                          pre-commit (lint + type-check), commit-msg (message format)
 ├── scripts/
 │   ├── check-commit-msg.js          shared regex validator (local hook + CI)
-│   ├── check-branch-name.js         branch name validator (CI)
 │   └── generate-erd.ts              regenerates docs/ERD.md from src/models
 ├── public/
 ├── src/
@@ -112,7 +111,7 @@ Enforced by `.husky/commit-msg` locally and the `commit-lint` CI job.
 
 ### Branch name
 `tag/issue-id-slug`, e.g. `feat/1-initialize-project`.
-Same tag set as commit messages. Enforced by CI (`commit-lint` job) against the PR's head branch.
+Same tag set as commit messages. Convention only, not enforced by CI.
 
 ### Pull requests
 Use the template: `### Issue ID`, `### Description`, `### Image`.
@@ -131,7 +130,7 @@ Direct push to `main` is blocked — always go through a branch + PR.
 
 | Job | What it does |
 |---|---|
-| `commit-lint` (PR only) | validates the branch name + every commit message in the PR against the patterns above |
+| `commit-lint` (PR only) | validates every commit message in the PR against the pattern above |
 | `build` | `npm ci` → `npm run lint` → `next typegen` → `npm run type-check` → verifies `docs/ERD.md` is in sync with `src/models` → `npm run build` |
 | `secret-scan` | gitleaks, catches committed secrets (`.env`, `JWT_SECRET`, `MONGODB_URI`, etc) |
 

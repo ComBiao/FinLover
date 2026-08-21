@@ -187,12 +187,11 @@ npm test        # run unit tests</pre>
 <pre>
 /
 ├── .github/
-│   ├── workflows/ci.yml             CI: commit-msg + branch-name lint, build, secret scan
+│   ├── workflows/ci.yml             CI: commit-msg lint, build, secret scan
 │   └── pull_request_template.md
 ├── .husky/                          pre-commit (lint + type-check), commit-msg (message format)
 ├── scripts/
 │   ├── check-commit-msg.js          shared regex validator (local hook + CI)
-│   ├── check-branch-name.js         branch name validator (CI)
 │   └── generate-erd.ts              regenerates docs/ERD.md from src/models
 ├── public/
 ├── src/
@@ -259,7 +258,7 @@ npm test        # run unit tests</pre>
 <p>Enforced by <code>.husky/commit-msg</code> locally and the <code>commit-lint</code> CI job.</p>
 
 <h3>Branch name</h3>
-<p><code>tag/issue-id-slug</code>, e.g. <code>feat/1-initialize-project</code>. Same tag set as commit messages. Enforced by CI (<code>commit-lint</code> job) against the PR's head branch.</p>
+<p><code>tag/issue-id-slug</code>, e.g. <code>feat/1-initialize-project</code>. Same tag set as commit messages. Convention only, not enforced by CI.</p>
 
 <h3>Pull requests</h3>
 <p>Use the template: <code>### Issue ID</code>, <code>### Description</code>, <code>### Image</code>.</p>
@@ -278,7 +277,7 @@ npm test        # run unit tests</pre>
 <h2 id="ci">8. CI checks</h2>
 <table>
 <tr><th>Job</th><th>What it does</th></tr>
-<tr><td>commit-lint (PR only)</td><td>validates branch name + every commit message in the PR</td></tr>
+<tr><td>commit-lint (PR only)</td><td>validates every commit message in the PR</td></tr>
 <tr><td>build</td><td>npm ci, lint, typegen, type-check, ERD sync check, build</td></tr>
 <tr><td>secret-scan</td><td>gitleaks scan for committed secrets</td></tr>
 </table>
