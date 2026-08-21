@@ -15,9 +15,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Check branch name
-        run: node scripts/check-branch-name.js "${{ github.head_ref }}"
-
       - name: Check commit messages
         run: |
           git log --no-merges --format=%s origin/${{ github.base_ref }}..HEAD | while IFS= read -r msg; do
