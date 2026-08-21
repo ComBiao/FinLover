@@ -38,6 +38,15 @@ jobs:
       - run: npm run lint
       - run: npx next typegen
       - run: npm run type-check
+      
+      - name: Verify ERD is up to date
+        run: |
+          npm run generate-erd
+          if [[ -n "$(git status --porcelain docs/ERD.md)" ]]; then
+            echo "❌ ERD is out of sync!"
+            exit 1
+          fi
+
       - run: npm run build
 
   secret-scan:
