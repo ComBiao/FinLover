@@ -59,7 +59,7 @@ src/
 
 Full detail: `docs/codebase.md`
 
-## 5. Branch naming rule
+## 5. Branch naming rule (convention only, not CI-enforced)
 ```
 tag/issue-id-slug
 ```
@@ -78,7 +78,7 @@ Same tag list as branch. Colon required, case doesn't matter.
 2. Code + commit with correct tag
 3. `git push origin feat/2-add-login`
 4. Open PR on GitHub — fill template (Issue ID / Description / Image)
-5. Wait for CI green (commit-lint, build, secret-scan)
+5. Wait for CI green (commit-lint checks commit messages only, build, secret-scan)
 6. Merge
 
 Direct push to `main` is blocked — always go through a branch + PR.

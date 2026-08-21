@@ -20,10 +20,10 @@ Expense tracker: Next.js (App Router) + TypeScript + Tailwind + shadcn/ui + luci
 Tags: `init, feat, fix, chore, docs, refactor, test, style, perf, ci, build, revert`.
 
 ## Branch name
-`tag/issue-id-slug`, e.g. `feat/1-initialize-project`. Same tag set as commit.
+`tag/issue-id-slug`, e.g. `feat/1-initialize-project`. Same tag set as commit. Convention only, not enforced by CI.
 
 ## PR
 Use template: `### Issue ID`, `### Description`, `### Image`.
 
 ## CI
-`.github/workflows/ci.yml`: commit/branch lint (PR), lint + type-check + build, gitleaks secret scan.
+`.github/workflows/ci.yml`: commit-msg lint (PR), lint + type-check + ERD check + build, gitleaks secret scan.

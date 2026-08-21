@@ -10,8 +10,7 @@ Expense tracker web app. Stack: Next.js (App Router) + TypeScript + Tailwind CSS
 ├── .github/pull_request_template.md
 ├── .husky/                          pre-commit (lint+type-check), commit-msg (message format)
 ├── scripts/
-│   ├── check-commit-msg.js          shared regex validator (local hook + CI)
-│   └── check-branch-name.js         branch name validator (CI)
+│   └── check-commit-msg.js          shared regex validator (local hook + CI)
 ├── public/
 ├── src/
 │   ├── app/                         PAGES + ROUTES only. Folder name = URL. No business logic here.
@@ -66,7 +65,7 @@ Enforced by `.husky/commit-msg` locally and the `commit-lint` CI job.
 
 ### Branch name
 `tag/issue-id-slug`, e.g. `feat/1-initialize-project`.
-Same tag set as commit messages. Enforced by CI (`commit-lint` job) against the PR's head branch.
+Same tag set as commit messages. Convention only, not enforced by CI.
 
 ### Pull requests
 Use the template: `### Issue ID`, `### Description`, `### Image`.
@@ -81,7 +80,7 @@ npm run dev
 
 ## CI checks (`.github/workflows/ci.yml`)
 
-- **commit-lint** (PR only): validates branch name + every commit message in the PR against the patterns above.
+- **commit-lint** (PR only): validates every commit message in the PR against the pattern above.
 - **build**: `npm ci`, `npm run lint`, `npm run type-check`, `npm run build`.
 - **secret-scan**: gitleaks, catches committed secrets (`.env`, `JWT_SECRET`, `MONGODB_URI`, etc).
 
