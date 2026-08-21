@@ -2,31 +2,200 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>FinLover — Codebase Layout</title>
+<title>FinLover — Codebase Guide</title>
 <style>
-  body { font-family: -apple-system, Segoe UI, Arial, sans-serif; max-width: 880px; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; color: #1a1a1a; }
-  h1, h2 { border-bottom: 1px solid #ddd; padding-bottom: 0.3rem; }
-  pre { background: #f5f5f5; padding: 1rem; overflow-x: auto; border-radius: 6px; }
-  code { background: #f0f0f0; padding: 0.1rem 0.3rem; border-radius: 4px; }
-  table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
-  th, td { border: 1px solid #ddd; padding: 0.5rem; text-align: left; }
+  :root {
+    --bg: #ffffff;
+    --fg: #1a1a1a;
+    --muted: #57606a;
+    --border: #e2e5e9;
+    --surface: #f6f8fa;
+    --accent: #2563eb;
+    --accent-soft: #eff4ff;
+    --code-fg: #b3261e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1115;
+      --fg: #e6e8eb;
+      --muted: #9aa4b2;
+      --border: #2a2f38;
+      --surface: #171a20;
+      --accent: #6ea8fe;
+      --accent-soft: #16223d;
+      --code-fg: #ff8a80;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, "Segoe UI", Arial, sans-serif;
+    line-height: 1.65;
+    color: var(--fg);
+    background: var(--bg);
+    margin: 0;
+  }
+  .layout {
+    display: flex;
+    align-items: flex-start;
+  }
+  main {
+    flex: 1;
+    min-width: 0;
+    max-width: 760px;
+    padding: 2.5rem 1.5rem 6rem 2.5rem;
+    margin: 0 auto;
+  }
+  h1 {
+    font-size: 1.9rem;
+    margin-bottom: 0.4rem;
+  }
+  h2 {
+    font-size: 1.3rem;
+    margin-top: 2.75rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 2px solid var(--border);
+    scroll-margin-top: 4.5rem;
+  }
+  h3 { font-size: 1.05rem; margin-top: 1.5rem; color: var(--fg); }
+  p { color: var(--fg); }
+  body > p:first-of-type { color: var(--muted); }
+  pre {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 0.9rem 1rem;
+    overflow-x: auto;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    line-height: 1.5;
+  }
+  code {
+    background: var(--surface);
+    color: var(--code-fg);
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.88em;
+  }
+  pre code { background: none; color: inherit; padding: 0; }
+  table { border-collapse: collapse; width: 100%; margin: 1rem 0 1.5rem; font-size: 0.92rem; }
+  th, td { border: 1px solid var(--border); padding: 0.55rem 0.7rem; text-align: left; }
+  th { background: var(--surface); font-weight: 600; }
+  tr:nth-child(even) td { background: color-mix(in srgb, var(--surface) 45%, transparent); }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { padding-left: 1.4rem; }
+  li { margin: 0.3rem 0; }
+  nav {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    flex: 0 0 220px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 2rem 1.25rem;
+    font-size: 0.88rem;
+  }
+  nav .nav-title {
+    font-weight: 700;
+    font-size: 0.95rem;
+    margin-bottom: 1rem;
+    color: var(--fg);
+  }
+  nav a {
+    display: block;
+    color: var(--muted);
+    font-weight: 500;
+    padding: 0.4rem 0.6rem;
+    margin: 0.1rem 0;
+    border-radius: 6px;
+  }
+  nav a:hover {
+    color: var(--fg);
+    background: var(--accent-soft);
+    text-decoration: none;
+  }
+  nav a.active {
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
+  @media (max-width: 720px) {
+    .layout { flex-direction: column; }
+    nav {
+      position: static;
+      height: auto;
+      width: 100%;
+      flex: none;
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem 0.75rem;
+      padding: 1rem 1.25rem;
+    }
+    nav .nav-title { width: 100%; margin-bottom: 0.4rem; }
+    nav a { padding: 0.25rem 0.4rem; }
+    main { padding: 1.5rem 1.25rem 4rem; max-width: 100%; }
+  }
 </style>
 </head>
 <body>
-<h1>FinLover — Codebase Layout</h1>
-<p>Expense tracker web app. Stack: Next.js (App Router) + TypeScript + Tailwind CSS + shadcn/ui + lucide-react icons + MongoDB/Mongoose + bcrypt/JWT auth. Single-root repo, npm (no monorepo/workspaces).</p>
+<div class="layout">
+<nav>
+<div class="nav-title">FinLover Docs</div>
+<a href="#quickstart">1. Quickstart</a>
+<a href="#stack">2. Tech stack</a>
+<a href="#folders">3. Folders</a>
+<a href="#filego">4. Where does my file go</a>
+<a href="#rules">5. Hard rules</a>
+<a href="#conventions">6. Conventions</a>
+<a href="#workflow">7. Workflow</a>
+<a href="#ci">8. CI checks</a>
+<a href="#commands">9. Commands</a>
+</nav>
+<main>
+<h1>FinLover — Codebase Guide</h1>
+<p>Expense tracker web app. Single-root repo, npm only (no monorepo/workspaces). Everything you need is in this one page — jump around with the sidebar. Database schema diagram lives separately: <a href="ERD.md">ERD.md</a> (auto-generated, don't hand-edit).</p>
 
-<h2>Folder structure</h2>
+<h2 id="quickstart">1. Quickstart</h2>
+<pre>git clone https://github.com/ComBiao/FinLover.git
+cd FinLover
+npm install
+cp .env.example .env.local</pre>
+<p>Fill <code>.env.local</code> with <code>MONGODB_URI</code>, <code>JWT_SECRET</code>, <code>BCRYPT_SALT_ROUNDS</code>.</p>
+<pre>npm run dev     # start dev server → http://localhost:3000
+npm test        # run unit tests</pre>
+
+<h2 id="stack">2. Tech stack</h2>
+<table>
+<tr><th>Package</th><th>What it does</th></tr>
+<tr><td>Next.js (App Router)</td><td>React framework, pages + backend API routes in one project</td></tr>
+<tr><td>TypeScript</td><td>typed JavaScript, catches bugs before runtime</td></tr>
+<tr><td>Tailwind CSS</td><td>utility-class styling</td></tr>
+<tr><td>shadcn/ui</td><td>prebuilt accessible base components, copied into <code>src/components/ui</code></td></tr>
+<tr><td>lucide-react</td><td>icon set</td></tr>
+<tr><td>zod</td><td>runtime schema validation, also derives a TS type from the schema</td></tr>
+<tr><td>zustand</td><td>client/UI state management (modals, filters, selections)</td></tr>
+<tr><td>@tanstack/react-query</td><td>server data fetching/caching, handles loading/error/refetch</td></tr>
+<tr><td>MongoDB + Mongoose</td><td>database + schema/ODM layer</td></tr>
+<tr><td>bcrypt</td><td>password hashing</td></tr>
+<tr><td>jsonwebtoken (JWT)</td><td>login/session tokens</td></tr>
+<tr><td>vitest + @testing-library/react</td><td>unit/component tests, run via <code>npm test</code></td></tr>
+</table>
+
+<h2 id="folders">3. Folder structure</h2>
 <pre>
 /
-├── .github/workflows/ci.yml        CI: commit/branch lint, build, secret scan
-├── .github/pull_request_template.md
-├── .husky/                          pre-commit (lint+type-check), commit-msg (message format)
+├── .github/
+│   ├── workflows/ci.yml             CI: commit-msg lint, build, secret scan
+│   └── pull_request_template.md
+├── .husky/                          pre-commit (lint + type-check), commit-msg (message format)
 ├── scripts/
-│   └── check-commit-msg.js          shared regex validator (local hook + CI)
+│   ├── check-commit-msg.js          shared regex validator (local hook + CI)
+│   └── generate-erd.ts              regenerates docs/ERD.md from src/models
 ├── public/
 ├── src/
-│   ├── app/                         PAGES + ROUTES only. Folder name = URL. No business logic here.
+│   ├── app/                         PAGES + ROUTES only. Folder name = URL path. No business logic here.
 │   │   ├── layout.tsx               root layout (wraps every page — nav, fonts, etc)
 │   │   ├── page.tsx                 → /
 │   │   ├── login/page.tsx           → /login
@@ -45,15 +214,19 @@
 │   │   ├── auth.ts                  jwt sign/verify, bcrypt hash/compare
 │   │   └── utils.ts                 generic helpers (cn, formatCurrency, ...)
 │   ├── models/                      mongoose schemas, one file per collection
-│   ├── types/                       shared TS types/interfaces
-│   └── hooks/                       custom React hooks
+│   ├── types/                       shared TS types/interfaces + zod schemas
+│   ├── hooks/                       custom React hooks
+│   └── store/                       zustand stores — client/UI state only, never server data
+├── vitest.config.ts / vitest.setup.ts   test runner config
+├── docs/
+│   ├── codebase.md                  this file (also codebase.html, browser-friendly mirror)
+│   └── ERD.md                       database schema diagram (auto-generated)
 ├── .env.example
-├── docs/                            this file + Markdown version
 ├── AGENT.md / CLAUDE.md             brief conventions for AI coding agents
 └── package.json
 </pre>
 
-<h2>Where does my file go?</h2>
+<h2 id="filego">4. Where does my file go?</h2>
 <table>
 <tr><th>I'm building...</th><th>Goes in</th><th>Naming</th></tr>
 <tr><td>New page (e.g. /budget)</td><td><code>src/app/budget/page.tsx</code></td><td>folder = URL, lowercase-kebab</td></tr>
@@ -63,12 +236,22 @@
 <tr><td>shadcn base component</td><td><code>src/components/ui/</code> via <code>npx shadcn add</code></td><td>don't hand-write</td></tr>
 <tr><td>Database schema</td><td><code>src/models/Budget.ts</code></td><td>PascalCase, singular</td></tr>
 <tr><td>Shared TS type</td><td><code>src/types/budget.ts</code></td><td>camelCase file</td></tr>
+<tr><td>zod validation schema</td><td><code>src/types/budget.ts</code>, colocated</td><td><code>xSchema</code></td></tr>
 <tr><td>Reusable non-UI logic</td><td><code>src/lib/</code></td><td>camelCase</td></tr>
 <tr><td>Custom hook</td><td><code>src/hooks/useBudget.ts</code></td><td><code>use</code> prefix</td></tr>
+<tr><td>Client/UI state (zustand)</td><td><code>src/store/budgetStore.ts</code></td><td><code>useXStore</code></td></tr>
+<tr><td>Fetching server data</td><td><code>useQuery</code>/<code>useMutation</code> wrapped in <code>src/hooks/</code></td><td><code>use</code> prefix</td></tr>
+<tr><td>A test</td><td><code>src/**/__tests__/x.test.ts(x)</code></td><td>same name + <code>.test</code></td></tr>
 </table>
 <p>Rule of thumb: <code>app/</code> only holds pages/routes — no business logic, no reusable component definitions beyond the route handler itself.</p>
 
-<h2>Conventions</h2>
+<h2 id="rules">5. Two hard rules</h2>
+<ul>
+<li>Base UI components MUST be shadcn/ui — never hand-write a button/dialog/input that already has a shadcn version.</li>
+<li>Icons MUST be from <code>lucide-react</code>, unless a task explicitly says otherwise.</li>
+</ul>
+
+<h2 id="conventions">6. Conventions</h2>
 <h3>Commit message</h3>
 <p><code>tag: message</code> (case-insensitive, space after colon optional), e.g. <code>init: initialize repo</code>.</p>
 <p>Allowed tags: <code>init, feat, fix, chore, docs, refactor, test, style, perf, ci, build, revert</code>.</p>
@@ -80,19 +263,48 @@
 <h3>Pull requests</h3>
 <p>Use the template: <code>### Issue ID</code>, <code>### Description</code>, <code>### Image</code>.</p>
 
-<h2>Local dev</h2>
-<pre>npm install
-cp .env.example .env.local   # fill in MONGODB_URI, JWT_SECRET, BCRYPT_SALT_ROUNDS
-npm run dev</pre>
+<h2 id="workflow">7. Workflow</h2>
+<ol>
+<li><code>git checkout -b feat/2-add-login</code></li>
+<li>Code + commit with correct tag</li>
+<li><code>git push origin feat/2-add-login</code></li>
+<li>Open PR on GitHub — fill the template (Issue ID / Description / Image)</li>
+<li>Wait for CI green (commit-lint, build, secret-scan)</li>
+<li>Merge</li>
+</ol>
+<p>Direct push to <code>main</code> is blocked — always go through a branch + PR.</p>
 
-<h2>CI checks</h2>
+<h2 id="ci">8. CI checks</h2>
 <table>
 <tr><th>Job</th><th>What it does</th></tr>
-<tr><td>commit-lint</td><td>Validates every commit message in the PR</td></tr>
-<tr><td>build</td><td>npm ci, lint, type-check, build</td></tr>
+<tr><td>commit-lint (PR only)</td><td>validates every commit message in the PR</td></tr>
+<tr><td>build</td><td>npm ci, lint, typegen, type-check, ERD sync check, build</td></tr>
 <tr><td>secret-scan</td><td>gitleaks scan for committed secrets</td></tr>
 </table>
 
-<p><em>Hand-written now; expand/regenerate via the <code>graphify</code> skill once real feature code exists.</em></p>
+<h2 id="commands">9. All commands</h2>
+<pre>npm install
+cp .env.example .env.local   # fill in MONGODB_URI, JWT_SECRET, BCRYPT_SALT_ROUNDS
+npm run dev                  # start dev server
+npm test                     # run unit tests (vitest)
+npm run lint                 # eslint
+npm run type-check           # tsc --noEmit
+npm run build                # production build
+npm run generate-erd         # regenerate docs/ERD.md after changing a model</pre>
+</main>
+</div>
+<script>
+  const links = document.querySelectorAll('nav a[href^="#"]');
+  const sections = [...links].map(a => document.getElementById(a.hash.slice(1))).filter(Boolean);
+  const setActive = () => {
+    let current = sections[0];
+    for (const s of sections) {
+      if (s.getBoundingClientRect().top - 80 <= 0) current = s;
+    }
+    links.forEach(a => a.classList.toggle('active', a.hash.slice(1) === current.id));
+  };
+  document.addEventListener('scroll', setActive, { passive: true });
+  setActive();
+</script>
 </body>
 </html>
