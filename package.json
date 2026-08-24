@@ -10,7 +10,8 @@
     "type-check": "tsc --noEmit",
     "test": "vitest run",
     "prepare": "husky",
-    "generate-erd": "npx tsx scripts/generate-erd.ts"
+    "generate-erd": "npx tsx scripts/generate-erd.ts",
+    "db:init": "npx tsx scripts/init-db.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
