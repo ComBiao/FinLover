@@ -42,10 +42,10 @@ erDiagram
     ObjectId userId
     ObjectId walletId
     ObjectId categoryId
-    Decimal128 amount
+    Number amount
     String type
     Date date
-    String notes
+    String note
     ObjectId _id
     Date createdAt
     Date updatedAt
