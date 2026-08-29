@@ -1,15 +1,23 @@
 import { NextResponse } from 'next/server';
-import { connectDB } from '@/lib/db'; // Ensure this path matches your db.ts location
+import { connectDB } from '@/lib/db';
 import mongoose from 'mongoose';
+import { z } from 'zod';
 
-// Ensure the models are registered
 import '@/models/Transaction'; 
 import '@/models/Category';
 
+const createTransactionSchema = z.object({
+  category_id: z.string().min(1).optional().nullable(),
+  type: z.enum(['Income', 'Expense'], {
+    error: 'type is required and must be "Income" or "Expense"',
+  }),
+  amount: z.number({ error: 'amount is required and must be a number' }).positive('amount must be greater than 0'),
+  date: z.string().min(1, 'date is required'),
+  note: z.string().max(255).optional(),
+});
+
 export async function POST(req: Request) {
   try {
-    // 1. Authentication (Team Auth domain)
-    // We strictly extract user_id from the header, ignoring any user_id in the body.
     const authHeader = req.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json(
@@ -17,63 +25,88 @@ export async function POST(req: Request) {
         { status: 401 }
       );
     }
-    
-    // TODO: Replace with actual token verification logic from the Auth team
-    const user_id = 'mocked_user_id_from_token'; 
 
-    // 2. Parse Request Body
+    const user_id = 'mocked_user_id_from_token';
+
     const body = await req.json();
-    const { category_id, type, amount, date, note } = body;
 
     // ==========================================
-    // 🛑 VALIDATION BLOCK (Reserved for Ice)
-    // Ice will inject his Zod schema validation here.
-    // If it fails, he will return a 422 VALIDATION_ERROR.
+    // 🛑 VALIDATION BLOCK — request-shape validation only.
+    // Business-rule validation (category exists, category.type matches
+    // transaction.type) lives in Transaction's pre('save') hook and is
+    // caught below as a 422 as well.
     // ==========================================
+    const parsed = createTransactionSchema.safeParse(body);
 
-    // 3. Database Operations
+    if (!parsed.success) {
+      const fields: Record<string, string> = {};
+      for (const issue of parsed.error.issues) {
+        const key = issue.path.join('.') || 'root';
+        fields[key] = issue.message;
+      }
+
+      return NextResponse.json(
+        { error: { code: 'VALIDATION_ERROR', message: 'One or more fields are invalid', fields } },
+        { status: 422 }
+      );
+    }
+
+    const { category_id, type, amount, date, note } = parsed.data;
+
     await connectDB();
     const Transaction = mongoose.model('Transaction');
 
-    // Create the transaction in MongoDB
     const newTransaction = await Transaction.create({
       userId: user_id,
       categoryId: category_id || null,
-      type: type,
-      amount: amount, // Mongoose automatically casts the JS number to Decimal128
+      type,
+      amount,
       date: new Date(date),
-      notes: note // Mapping API 'note' to our DB schema 'notes' field
+      note,
     });
 
-    // 4. Format the standard 201 Response
     return NextResponse.json(
       {
         data: {
-          id: newTransaction._id.toString(), // Mapping DB '_id' to API 'id'
-          category_id: newTransaction.categoryId.toString(),
+          id: newTransaction._id.toString(),
+          category_id: newTransaction.categoryId ? newTransaction.categoryId.toString() : null,
           type: newTransaction.type,
-          // Convert Decimal128 back to a standard JavaScript number for the JSON response
-          amount: parseFloat(newTransaction.amount.toString()),
-          // Format Date object back to "YYYY-MM-DD"
+          amount: newTransaction.amount,
           date: newTransaction.date.toISOString().split('T')[0],
-          note: newTransaction.notes
-        }
+          note: newTransaction.note,
+        },
       },
       { status: 201 }
     );
 
   } catch (error) {
     console.error('Add Transaction Error:', error);
-    
-    // Fallback error handler
+
+    // Catch Mongoose-level validation/business-rule failures
+    // (category doesn't exist, category.type mismatch, min amount, etc.)
+    if (error instanceof mongoose.Error.ValidationError) {
+      const fields: Record<string, string> = {};
+      for (const [key, err] of Object.entries(error.errors)) {
+        fields[key] = err.message;
+      }
+      return NextResponse.json(
+        { error: { code: 'VALIDATION_ERROR', message: 'One or more fields are invalid', fields } },
+        { status: 422 }
+      );
+    }
+
+    if (error instanceof Error && (
+      error.message.includes('does not exist') ||
+      error.message.includes('does not match category type')
+    )) {
+      return NextResponse.json(
+        { error: { code: 'VALIDATION_ERROR', message: error.message, fields: {} } },
+        { status: 422 }
+      );
+    }
+
     return NextResponse.json(
-      { 
-        error: { 
-          code: 'INTERNAL_SERVER_ERROR', 
-          message: 'Failed to create transaction',
-          fields: {} 
-        } 
-      },
+      { error: { code: 'INTERNAL_SERVER_ERROR', message: 'Failed to create transaction', fields: {} } },
       { status: 500 }
     );
   }

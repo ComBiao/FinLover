@@ -1,9 +1,20 @@
 import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
 import mongoose from 'mongoose';
+import { z } from 'zod';
 
 import '@/models/Transaction';
 import '@/models/Category';
+
+const updateTransactionSchema = z.object({
+  category_id: z.string().min(1).optional().nullable(),
+  type: z.enum(['Income', 'Expense'], {
+    error: 'type is required and must be "Income" or "Expense"',
+  }),
+  amount: z.number({ error: 'amount is required and must be a number' }).positive('amount must be greater than 0'),
+  date: z.string().min(1, 'date is required'),
+  note: z.string().max(255).optional(),
+});
 
 // Next.js passes dynamic route parameters as the second argument
 export async function PUT(
@@ -24,13 +35,38 @@ export async function PUT(
 
     // 2. Parse Request Body
     const body = await req.json();
-    const { category_id, type, amount, date, note } = body;
 
     // ==========================================
-    // 🛑 VALIDATION BLOCK (Reserved for Ice)
-    // Validate the params.id is a valid format.
+    // 🛑 VALIDATION BLOCK
+    // Validate params.id is a valid ObjectId format.
     // Validate the body payload matches rules.
+    // Business-rule validation (category exists, category.type matches
+    // transaction.type) lives in Transaction's pre('save') hook and is
+    // caught below as a 422 as well.
     // ==========================================
+    if (!mongoose.Types.ObjectId.isValid(params.id)) {
+      return NextResponse.json(
+        { error: { code: 'VALIDATION_ERROR', message: 'Invalid transaction id format', fields: { id: 'must be a valid ObjectId' } } },
+        { status: 422 }
+      );
+    }
+
+    const parsed = updateTransactionSchema.safeParse(body);
+
+    if (!parsed.success) {
+      const fields: Record<string, string> = {};
+      for (const issue of parsed.error.issues) {
+        const key = issue.path.join('.') || 'root';
+        fields[key] = issue.message;
+      }
+
+      return NextResponse.json(
+        { error: { code: 'VALIDATION_ERROR', message: 'One or more fields are invalid', fields } },
+        { status: 422 }
+      );
+    }
+
+    const { category_id, type, amount, date, note } = parsed.data;
 
     // 3. Database Operations
     await connectDB();
@@ -51,7 +87,7 @@ export async function PUT(
     }
 
     // Update fields (Full Replace as defined in the spec)
-    existingTransaction.categoryId = category_id;
+    existingTransaction.categoryId = category_id || null;
     existingTransaction.type = type;
     existingTransaction.amount = amount;
     existingTransaction.date = new Date(date);
@@ -76,6 +112,30 @@ export async function PUT(
 
   } catch (error) {
     console.error('Update Transaction Error:', error);
+
+    // Catch Mongoose-level validation/business-rule failures
+    // (category doesn't exist, category.type mismatch, min amount, etc.)
+    if (error instanceof mongoose.Error.ValidationError) {
+      const fields: Record<string, string> = {};
+      for (const [key, err] of Object.entries(error.errors)) {
+        fields[key] = err.message;
+      }
+      return NextResponse.json(
+        { error: { code: 'VALIDATION_ERROR', message: 'One or more fields are invalid', fields } },
+        { status: 422 }
+      );
+    }
+
+    if (error instanceof Error && (
+      error.message.includes('does not exist') ||
+      error.message.includes('does not match category type')
+    )) {
+      return NextResponse.json(
+        { error: { code: 'VALIDATION_ERROR', message: error.message, fields: {} } },
+        { status: 422 }
+      );
+    }
+
     return NextResponse.json(
       { 
         error: { 
@@ -103,6 +163,17 @@ export async function DELETE(
     }
     
     const user_id = 'mocked_user_id_from_token'; 
+
+    // ==========================================
+    // 🛑 VALIDATION BLOCK
+    // Validate params.id is a valid ObjectId format.
+    // ==========================================
+    if (!mongoose.Types.ObjectId.isValid(params.id)) {
+      return NextResponse.json(
+        { error: { code: 'VALIDATION_ERROR', message: 'Invalid transaction id format', fields: { id: 'must be a valid ObjectId' } } },
+        { status: 422 }
+      );
+    }
 
     // 2. Database Operations
     await connectDB();
