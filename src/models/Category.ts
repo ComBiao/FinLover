@@ -22,7 +22,10 @@ const CategorySchema: Schema = new Schema({
 
 CategorySchema.index({ userId: 1, name: 1 }, { unique: true });
 
-// Database-Level Cascade Update
+/**
+ * Pre-delete hook that reassigns all transactions linked to this category to "No Category" (null).
+ * Database-Level Cascade Update.
+ */
 CategorySchema.pre('findOneAndDelete', async function(next) {
   const categoryId = this.getQuery()._id;
   const Transaction = mongoose.model('Transaction');
