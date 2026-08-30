@@ -35,7 +35,7 @@ export type SessionVerificationResult<T> =
 export function verifySessionToken<T>(
   token: string | undefined | null
 ): SessionVerificationResult<T> {
-  if (!token) {
+  if (token === undefined || token === null) {
     return { valid: false, reason: "missing" };
   }
 
