@@ -19,7 +19,7 @@ const updateTransactionSchema = z.object({
 // Next.js passes dynamic route parameters as the second argument
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // 1. Authentication
@@ -30,21 +30,22 @@ export async function PUT(
         { status: 401 }
       );
     }
-    
-    const user_id = 'mocked_user_id_from_token'; 
 
-    // 2. Parse Request Body
+    const user_id = 'mocked_user_id_from_token';
+
+    // 2. Resolve dynamic params + parse body
+    const { id } = await params;
     const body = await req.json();
 
     // ==========================================
     // 🛑 VALIDATION BLOCK
-    // Validate params.id is a valid ObjectId format.
+    // Validate id is a valid ObjectId format.
     // Validate the body payload matches rules.
     // Business-rule validation (category exists, category.type matches
     // transaction.type) lives in Transaction's pre('save') hook and is
     // caught below as a 422 as well.
     // ==========================================
-    if (!mongoose.Types.ObjectId.isValid(params.id)) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json(
         { error: { code: 'VALIDATION_ERROR', message: 'Invalid transaction id format', fields: { id: 'must be a valid ObjectId' } } },
         { status: 422 }
@@ -74,7 +75,7 @@ export async function PUT(
 
     // Find the exact transaction belonging ONLY to this user
     const existingTransaction = await Transaction.findOne({
-      _id: params.id,
+      _id: id,
       userId: user_id
     });
 
@@ -150,7 +151,7 @@ export async function PUT(
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // 1. Authentication
@@ -161,32 +162,35 @@ export async function DELETE(
         { status: 401 }
       );
     }
-    
-    const user_id = 'mocked_user_id_from_token'; 
+
+    const user_id = 'mocked_user_id_from_token';
+
+    // 2. Resolve dynamic params
+    const { id } = await params;
 
     // ==========================================
     // 🛑 VALIDATION BLOCK
-    // Validate params.id is a valid ObjectId format.
+    // Validate id is a valid ObjectId format.
     // ==========================================
-    if (!mongoose.Types.ObjectId.isValid(params.id)) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json(
         { error: { code: 'VALIDATION_ERROR', message: 'Invalid transaction id format', fields: { id: 'must be a valid ObjectId' } } },
         { status: 422 }
       );
     }
 
-    // 2. Database Operations
+    // 3. Database Operations
     await connectDB();
     const Transaction = mongoose.model('Transaction');
 
     // Find and delete the transaction ONLY if it belongs to this user.
     // Using findOneAndDelete triggers any Mongoose pre/post middleware hooks you might have.
     const deletedTransaction = await Transaction.findOneAndDelete({
-      _id: params.id,
+      _id: id,
       userId: user_id
     });
 
-    // 3. Handle 404 (Not Found or Not Owned)
+    // 4. Handle 404 (Not Found or Not Owned)
     // If it doesn't exist, or if another user tries to delete it, it returns 404.
     if (!deletedTransaction) {
       return NextResponse.json(
@@ -195,7 +199,7 @@ export async function DELETE(
       );
     }
 
-    // 4. Format 204 Response (No Content)
+    // 5. Format 204 Response (No Content)
     // A 204 response technically shouldn't have a JSON body, so we return null.
     return new NextResponse(null, { status: 204 });
 
