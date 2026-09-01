@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Migration: convert Transaction.amount from Number -> Decimal128
  *
  * Run once against each environment before deploying the updated Transaction model:
@@ -9,12 +9,15 @@
  * Decimal128 are skipped automatically by the $type filter.
  *
  * Prerequisites:
- *   - MONGODB_URI must be set in .env.local (loaded below via dotenv/config).
+ *   - MONGODB_URI must be set in .env.local (loaded via dotenv.config).
  *   - Run with Node 18+ / tsx.
  */
 
-import 'dotenv/config';
+import path from 'path';
+import dotenv from 'dotenv';
 import mongoose from 'mongoose';
+
+dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
 const MONGODB_URI = process.env.MONGODB_URI;
 if (!MONGODB_URI) {
