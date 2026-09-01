@@ -2,11 +2,15 @@ import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
 import mongoose from 'mongoose';
 import { z } from 'zod';
+import jwt from 'jsonwebtoken';
+import { verifyToken } from '@/lib/auth';
 
 import '@/models/Transaction'; 
 import '@/models/Category';
+import '@/models/Wallet';
 
 const createTransactionSchema = z.object({
+  wallet_id: z.string().min(1, 'wallet_id is required'),
   category_id: z.string().min(1).optional().nullable(),
   type: z.enum(['Income', 'Expense'], {
     error: 'type is required and must be "Income" or "Expense"',
@@ -26,7 +30,20 @@ export async function POST(req: Request) {
       );
     }
 
-    const user_id = 'mocked_user_id_from_token';
+    const token = authHeader.slice(7); // strip "Bearer "
+    let user_id: string;
+    try {
+      const payload = verifyToken<{ userId: string }>(token);
+      user_id = payload.userId;
+    } catch (err) {
+      if (err instanceof jwt.JsonWebTokenError) {
+        return NextResponse.json(
+          { error: { code: 'UNAUTHORIZED', message: 'Invalid or expired token' } },
+          { status: 401 }
+        );
+      }
+      throw err;
+    }
 
     const body = await req.json();
 
@@ -51,13 +68,31 @@ export async function POST(req: Request) {
       );
     }
 
-    const { category_id, type, amount, date, note } = parsed.data;
+    const { wallet_id, category_id, type, amount, date, note } = parsed.data;
 
     await connectDB();
     const Transaction = mongoose.model('Transaction');
+    const Wallet = mongoose.model('Wallet');
+
+    // Verify the wallet exists and belongs to the authenticated user before any write
+    if (!mongoose.Types.ObjectId.isValid(wallet_id)) {
+      return NextResponse.json(
+        { error: { code: 'VALIDATION_ERROR', message: 'One or more fields are invalid', fields: { wallet_id: 'must be a valid ObjectId' } } },
+        { status: 422 }
+      );
+    }
+
+    const wallet = await Wallet.findOne({ _id: wallet_id, userId: user_id }).lean();
+    if (!wallet) {
+      return NextResponse.json(
+        { error: { code: 'NOT_FOUND', message: 'Wallet not found' } },
+        { status: 404 }
+      );
+    }
 
     const newTransaction = await Transaction.create({
       userId: user_id,
+      walletId: wallet_id,
       categoryId: category_id || null,
       type,
       amount,
@@ -69,9 +104,10 @@ export async function POST(req: Request) {
       {
         data: {
           id: newTransaction._id.toString(),
+          wallet_id: newTransaction.walletId.toString(),
           category_id: newTransaction.categoryId ? newTransaction.categoryId.toString() : null,
           type: newTransaction.type,
-          amount: newTransaction.amount,
+          amount: parseFloat(newTransaction.amount.toString()),
           date: newTransaction.date.toISOString().split('T')[0],
           note: newTransaction.note,
         },

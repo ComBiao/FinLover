@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
 import mongoose from 'mongoose';
 import { z } from 'zod';
+import jwt from 'jsonwebtoken';
+import { verifyToken } from '@/lib/auth';
 
 import '@/models/Transaction';
 import '@/models/Category';
@@ -31,7 +33,20 @@ export async function PUT(
       );
     }
 
-    const user_id = 'mocked_user_id_from_token';
+    const token = authHeader.slice(7); // strip "Bearer "
+    let user_id: string;
+    try {
+      const payload = verifyToken<{ userId: string }>(token);
+      user_id = payload.userId;
+    } catch (err) {
+      if (err instanceof jwt.JsonWebTokenError) {
+        return NextResponse.json(
+          { error: { code: 'UNAUTHORIZED', message: 'Invalid or expired token' } },
+          { status: 401 }
+        );
+      }
+      throw err;
+    }
 
     // 2. Resolve dynamic params + parse body
     const { id } = await params;
@@ -92,7 +107,7 @@ export async function PUT(
     existingTransaction.type = type;
     existingTransaction.amount = amount;
     existingTransaction.date = new Date(date);
-    existingTransaction.notes = note;
+    existingTransaction.note = note;
 
     await existingTransaction.save();
 
@@ -105,7 +120,7 @@ export async function PUT(
           type: existingTransaction.type,
           amount: parseFloat(existingTransaction.amount.toString()),
           date: existingTransaction.date.toISOString().split('T')[0],
-          note: existingTransaction.notes
+          note: existingTransaction.note
         }
       },
       { status: 200 }
@@ -163,7 +178,20 @@ export async function DELETE(
       );
     }
 
-    const user_id = 'mocked_user_id_from_token';
+    const token = authHeader.slice(7); // strip "Bearer "
+    let user_id: string;
+    try {
+      const payload = verifyToken<{ userId: string }>(token);
+      user_id = payload.userId;
+    } catch (err) {
+      if (err instanceof jwt.JsonWebTokenError) {
+        return NextResponse.json(
+          { error: { code: 'UNAUTHORIZED', message: 'Invalid or expired token' } },
+          { status: 401 }
+        );
+      }
+      throw err;
+    }
 
     // 2. Resolve dynamic params
     const { id } = await params;

@@ -1,10 +1,11 @@
 import mongoose, { Schema, Document } from 'mongoose';
+import mongooseLeanGetters from 'mongoose-lean-getters';
 
 export interface ITransaction extends Document {
   userId: mongoose.Types.ObjectId;
   walletId: mongoose.Types.ObjectId;
   categoryId: mongoose.Types.ObjectId | null;
-  amount: number;
+  amount: mongoose.Types.Decimal128;
   type: 'Income' | 'Expense';
   date: Date;
   note?: string;
@@ -22,15 +23,17 @@ const TransactionSchema: Schema = new Schema({
     default: null
   },
   amount: {
-    type: Number,
+    type: Schema.Types.Decimal128,
     required: true,
-    min: [0.01, 'Amount must be greater than zero.'],
+    get: (value: mongoose.Types.Decimal128) => (value ? parseFloat(value.toString()) : 0),
   },
   type: { type: String, enum: ['Income', 'Expense'], required: true },
   date: { type: Date, required: true },
   note: { type: String, maxlength: 255 },
 }, {
   timestamps: true,
+  toJSON: { getters: true },
+  toObject: { getters: true },
 });
 
 // Compound index: list transactions for a user, newest first
@@ -41,7 +44,7 @@ TransactionSchema.pre('save', async function () {
   if (!this.categoryId) return;
 
   const Category = mongoose.model('Category');
-  const category = await Category.findById(this.categoryId).lean() as { type?: string } | null;
+  const category = await Category.findOne({ _id: this.categoryId, userId: this.userId }).lean() as { type?: string } | null;
 
   if (!category) {
     throw new Error(`Category with id '${this.categoryId}' does not exist.`);
@@ -54,6 +57,8 @@ TransactionSchema.pre('save', async function () {
     );
   }
 });
+
+TransactionSchema.plugin(mongooseLeanGetters);
 
 // TypeScript Hot-Reload Safety Cast
 export default (mongoose.models.Transaction as mongoose.Model<ITransaction>) || mongoose.model<ITransaction>('Transaction', TransactionSchema);
