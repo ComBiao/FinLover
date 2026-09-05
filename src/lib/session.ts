@@ -1,39 +1,43 @@
-import type { Request, Response, CookieOptions } from "express";
-import jwt from "jsonwebtoken";
+import "server-only";
+import { cookies } from "next/headers";
+import jwt, { type SignOptions } from "jsonwebtoken";
 import { verifyToken } from "./auth";
 
 export const SESSION_COOKIE_NAME = "session_token";
 
-const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+const SEVEN_DAYS_SECONDS = 7 * 24 * 60 * 60;
 
-/**
- * Returns standard cookie options for session management.
- * Reuse this function instead of hardcoding the options, reduce mismatch risks.
- */
-function cookieOptions(): CookieOptions {
+function cookieOptions() {
   return {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production", // Secure only on production
-    sameSite: "lax",
+    // "Secure" requires HTTPS. Most browsers won't set it at all over
+    // plain http://localhost in dev, so gate it on NODE_ENV rather than
+    // hardcoding true — otherwise local dev logins silently fail.
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax" as const,
     path: "/",
   };
 }
 
 /**
- * Sets a session cookie with the provided JWT token, expires in 7 days.
+ * Sets the session cookie after a successful login.
+ * Callable from a Route Handler or Server Action — Next.js only allows
+ * cookie writes in those two contexts, not in Server Components.
  */
-export function setSessionCookie(res: Response, token: string): void {
-  res.cookie(SESSION_COOKIE_NAME, token, {
+export async function setSessionCookie(token: string): Promise<void> {
+  const cookieStore = await cookies();
+  cookieStore.set(SESSION_COOKIE_NAME, token, {
     ...cookieOptions(),
-    maxAge: SEVEN_DAYS_MS,
+    maxAge: SEVEN_DAYS_SECONDS, // Next.js's maxAge is in seconds, not ms
   });
 }
 
 /**
- * Clears the session cookie from the response.
+ * Clears the session cookie on logout (#16).
  */
-export function clearSessionCookie(res: Response): void {
-  res.clearCookie(SESSION_COOKIE_NAME, cookieOptions());
+export async function clearSessionCookie(): Promise<void> {
+  const cookieStore = await cookies();
+  cookieStore.delete(SESSION_COOKIE_NAME);
 }
 
 export type SessionVerificationResult<T> =
@@ -41,7 +45,11 @@ export type SessionVerificationResult<T> =
   | { valid: false; reason: "missing" | "expired" | "invalid" };
 
 /**
- * Verifies a session token and returns the result with payload or error reason.
+ * Pure verification, decoupled from the transport. Exposes *why*
+ * verification failed (missing / expired / invalid), which
+ * getSessionUser() below intentionally collapses to null for callers
+ * that just need a yes/no answer. Unchanged from the Express version —
+ * this part never depended on the framework.
  */
 export function verifySessionToken<T>(
   token: string | undefined | null
@@ -57,15 +65,21 @@ export function verifySessionToken<T>(
     if (err instanceof jwt.TokenExpiredError) {
       return { valid: false, reason: "expired" };
     }
+    // Covers JsonWebTokenError (bad signature, tampered payload,
+    // malformed string, wrong secret) and NotBeforeError.
     return { valid: false, reason: "invalid" };
   }
 }
 
 /**
- * Extracts and verifies the session user from the request cookies.
+ * The function the rest of the app should call — from Server
+ * Components, Route Handlers, or Server Actions alike. Reads the
+ * session cookie via next/headers and returns the decoded payload, or
+ * null if the request is unauthenticated for any reason. Never throws.
  */
-export function getSessionUser<T>(req: Request): T | null {
-  const token = req.cookies?.[SESSION_COOKIE_NAME];
+export async function getSessionUser<T>(): Promise<T | null> {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
   const result = verifySessionToken<T>(token);
   return result.valid ? result.payload : null;
 }
