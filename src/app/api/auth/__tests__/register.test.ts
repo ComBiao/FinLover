@@ -145,6 +145,44 @@ describe("POST /api/auth/register", () => {
       expect(await User.countDocuments()).toBe(0);
     });
 
+    it("accepts a password of exactly 72 UTF-8 bytes", async () => {
+      const password = "a".repeat(72);
+      const { res } = await post({
+        ...VALID_BODY,
+        password,
+        confirmPassword: password,
+      });
+
+      expect(res.status).toBe(201);
+    });
+
+    it("rejects a password longer than 72 UTF-8 bytes, which bcrypt would silently truncate", async () => {
+      const password = "a".repeat(73);
+      const { res, json } = await post({
+        ...VALID_BODY,
+        password,
+        confirmPassword: password,
+      });
+
+      expect(res.status).toBe(400);
+      expect(json.error.fields.password).toBeDefined();
+      expect(await User.countDocuments()).toBe(0);
+    });
+
+    it("counts the password limit in bytes, not characters", async () => {
+      // 19 emoji = 19 characters but 76 UTF-8 bytes.
+      const password = "🔒".repeat(19);
+      const { res, json } = await post({
+        ...VALID_BODY,
+        password,
+        confirmPassword: password,
+      });
+
+      expect(res.status).toBe(400);
+      expect(json.error.fields.password).toBeDefined();
+      expect(await User.countDocuments()).toBe(0);
+    });
+
     it("rejects a body with confirmPassword missing entirely with 400, not 500", async () => {
       const { email, password, dataPrivacyConsent } = VALID_BODY;
       const { res, json } = await post({ email, password, dataPrivacyConsent });

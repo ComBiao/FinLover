@@ -4,6 +4,16 @@ import { z } from "zod";
 export const PASSWORD_MIN_LENGTH = 8;
 
 /**
+ * bcrypt hashes only the first 72 UTF-8 bytes and silently ignores the rest, so
+ * two passwords sharing a 72-byte prefix would authenticate interchangeably.
+ * Reject anything longer rather than let it be truncated. Counted in bytes, not
+ * characters — one emoji is four of these.
+ */
+export const PASSWORD_MAX_BYTES = 72;
+
+const utf8ByteLength = (value: string) => new TextEncoder().encode(value).length;
+
+/**
  * Request body accepted by `POST /api/auth/register`.
  *
  * `dataPrivacyConsent` is a `literal(true)` rather than a boolean: a missing
@@ -17,6 +27,9 @@ export const registerSchema = z
       .string({ error: "Password is required" })
       .min(PASSWORD_MIN_LENGTH, {
         error: `Password must be at least ${PASSWORD_MIN_LENGTH} characters`,
+      })
+      .refine((value) => utf8ByteLength(value) <= PASSWORD_MAX_BYTES, {
+        error: `Password must be at most ${PASSWORD_MAX_BYTES} bytes`,
       }),
     confirmPassword: z.string({ error: "Password confirmation is required" }),
     dataPrivacyConsent: z.literal(true, {
