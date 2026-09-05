@@ -24,8 +24,21 @@ const TransactionSchema: Schema = new Schema({
   amount: {
     type: mongoose.Types.Decimal128,
     required: true,
-    min: [0.01, 'Amount must be greater than zero.'],
-  },
+    validate: {
+      validator: function(v: mongoose.Types.Decimal128) {
+        const str = v.toString();
+        if (str.startsWith('-')) return false;
+        
+        const [intPart, decPart = ''] = str.split('.');
+        if (intPart.replace(/^0+/, '').length > 0) return true; // int >= 1
+        
+        // If integer is 0, ensure fraction doesn't start with '00' (< 0.01) and isn't all zeros (exactly 0)
+        if (decPart.startsWith('00') || decPart.replace(/0/g, '').length === 0) return false;
+        return true;
+      },
+      message: 'Amount must be greater than zero.'
+    }
+   },
   type: { type: String, enum: ['Income', 'Expense'], required: true },
   date: { type: Date, required: true },
   note: { type: String, maxlength: 255 },
@@ -33,15 +46,16 @@ const TransactionSchema: Schema = new Schema({
   timestamps: true,
 });
 
-// Compound index: list transactions for a user, newest first
 TransactionSchema.index({ userId: 1, date: -1 });
+TransactionSchema.index({ walletId: 1 });
+TransactionSchema.index({ categoryId: 1 });
 
 TransactionSchema.pre('save', async function () {
 
   if (!this.categoryId) return;
 
   const Category = mongoose.model('Category');
-  const category = await Category.findById(this.categoryId).lean() as { type?: string } | null;
+  const category = await Category.findById(this.categoryId).session(this.$session()).lean() as { type?: string } | null;
 
   if (!category) {
     throw new Error(`Category with id '${this.categoryId}' does not exist.`);
