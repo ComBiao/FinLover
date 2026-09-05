@@ -45,7 +45,7 @@ erDiagram
     Decimal128 amount
     String type
     Date date
-    String notes
+    String note
     ObjectId _id
     Date createdAt
     Date updatedAt
