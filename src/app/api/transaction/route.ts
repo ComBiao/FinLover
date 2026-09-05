@@ -13,8 +13,7 @@ const createTransactionSchema = z.object({
   wallet_id: z.string().min(1, 'wallet_id is required'),
   category_id: z.string().min(1).optional().nullable(),
   type: z.enum(['Income', 'Expense'], {
-    error: 'type is required and must be "Income" or "Expense"',
-  }),
+  error: 'type is required and must be "Income" or "Expense"',}),
   amount: z.number({ error: 'amount is required and must be a number' }).positive('amount must be greater than 0'),
   date: z.string().min(1, 'date is required'),
   note: z.string().max(255).optional(),

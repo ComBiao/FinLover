@@ -116,6 +116,7 @@ export async function PUT(
       {
         data: {
           id: existingTransaction._id.toString(),
+          wallet_id: existingTransaction.walletId.toString(),
           category_id: existingTransaction.categoryId?.toString() || null,
           type: existingTransaction.type,
           amount: parseFloat(existingTransaction.amount.toString()),

@@ -1,5 +1,6 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import mongooseLeanGetters from 'mongoose-lean-getters';
+import Category from './Category';
 
 export interface ITransaction extends Document {
   userId: mongoose.Types.ObjectId;
@@ -36,25 +37,45 @@ const TransactionSchema: Schema = new Schema({
   toObject: { getters: true },
 });
 
-// Compound index: list transactions for a user, newest first
+// Compound indexes:
+// - list/sum transactions for a user, newest first
+// - list/sum transactions for a specific wallet, newest first (wallet history, balance calc)
 TransactionSchema.index({ userId: 1, date: -1 });
+TransactionSchema.index({ walletId: 1, date: -1 });
 
-TransactionSchema.pre('save', async function () {
+TransactionSchema.pre('save', async function (this: ITransaction) {
+  // Only re-validate category/wallet ownership when relevant fields actually changed,
+  // to avoid unnecessary DB round-trips on every save (e.g. editing just `note`).
+  const needsCategoryCheck = this.isModified('categoryId') || this.isModified('type');
+  const needsWalletCheck = this.isModified('walletId');
 
-  if (!this.categoryId) return;
+  if (needsWalletCheck) {
+    // Use this.$model to avoid MissingSchemaError if Wallet hasn't been
+    // imported/compiled elsewhere yet, and to prevent cross-file registration
+    // order issues.
+    const Wallet = this.$model('Wallet');
+    const wallet = await Wallet.findOne({ _id: this.walletId, userId: this.userId }).lean();
 
-  const Category = mongoose.model('Category');
-  const category = await Category.findOne({ _id: this.categoryId, userId: this.userId }).lean() as { type?: string } | null;
-
-  if (!category) {
-    throw new Error(`Category with id '${this.categoryId}' does not exist.`);
+    if (!wallet) {
+      throw new Error(`Wallet with id '${this.walletId}' does not exist or does not belong to this user.`);
+    }
   }
 
-  if (category.type !== this.type) {
-    throw new Error(
-      `Transaction type '${this.type}' does not match category type '${category.type}'. ` +
-      'A transaction must belong to a category of the same type.'
-    );
+  if (needsCategoryCheck) {
+    if (!this.categoryId) return;
+
+    const category = await Category.findOne({ _id: this.categoryId, userId: this.userId }).lean() as { type?: string } | null;
+
+    if (!category) {
+      throw new Error(`Category with id '${this.categoryId}' does not exist.`);
+    }
+
+    if (category.type !== this.type) {
+      throw new Error(
+        `Transaction type '${this.type}' does not match category type '${category.type}'. ` +
+        'A transaction must belong to a category of the same type.'
+      );
+    }
   }
 });
 
