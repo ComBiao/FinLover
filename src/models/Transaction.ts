@@ -46,8 +46,12 @@ TransactionSchema.index({ walletId: 1, date: -1 });
 TransactionSchema.pre('save', async function (this: ITransaction) {
   // Only re-validate category/wallet ownership when relevant fields actually changed,
   // to avoid unnecessary DB round-trips on every save (e.g. editing just `note`).
-  const needsCategoryCheck = this.isModified('categoryId') || this.isModified('type');
-  const needsWalletCheck = this.isModified('walletId');
+  const needsCategoryCheck =
+    this.isModified('userId') ||
+    this.isModified('categoryId') ||
+    this.isModified('type');
+  const needsWalletCheck =
+    this.isModified('userId') || this.isModified('walletId');
 
   if (needsWalletCheck) {
     // Use this.$model to avoid MissingSchemaError if Wallet hasn't been
