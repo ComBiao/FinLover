@@ -19,6 +19,9 @@ vi.mock("next/headers", () => ({
 
 import { cookies } from "next/headers";
 
+/**
+ * Mocks the next/headers cookies() function to return a specific session token.
+ */
 function mockIncomingCookie(token?: string) {
   vi.mocked(cookies).mockResolvedValue({
     get: (name: string) =>
@@ -28,6 +31,9 @@ function mockIncomingCookie(token?: string) {
   } as Awaited<ReturnType<typeof cookies>>);
 }
 
+/**
+ * Signs a JWT token with a custom expiry time for testing expired tokens.
+ */
 function signWithExpiry(payload: object, expiresIn: SignOptions["expiresIn"]) {
   return jwt.sign(payload, process.env.JWT_SECRET as string, { expiresIn });
 }

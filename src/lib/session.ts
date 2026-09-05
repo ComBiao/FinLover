@@ -7,6 +7,9 @@ export const SESSION_COOKIE_NAME = "session_token";
 
 const SEVEN_DAYS_SECONDS = 7 * 24 * 60 * 60;
 
+/**
+ * Returns the standard cookie options for session cookies (httpOnly, secure in production, lax SameSite).
+ */
 function cookieOptions() {
   return {
     httpOnly: true,
