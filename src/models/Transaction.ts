@@ -4,7 +4,7 @@ export interface ITransaction extends Document {
   userId: mongoose.Types.ObjectId;
   walletId: mongoose.Types.ObjectId;
   categoryId: mongoose.Types.ObjectId | null;
-  amount: number;
+  amount: mongoose.Types.Decimal128;
   type: 'Income' | 'Expense';
   date: Date;
   note?: string;
@@ -22,7 +22,7 @@ const TransactionSchema: Schema = new Schema({
     default: null
   },
   amount: {
-    type: Number,
+    type: mongoose.Types.Decimal128,
     required: true,
     min: [0.01, 'Amount must be greater than zero.'],
   },
