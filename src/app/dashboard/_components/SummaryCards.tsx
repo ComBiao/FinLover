@@ -1,10 +1,12 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 
-// TODO: replace hardcoded balance/goal/spend figures with a
-// `useDashboardData` react-query hook once GET /api/transactions and
-// GET /api/goals exist.
-
+/**
+ * Displays three summary cards showing total balance, savings goal progress, and monthly spending.
+ * TODO: replace hardcoded balance/goal/spend figures with a
+ * `useDashboardData` react-query hook once GET /api/transactions and
+ * GET /api/goals exist.
+ */
 export function SummaryCards() {
   return (
     <div className="grid grid-cols-1 gap-[18px] md:grid-cols-[1.4fr_1fr_1fr]">

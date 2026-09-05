@@ -11,6 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 
+/**
+ * Registration page for creating a new user account with email/password or Google OAuth.
+ */
 export default function RegisterPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4 py-10 sm:px-6">

@@ -13,11 +13,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+/**
+ * Top navigation bar for the dashboard with logo, user avatar dropdown, and logout functionality.
+ */
 export function DashboardHeader() {
   const [toastVisible, setToastVisible] = React.useState(false);
 
-  // TODO: wire to a real logout action — clear the session/JWT via
-  // src/lib/auth.ts and POST /api/auth/logout, then redirect to /login.
+  /**
+   * Temporarily shows a success toast when logout is clicked.
+   * TODO: wire to a real logout action — clear the session/JWT via
+   * src/lib/auth.ts and POST /api/auth/logout, then redirect to /login.
+   */
   function handleLogOut() {
     setToastVisible(true);
     setTimeout(() => setToastVisible(false), 2600);

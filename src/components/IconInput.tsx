@@ -7,6 +7,9 @@ type IconInputProps = React.ComponentProps<"input"> & {
   icon: LucideIcon;
 };
 
+/**
+ * Text input with a leading icon from lucide-react.
+ */
 export function IconInput({ icon: Icon, className, ...props }: IconInputProps) {
   return (
     <div

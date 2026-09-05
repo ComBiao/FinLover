@@ -6,6 +6,9 @@ import { RecentTransactions } from "./_components/RecentTransactions";
 import { SpendingTrendChart } from "./_components/SpendingTrendChart";
 import { SummaryCards } from "./_components/SummaryCards";
 
+/**
+ * Main dashboard page displaying financial overview, spending trends, and recent transactions.
+ */
 export default function DashboardPage() {
   return (
     <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">

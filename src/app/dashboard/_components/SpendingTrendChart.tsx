@@ -2,9 +2,11 @@ import { Card, CardContent } from "@/components/ui/card";
 
 const MONTHS = ["Mar", "Apr", "May", "Jun", "Jul", "Aug"];
 
-// TODO: replace with real monthly spend totals from a `useDashboardData`
-// react-query hook once GET /api/transactions/summary exists.
-
+/**
+ * Renders a line chart showing spending trends over six months (March to August).
+ * TODO: replace with real monthly spend totals from a `useDashboardData`
+ * react-query hook once GET /api/transactions/summary exists.
+ */
 export function SpendingTrendChart() {
   return (
     <Card className="rounded-2xl shadow-sm">

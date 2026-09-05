@@ -8,6 +8,9 @@ interface LogoProps {
   textClassName?: string;
 }
 
+/**
+ * Application logo with credit card icon and "Finlover" text, supporting custom styling.
+ */
 export function Logo({ className, iconClassName, textClassName }: LogoProps) {
   return (
     <div className={cn("flex items-center gap-2.5", className)}>

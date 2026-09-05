@@ -2,6 +2,9 @@ import { Card, CardContent } from "@/components/ui/card";
 
 import { categories } from "./mock-data";
 
+/**
+ * Displays a breakdown of spending by category with color-coded dots and amounts.
+ */
 export function CategoryBreakdown() {
   return (
     <Card className="rounded-2xl shadow-sm">

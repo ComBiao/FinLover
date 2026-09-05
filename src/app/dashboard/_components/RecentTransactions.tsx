@@ -2,6 +2,9 @@ import { Card, CardContent } from "@/components/ui/card";
 
 import { transactions } from "./mock-data";
 
+/**
+ * Displays a list of recent transactions with icons, categories, dates, and amounts.
+ */
 export function RecentTransactions() {
   return (
     <Card className="rounded-2xl shadow-sm">

@@ -10,6 +10,9 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 
+/**
+ * Login page with email/password form and Google OAuth option.
+ */
 export default function LoginPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4 py-10 sm:px-6">

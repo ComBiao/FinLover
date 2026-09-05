@@ -6,6 +6,9 @@ interface GoogleButtonProps {
   onClick?: () => void;
 }
 
+/**
+ * Button styled with Google's brand colors for OAuth authentication.
+ */
 export function GoogleButton({ className, onClick }: GoogleButtonProps) {
   return (
     <Button

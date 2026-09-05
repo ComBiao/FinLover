@@ -8,6 +8,9 @@ import { cn } from "@/lib/utils";
 
 type PasswordInputProps = Omit<React.ComponentProps<"input">, "type">;
 
+/**
+ * Password input field with lock icon and toggle visibility button (eye/eye-off).
+ */
 export function PasswordInput({ className, ...props }: PasswordInputProps) {
   const [visible, setVisible] = React.useState(false);
 

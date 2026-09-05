@@ -11,6 +11,9 @@ interface AuthCardProps {
   children: ReactNode;
 }
 
+/**
+ * Two-panel card layout for authentication pages with gradient illustration panel and form panel.
+ */
 export function AuthCard({ gradient, illustration, children }: AuthCardProps) {
   return (
     <div className="mx-auto w-full max-w-5xl overflow-hidden rounded-3xl bg-card shadow-2xl">
