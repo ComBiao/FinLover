@@ -25,7 +25,7 @@ function mockIncomingCookie(token?: string) {
       name === SESSION_COOKIE_NAME && token !== undefined
         ? { name, value: token }
         : undefined,
-  } as any);
+  } as Awaited<ReturnType<typeof cookies>>);
 }
 
 function signWithExpiry(payload: object, expiresIn: SignOptions["expiresIn"]) {

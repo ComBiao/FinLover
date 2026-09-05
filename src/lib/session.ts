@@ -1,6 +1,6 @@
 import "server-only";
 import { cookies } from "next/headers";
-import jwt, { type SignOptions } from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 import { verifyToken } from "./auth";
 
 export const SESSION_COOKIE_NAME = "session_token";
