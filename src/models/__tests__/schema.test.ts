@@ -208,6 +208,15 @@ describe('Mongoose Schema Validations', () => {
   describe('Transaction Model', () => {
 
     it('should successfully save a valid Transaction & strict type cast ObjectIds', async () => {
+      // Must save the category first so the validator finds it
+      const incomeCategory = new Category({
+        _id: validCategoryId,
+        userId: validUserId,
+        name: 'Salary',
+        type: 'income',
+      });
+      await incomeCategory.save();
+
       const validTransaction = new Transaction({
         userId: validUserId.toString(),
         walletId: validWalletId.toString(),
@@ -271,11 +280,11 @@ describe('Mongoose Schema Validations', () => {
       expect(err?.errors.date).toBeDefined();
     });
 
-    it('should fail validation if amount is zero or negative', async () => {
+    it('should fail validation if amount is less than 0.01', async () => {
       const zeroAmountTx = new Transaction({
         userId: validUserId,
         walletId: validWalletId,
-        amount: 0, // Invalid: zero
+        amount: 0,
         type: 'expense',
         date: new Date(),
       });
@@ -283,22 +292,35 @@ describe('Mongoose Schema Validations', () => {
       const negativeAmountTx = new Transaction({
         userId: validUserId,
         walletId: validWalletId,
-        amount: -10, // Invalid: negative
+        amount: -10,
+        type: 'expense',
+        date: new Date(),
+      });
+
+      const tinyAmountTx = new Transaction({
+        userId: validUserId,
+        walletId: validWalletId,
+        amount: 0.0099,
         type: 'expense',
         date: new Date(),
       });
 
       let err1: mongoose.Error.ValidationError | null = null;
       let err2: mongoose.Error.ValidationError | null = null;
+      let err3: mongoose.Error.ValidationError | null = null;
       
       try { await zeroAmountTx.save(); } catch (e: any) { err1 = e; }
       try { await negativeAmountTx.save(); } catch (e: any) { err2 = e; }
+      try { await tinyAmountTx.save(); } catch (e: any) { err3 = e; }
 
       expect(err1).toBeInstanceOf(mongoose.Error.ValidationError);
       expect(err1?.errors.amount).toBeDefined();
       
       expect(err2).toBeInstanceOf(mongoose.Error.ValidationError);
       expect(err2?.errors.amount).toBeDefined();
+
+      expect(err3).toBeInstanceOf(mongoose.Error.ValidationError);
+      expect(err3?.errors.amount).toBeDefined();
     });
 
     it('should fail validation with invalid enum type', async () => {
@@ -319,6 +341,55 @@ describe('Mongoose Schema Validations', () => {
 
       expect(err).toBeInstanceOf(mongoose.Error.ValidationError);
       expect(err?.errors.type).toBeDefined();
+    });
+
+    it('should fail validation if categoryId does not exist', async () => {
+      const nonExistentCategoryTx = new Transaction({
+        userId: validUserId,
+        walletId: validWalletId,
+        categoryId: new mongoose.Types.ObjectId(), // Non-existent
+        amount: 100,
+        type: 'expense',
+        date: new Date(),
+      });
+
+      let err: mongoose.Error.ValidationError | null = null;
+      try {
+        await nonExistentCategoryTx.save();
+      } catch (error: any) {
+        err = error;
+      }
+
+      expect(err).toBeInstanceOf(mongoose.Error.ValidationError);
+      expect(err?.errors.categoryId).toBeDefined();
+    });
+
+    it('should fail validation if category type does not match transaction type', async () => {
+      const incomeCategory = new Category({
+        userId: validUserId,
+        name: 'Salary',
+        type: 'income',
+      });
+      await incomeCategory.save();
+
+      const mismatchedTx = new Transaction({
+        userId: validUserId,
+        walletId: validWalletId,
+        categoryId: incomeCategory._id,
+        amount: 100,
+        type: 'expense', // Mismatch!
+        date: new Date(),
+      });
+
+      let err: mongoose.Error.ValidationError | null = null;
+      try {
+        await mismatchedTx.save();
+      } catch (error: any) {
+        err = error;
+      }
+
+      expect(err).toBeInstanceOf(mongoose.Error.ValidationError);
+      expect(err?.errors.categoryId).toBeDefined();
     });
   });
 });

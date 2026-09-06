@@ -16,9 +16,28 @@ export interface ITransaction extends Document {
 const TransactionSchema: Schema = new Schema({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   walletId: { type: Schema.Types.ObjectId, ref: 'Wallet', required: true },
-  categoryId: { type: Schema.Types.ObjectId, ref: 'Category', default: null },
+  categoryId: { 
+    type: Schema.Types.ObjectId, 
+    ref: 'Category', 
+    default: null,
+    validate: {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      validator: async function(this: any, value: mongoose.Types.ObjectId | null) {
+        if (!value) return true;
+        const Category = mongoose.model('Category');
+        const category = await Category.findById(value);
+        if (!category) return false;
+        
+        // Mongoose 'this' might be the document (save) or query (update)
+        const txType = this.type || (this.getUpdate && this.getUpdate()?.$set?.type);
+        if (txType && category.type !== txType) return false;
+        return true;
+      },
+      message: 'Referenced category does not exist or type mismatch'
+    }
+  },
   type: { type: String, enum: ['income', 'expense'], required: true },
-  amount: { type: Number, required: true, min: [0.0001, 'Amount must be strictly positive'] },
+  amount: { type: Number, required: true, min: [0.01, 'Amount must be at least 0.01'] },
   date: { type: Date, required: true },
   notes: { type: String, maxlength: 255 },
 }, { 
@@ -28,6 +47,7 @@ const TransactionSchema: Schema = new Schema({
 });
 
 TransactionSchema.index({ userId: 1 });
+TransactionSchema.index({ walletId: 1, userId: 1 });
 TransactionSchema.index({ categoryId: 1 });
 
 TransactionSchema.plugin(mongooseLeanGetters);
