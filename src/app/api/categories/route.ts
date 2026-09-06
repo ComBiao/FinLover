@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import { connectDB } from '@/lib/db';
 import Category from '@/models/Category';
+import { verifySessionToken } from '@/lib/session';
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,11 +15,18 @@ export async function POST(req: NextRequest) {
         { status: 401 }
       );
     }
+
+    const token = authHeader.split(' ')[1];
+    const verification = verifySessionToken<{ userId: string }>(token);
     
-    const user_id = 'mocked_user_id_from_token';
-    const userId = new mongoose.Types.ObjectId(
-      Buffer.from(user_id.slice(0, 17)).toString('hex').slice(0, 24)
-    );
+    if (!verification.valid) {
+      return NextResponse.json(
+        { error: { code: 'UNAUTHORIZED', message: 'Missing or invalid token' } },
+        { status: 401 }
+      );
+    }
+
+    const userId = new mongoose.Types.ObjectId(verification.payload.userId);
 
     const body = await req.json().catch(() => ({}));
     const { name, type, color } = body;

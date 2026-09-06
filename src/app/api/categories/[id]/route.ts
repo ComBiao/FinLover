@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import { connectDB } from '@/lib/db';
 import Category from '@/models/Category';
 import { deleteCategoryAndCascade } from '@/lib/services/categoryService';
+import { verifySessionToken } from '@/lib/session';
 
 async function checkAuthAndGetCategory(req: NextRequest, id: string) {
   const authHeader = req.headers.get('authorization');
@@ -10,10 +11,14 @@ async function checkAuthAndGetCategory(req: NextRequest, id: string) {
     return { errorRes: NextResponse.json({ error: { code: 'UNAUTHORIZED', message: 'Missing or invalid token' } }, { status: 401 }) };
   }
   
-  const user_id = 'mocked_user_id_from_token';
-  const userId = new mongoose.Types.ObjectId(
-    Buffer.from(user_id.slice(0, 17)).toString('hex').slice(0, 24)
-  );
+  const token = authHeader.split(' ')[1];
+  const verification = verifySessionToken<{ userId: string }>(token);
+  
+  if (!verification.valid) {
+    return { errorRes: NextResponse.json({ error: { code: 'UNAUTHORIZED', message: 'Missing or invalid token' } }, { status: 401 }) };
+  }
+
+  const userId = new mongoose.Types.ObjectId(verification.payload.userId);
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
     return { errorRes: NextResponse.json({ error: { code: 'VALIDATION_ERROR', message: 'Invalid category ID', fields: {} } }, { status: 400 }) };
