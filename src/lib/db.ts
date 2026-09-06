@@ -1,10 +1,6 @@
 import mongoose from "mongoose";
 
-const MONGODB_URI = process.env.MONGODB_URI as string;
-
-if (!MONGODB_URI) {
-  throw new Error("Missing MONGODB_URI environment variable");
-}
+// The check is moved inside connectDB() to prevent build-time static analysis errors
 
 type MongooseCache = {
   conn: typeof mongoose | null;
@@ -22,6 +18,11 @@ global._mongoose = cached;
  * Establishes a connection to MongoDB using a singleton pattern to prevent multiple connections.
  */
 export async function connectDB() {
+  const MONGODB_URI = process.env.MONGODB_URI as string;
+  if (!MONGODB_URI) {
+    throw new Error("Missing MONGODB_URI environment variable");
+  }
+
   if (cached.conn) return cached.conn;
 
   if (!cached.promise) {
