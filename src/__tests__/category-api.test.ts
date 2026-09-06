@@ -44,7 +44,6 @@ const MOCK_USER_ID = new mongoose.Types.ObjectId();
 const OTHER_USER_ID = new mongoose.Types.ObjectId();
 
 const VALID_TOKEN = signToken({ userId: MOCK_USER_ID.toString() });
-const OTHER_TOKEN = signToken({ userId: OTHER_USER_ID.toString() });
 
 // ---------------------------------------------------------------------------
 // Test lifecycle
