@@ -1,3 +1,6 @@
+"use client";
+
+import * as React from "react";
 import Link from "next/link";
 import { Mail } from "lucide-react";
 
@@ -7,14 +10,53 @@ import { IconInput } from "@/components/IconInput";
 import { Logo } from "@/components/Logo";
 import { PasswordInput } from "@/components/PasswordInput";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
+import { registerSchema } from "@/types/auth";
+
+type FieldErrors = Partial<Record<"email" | "password" | "privacyConsent", string>>;
 
 /**
  * Registration page for creating a new user account with email/password or Google OAuth.
  */
 export default function RegisterPage() {
+  const [errors, setErrors] = React.useState<FieldErrors>({});
+  const [privacyConsent, setPrivacyConsent] = React.useState(false);
+
+  /**
+   * Validates the form with the register zod schema and surfaces per-field
+   * error messages instead of submitting.
+   * TODO: on successful validation, POST /api/auth/register with
+   * { email, password, privacyConsent }, using src/lib/auth.ts
+   * (hashPassword + signToken) on the server.
+   */
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const formData = new FormData(event.currentTarget);
+    const result = registerSchema.safeParse({
+      email: formData.get("email"),
+      password: formData.get("password"),
+      privacyConsent,
+    });
+
+    if (!result.success) {
+      const fieldErrors: FieldErrors = {};
+      for (const issue of result.error.issues) {
+        const field = issue.path[0] as keyof FieldErrors;
+        if (!fieldErrors[field]) {
+          fieldErrors[field] = issue.message;
+        }
+      }
+      setErrors(fieldErrors);
+      return;
+    }
+
+    setErrors({});
+  }
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4 py-10 sm:px-6">
       <AuthCard
@@ -60,9 +102,7 @@ export default function RegisterPage() {
           Free forever. No credit card needed.
         </p>
 
-        {/* TODO: wire to a real submit handler — POST /api/auth/register,
-            using src/lib/auth.ts (hashPassword + signToken) on the server. */}
-        <form className="mt-6 flex flex-col gap-4">
+        <form className="mt-6 flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="register-email">Email</Label>
             <IconInput
@@ -72,8 +112,14 @@ export default function RegisterPage() {
               icon={Mail}
               placeholder="you@example.com"
               autoComplete="email"
-              required
+              aria-invalid={Boolean(errors.email)}
+              aria-describedby={errors.email ? "register-email-error" : undefined}
             />
+            {errors.email ? (
+              <p id="register-email-error" className="text-xs text-destructive">
+                {errors.email}
+              </p>
+            ) : null}
           </div>
 
           <div className="flex flex-col gap-1.5">
@@ -83,12 +129,54 @@ export default function RegisterPage() {
               name="password"
               placeholder="••••••••"
               autoComplete="new-password"
-              minLength={8}
-              required
+              aria-invalid={Boolean(errors.password)}
+              aria-describedby={
+                errors.password ? "register-password-error" : "register-password-hint"
+              }
             />
-            <p className="text-xs text-muted-foreground">
-              Use at least 8 characters.
-            </p>
+            {errors.password ? (
+              <p id="register-password-error" className="text-xs text-destructive">
+                {errors.password}
+              </p>
+            ) : (
+              <p id="register-password-hint" className="text-xs text-muted-foreground">
+                Use at least 8 characters.
+              </p>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-start gap-2.5">
+              <Checkbox
+                id="register-privacy-consent"
+                name="privacyConsent"
+                checked={privacyConsent}
+                onCheckedChange={setPrivacyConsent}
+                aria-invalid={Boolean(errors.privacyConsent)}
+                aria-describedby={
+                  errors.privacyConsent ? "register-privacy-consent-error" : undefined
+                }
+                className="mt-1"
+              />
+              <Label
+                htmlFor="register-privacy-consent"
+                className="block text-sm leading-relaxed font-normal text-foreground/85"
+              >
+                I agree to the{" "}
+                <Link
+                  href="#"
+                  className="whitespace-nowrap font-semibold text-accent hover:underline"
+                >
+                  Privacy Policy
+                </Link>{" "}
+                and consent to my data being collected.
+              </Label>
+            </div>
+            {errors.privacyConsent ? (
+              <p id="register-privacy-consent-error" className="text-xs text-destructive">
+                {errors.privacyConsent}
+              </p>
+            ) : null}
           </div>
 
           <Button type="submit" className="mt-2 h-12 rounded-lg text-base">

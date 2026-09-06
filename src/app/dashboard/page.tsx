@@ -1,5 +1,9 @@
-import { Button } from "@/components/ui/button";
+"use client";
 
+import { Button } from "@/components/ui/button";
+import { useTransactionModal } from "@/store/useTransactionModal";
+
+import { AddTransactionModal } from "./_components/AddTransactionModal";
 import { CategoryBreakdown } from "./_components/CategoryBreakdown";
 import { DashboardHeader } from "./_components/DashboardHeader";
 import { RecentTransactions } from "./_components/RecentTransactions";
@@ -10,6 +14,8 @@ import { SummaryCards } from "./_components/SummaryCards";
  * Main dashboard page displaying financial overview, spending trends, and recent transactions.
  */
 export default function DashboardPage() {
+  const openModal = useTransactionModal((state) => state.openModal);
+
   return (
     <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl overflow-hidden rounded-3xl bg-card shadow-2xl">
@@ -26,19 +32,19 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className="flex gap-2.5">
-              {/* TODO: open an "add income" form/modal wired to POST /api/transactions */}
               <Button
                 type="button"
                 variant="outline"
                 className="h-10 rounded-lg border-success-border bg-success-bg text-success hover:bg-success-bg/80"
+                onClick={() => openModal("income")}
               >
                 + Income
               </Button>
-              {/* TODO: open an "add expense" form/modal wired to POST /api/transactions */}
               <Button
                 type="button"
                 variant="outline"
                 className="h-10 rounded-lg border-danger-border bg-danger-bg text-destructive hover:bg-danger-bg/80"
+                onClick={() => openModal("expense")}
               >
                 + Expense
               </Button>
@@ -55,6 +61,8 @@ export default function DashboardPage() {
           <RecentTransactions />
         </div>
       </div>
+
+      <AddTransactionModal />
     </main>
   );
 }
