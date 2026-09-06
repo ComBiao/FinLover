@@ -23,7 +23,19 @@ const WalletSchema: Schema = new Schema({
 
 WalletSchema.index({ userId: 1, name: 1 }, { unique: true });
 
-
+/**
+ * Pre-delete hook that automatically deletes all transactions linked to this wallet.
+ * Database-Level Cascade Delete.
+ */
+WalletSchema.pre('findOneAndDelete', async function() {
+  const walletId = this.getQuery()._id;
+  const Transaction = mongoose.model('Transaction');
+  
+  // Automatically delete all transactions linked to this wallet to prevent orphaned data
+  await Transaction.deleteMany({ walletId: walletId });
+  
+  // No next() needed here either!
+});
 
 WalletSchema.plugin(mongooseLeanGetters);
 

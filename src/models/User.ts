@@ -30,11 +30,14 @@ const UserSchema: Schema = new Schema({
       message: 'Data privacy consent must be granted to create a user record.'
     }
   },
-}, { 
-  timestamps: true 
+}, {
+  timestamps: true
 });
 
-// Database-Level Cascade Delete for Strict Data Privacy
+/**
+ * Pre-delete hook that cascades deletion to all user-related data (wallets, categories, transactions).
+ * Database-Level Cascade Delete for Strict Data Privacy.
+ */
 UserSchema.pre('findOneAndDelete', async function() {
   const userId = this.getQuery()._id;
   

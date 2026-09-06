@@ -18,6 +18,9 @@ declare global {
 const cached: MongooseCache = global._mongoose ?? { conn: null, promise: null };
 global._mongoose = cached;
 
+/**
+ * Establishes a connection to MongoDB using a singleton pattern to prevent multiple connections.
+ */
 export async function connectDB() {
   if (cached.conn) return cached.conn;
 

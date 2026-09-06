@@ -17,6 +17,9 @@ export const metadata: Metadata = {
   description: "Personal finance management application",
 };
 
+/**
+ * Root layout component that wraps all pages with fonts and global styles.
+ */
 export default function RootLayout({
   children,
 }: Readonly<{
