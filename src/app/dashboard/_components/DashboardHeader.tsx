@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { Check, ChevronDown } from "lucide-react";
 
 import { Logo } from "@/components/Logo";
@@ -17,16 +18,18 @@ import {
  * Top navigation bar for the dashboard with logo, user avatar dropdown, and logout functionality.
  */
 export function DashboardHeader() {
+  const router = useRouter();
   const [toastVisible, setToastVisible] = React.useState(false);
 
   /**
-   * Temporarily shows a success toast when logout is clicked.
+   * Shows a success toast, then redirects to /login.
    * TODO: wire to a real logout action — clear the session/JWT via
-   * src/lib/auth.ts and POST /api/auth/logout, then redirect to /login.
+   * src/lib/auth.ts and POST /api/auth/logout.
    */
   function handleLogOut() {
     setToastVisible(true);
     setTimeout(() => setToastVisible(false), 2600);
+    router.push("/login");
   }
 
   return (

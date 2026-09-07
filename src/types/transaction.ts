@@ -6,7 +6,7 @@ export const transactionSchema = z.object({
     .number({ error: "Amount is required" })
     .positive("Amount must be greater than 0"),
   date: z.string().min(1, "Date is required"),
-  categoryId: z.string().min(1, "Select a category"),
+  categoryId: z.string().min(1).nullable().optional(),
   note: z.string().optional(),
 });
 

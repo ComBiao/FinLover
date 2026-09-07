@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Mail, User } from "lucide-react";
+import { Mail } from "lucide-react";
 
 import { AuthCard } from "@/components/AuthCard";
 import { GoogleButton } from "@/components/GoogleButton";

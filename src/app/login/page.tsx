@@ -128,7 +128,7 @@ export default function LoginPage() {
           Pick up right where you left off with your budget.
         </p>
 
-        <form className="mt-6 flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
+        <form className="mt-6 flex flex-col gap-4" onSubmit={handleSubmit}>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="login-email">Email</Label>
             <IconInput
