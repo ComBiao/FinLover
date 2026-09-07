@@ -18,8 +18,11 @@ import { cn } from "@/lib/utils";
 
 // Style the pill wrapper only — the nested shadcn Input already paints its own
 // aria-invalid border/ring, which would otherwise double up with the wrapper's.
+// Uses focus-within (not focus-visible): this wrapper is a plain div that
+// never itself receives focus, but focus-within reacts when the nested
+// input inside it does.
 const ERROR_INPUT_CLASS =
-  "border-destructive focus-visible:ring-3 focus-visible:ring-destructive/20 [&_[data-slot=input]]:border-0 [&_[data-slot=input]]:shadow-none [&_[data-slot=input]]:ring-0";
+  "border-destructive focus-within:ring-3 focus-within:ring-destructive/20 [&_[data-slot=input]]:border-0 [&_[data-slot=input]]:shadow-none [&_[data-slot=input]]:ring-0";
 
 /**
  * Registration page for creating a new user account with email/password or Google OAuth.
@@ -28,11 +31,12 @@ export default function RegisterPage() {
   const {
     values,
     errors,
-    privacyConsent,
+    dataPrivacyConsent,
     isSubmitting,
+    submitNotice,
     handleChange,
     handleBlur,
-    handlePrivacyConsentChange,
+    handleDataPrivacyConsentChange,
     handleSubmit,
   } = useRegisterForm();
 
@@ -99,7 +103,7 @@ export default function RegisterPage() {
               className={cn(errors.name && ERROR_INPUT_CLASS)}
             />
             {errors.name ? (
-              <p id="register-name-error" className="text-xs text-destructive">
+              <p id="register-name-error" role="alert" className="text-xs text-destructive">
                 {errors.name}
               </p>
             ) : null}
@@ -122,7 +126,7 @@ export default function RegisterPage() {
               className={cn(errors.email && ERROR_INPUT_CLASS)}
             />
             {errors.email ? (
-              <p id="register-email-error" className="text-xs text-destructive">
+              <p id="register-email-error" role="alert" className="text-xs text-destructive">
                 {errors.email}
               </p>
             ) : null}
@@ -145,7 +149,7 @@ export default function RegisterPage() {
               className={cn(errors.password && ERROR_INPUT_CLASS)}
             />
             {errors.password ? (
-              <p id="register-password-error" className="text-xs text-destructive">
+              <p id="register-password-error" role="alert" className="text-xs text-destructive">
                 {errors.password}
               </p>
             ) : (
@@ -172,7 +176,11 @@ export default function RegisterPage() {
               className={cn(errors.confirmPassword && ERROR_INPUT_CLASS)}
             />
             {errors.confirmPassword ? (
-              <p id="register-confirm-password-error" className="text-xs text-destructive">
+              <p
+                id="register-confirm-password-error"
+                role="alert"
+                className="text-xs text-destructive"
+              >
                 {errors.confirmPassword}
               </p>
             ) : null}
@@ -182,12 +190,12 @@ export default function RegisterPage() {
             <div className="flex items-start gap-2.5">
               <Checkbox
                 id="register-privacy-consent"
-                name="privacyConsent"
-                checked={privacyConsent}
-                onCheckedChange={handlePrivacyConsentChange}
-                aria-invalid={Boolean(errors.privacyConsent)}
+                name="dataPrivacyConsent"
+                checked={dataPrivacyConsent}
+                onCheckedChange={handleDataPrivacyConsentChange}
+                aria-invalid={Boolean(errors.dataPrivacyConsent)}
                 aria-describedby={
-                  errors.privacyConsent ? "register-privacy-consent-error" : undefined
+                  errors.dataPrivacyConsent ? "register-privacy-consent-error" : undefined
                 }
                 className="mt-1"
               />
@@ -205,9 +213,13 @@ export default function RegisterPage() {
                 and consent to my data being collected.
               </Label>
             </div>
-            {errors.privacyConsent ? (
-              <p id="register-privacy-consent-error" className="text-xs text-destructive">
-                {errors.privacyConsent}
+            {errors.dataPrivacyConsent ? (
+              <p
+                id="register-privacy-consent-error"
+                role="alert"
+                className="text-xs text-destructive"
+              >
+                {errors.dataPrivacyConsent}
               </p>
             ) : null}
           </div>
@@ -219,6 +231,16 @@ export default function RegisterPage() {
           >
             {isSubmitting ? "Creating account..." : "Create account"}
           </Button>
+
+          {submitNotice ? (
+            <p
+              role="status"
+              aria-live="polite"
+              className="text-center text-sm text-muted-foreground"
+            >
+              {submitNotice}
+            </p>
+          ) : null}
         </form>
 
         <div className="my-6 flex items-center gap-3">

@@ -14,14 +14,19 @@ import { Separator } from "@/components/ui/separator";
 import { useLoginForm } from "@/hooks/useLoginForm";
 import { cn } from "@/lib/utils";
 
+// Style the pill wrapper only — the nested shadcn Input already paints its own
+// aria-invalid border/ring, which would otherwise double up with the wrapper's.
+// Uses focus-within (not focus-visible): this wrapper is a plain div that
+// never itself receives focus, but focus-within reacts when the nested
+// input inside it does.
 const ERROR_INPUT_CLASS =
-  "border-destructive focus-visible:ring-3 focus-visible:ring-destructive/20 [&_[data-slot=input]]:border-0 [&_[data-slot=input]]:shadow-none [&_[data-slot=input]]:ring-0";
+  "border-destructive focus-within:ring-3 focus-within:ring-destructive/20 [&_[data-slot=input]]:border-0 [&_[data-slot=input]]:shadow-none [&_[data-slot=input]]:ring-0";
 
 /**
  * Login page with email/password form and Google OAuth option.
  */
 export default function LoginPage() {
-  const { errors, isSubmitting, handleFieldChange, handleSubmit } = useLoginForm();
+  const { errors, isSubmitting, submitNotice, handleFieldChange, handleSubmit } = useLoginForm();
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4 py-10 sm:px-6">
@@ -107,7 +112,7 @@ export default function LoginPage() {
               className={cn(errors.email && ERROR_INPUT_CLASS)}
             />
             {errors.email ? (
-              <p id="login-email-error" className="text-xs text-destructive">
+              <p id="login-email-error" role="alert" className="text-xs text-destructive">
                 {errors.email}
               </p>
             ) : null}
@@ -134,7 +139,7 @@ export default function LoginPage() {
               className={cn(errors.password && ERROR_INPUT_CLASS)}
             />
             {errors.password ? (
-              <p id="login-password-error" className="text-xs text-destructive">
+              <p id="login-password-error" role="alert" className="text-xs text-destructive">
                 {errors.password}
               </p>
             ) : null}
@@ -147,6 +152,16 @@ export default function LoginPage() {
           >
             {isSubmitting ? "Logging in..." : "Log in"}
           </Button>
+
+          {submitNotice ? (
+            <p
+              role="status"
+              aria-live="polite"
+              className="text-center text-sm text-muted-foreground"
+            >
+              {submitNotice}
+            </p>
+          ) : null}
         </form>
 
         <div className="my-6 flex items-center gap-3">

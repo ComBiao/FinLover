@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { registerFieldsSchema, registerSchema } from "@/types/auth";
 
 export type RegisterFieldName = "name" | "email" | "password" | "confirmPassword";
-export type RegisterFieldErrors = Partial<Record<RegisterFieldName | "privacyConsent", string>>;
+export type RegisterFieldErrors = Partial<Record<RegisterFieldName | "dataPrivacyConsent", string>>;
 
 /** Validates a single register field; confirmPassword is checked against the live password value. */
 function getFieldError(
@@ -27,7 +27,7 @@ function getFieldError(
  * Encapsulates the registration form's state, field-level validation, and
  * submit flow so the register page can stay limited to rendering.
  * TODO: on successful validation, POST /api/auth/register with
- * { name, email, password, privacyConsent }, using src/lib/auth.ts
+ * { name, email, password, dataPrivacyConsent }, using src/lib/auth.ts
  * (hashPassword + signToken) on the server.
  */
 export function useRegisterForm() {
@@ -39,8 +39,9 @@ export function useRegisterForm() {
     confirmPassword: "",
   });
   const [errors, setErrors] = React.useState<RegisterFieldErrors>({});
-  const [privacyConsent, setPrivacyConsent] = React.useState(false);
+  const [dataPrivacyConsent, setDataPrivacyConsent] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [submitNotice, setSubmitNotice] = React.useState<string | null>(null);
 
   function setFieldError(field: keyof RegisterFieldErrors, error: string | undefined) {
     setErrors((prev) => {
@@ -88,21 +89,24 @@ export function useRegisterForm() {
     };
   }
 
-  function handlePrivacyConsentChange(checked: boolean) {
-    setPrivacyConsent(checked);
+  function handleDataPrivacyConsentChange(checked: boolean) {
+    setDataPrivacyConsent(checked);
     if (checked) {
-      setFieldError("privacyConsent", undefined);
+      setFieldError("dataPrivacyConsent", undefined);
     }
   }
 
-  /** Validates every field (name, email, password, confirmPassword, privacyConsent) at once. */
-  function validateAll(): RegisterFieldErrors {
+  /** Validates every field (name, email, password, confirmPassword, dataPrivacyConsent) at once. */
+  function validateAll(): {
+    fieldErrors: RegisterFieldErrors;
+    firstInvalidField?: keyof RegisterFieldErrors;
+  } {
     const result = registerSchema.safeParse({
       ...values,
-      privacyConsent,
+      dataPrivacyConsent,
     });
 
-    if (result.success) return {};
+    if (result.success) return { fieldErrors: {} };
 
     const fieldErrors: RegisterFieldErrors = {};
     for (const issue of result.error.issues) {
@@ -111,7 +115,10 @@ export function useRegisterForm() {
         fieldErrors[field] = issue.message;
       }
     }
-    return fieldErrors;
+    return {
+      fieldErrors,
+      firstInvalidField: result.error.issues[0]?.path[0] as keyof RegisterFieldErrors,
+    };
   }
 
   /**
@@ -121,32 +128,51 @@ export function useRegisterForm() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const fieldErrors = validateAll();
+    const { fieldErrors, firstInvalidField } = validateAll();
     setErrors(fieldErrors);
 
     if (Object.keys(fieldErrors).length > 0) {
       // Invalid: every offending field is now highlighted above. Don't submit.
+      if (firstInvalidField) {
+        const firstInvalidInput = event.currentTarget.elements.namedItem(firstInvalidField);
+        if (firstInvalidInput instanceof HTMLElement) {
+          firstInvalidInput.focus();
+        }
+      }
       return;
     }
 
     setIsSubmitting(true);
+    setSubmitNotice(null);
 
     // TODO: replace this simulated delay with a real POST /api/auth/register
-    // call ({ name, email, password, privacyConsent }) once the endpoint exists.
+    // call ({ name, email, password, dataPrivacyConsent }) once the endpoint exists.
     await new Promise((resolve) => setTimeout(resolve, 600));
 
     setIsSubmitting(false);
-    router.push("/login");
+
+    // The register API doesn't exist yet, so only follow through to the
+    // redirect in development. Elsewhere, confirm the client-side check
+    // passed instead of silently going nowhere or faking a real signup.
+    if (process.env.NODE_ENV === "development") {
+      router.push("/login");
+      return;
+    }
+
+    setSubmitNotice(
+      "Client-side validation passed. Account creation is not live yet — backend integration is pending."
+    );
   }
 
   return {
     values,
     errors,
-    privacyConsent,
+    dataPrivacyConsent,
     isSubmitting,
+    submitNotice,
     handleChange,
     handleBlur,
-    handlePrivacyConsentChange,
+    handleDataPrivacyConsentChange,
     handleSubmit,
   };
 }

@@ -24,6 +24,7 @@ export function useLoginForm() {
   const router = useRouter();
   const [errors, setErrors] = React.useState<LoginFieldErrors>({});
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [submitNotice, setSubmitNotice] = React.useState<string | null>(null);
 
   /** Clears a field's error as soon as it becomes valid; leaves it untouched otherwise. */
   function handleFieldChange(field: LoginFieldName) {
@@ -61,23 +62,44 @@ export function useLoginForm() {
         }
       }
       setErrors(fieldErrors);
+
+      const firstInvalidField = result.error.issues[0]?.path[0];
+      const firstInvalidInput = event.currentTarget.elements.namedItem(
+        String(firstInvalidField)
+      );
+      if (firstInvalidInput instanceof HTMLElement) {
+        firstInvalidInput.focus();
+      }
       return;
     }
 
     setErrors({});
     setIsSubmitting(true);
+    setSubmitNotice(null);
 
     // TODO: replace this simulated delay with a real POST /api/auth/login
     // call ({ email, password }) once the endpoint exists.
     await new Promise((resolve) => setTimeout(resolve, 600));
 
     setIsSubmitting(false);
-    router.push("/dashboard");
+
+    // The login API doesn't exist yet, so only follow through to the
+    // redirect in development. Elsewhere, confirm the client-side check
+    // passed instead of silently going nowhere or faking a real login.
+    if (process.env.NODE_ENV === "development") {
+      router.push("/dashboard");
+      return;
+    }
+
+    setSubmitNotice(
+      "Client-side validation passed. Login is not live yet — backend integration is pending."
+    );
   }
 
   return {
     errors,
     isSubmitting,
+    submitNotice,
     handleFieldChange,
     handleSubmit,
   };
