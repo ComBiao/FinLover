@@ -49,7 +49,7 @@ export default function RegisterPage() {
   const [errors, setErrors] = React.useState<FieldErrors>({});
   const [privacyConsent, setPrivacyConsent] = React.useState(false);
 
-  function setFieldError(field: FieldName, error: string | undefined) {
+  function setFieldError(field: keyof FieldErrors, error: string | undefined) {
     setErrors((prev) => {
       if (!error) {
         if (!(field in prev)) return prev;
@@ -95,9 +95,35 @@ export default function RegisterPage() {
     };
   }
 
+  function handlePrivacyConsentChange(checked: boolean) {
+    setPrivacyConsent(checked);
+    if (checked) {
+      setFieldError("privacyConsent", undefined);
+    }
+  }
+
+  /** Validates every field (name, email, password, confirmPassword, privacyConsent) at once. */
+  function validateAll(): FieldErrors {
+    const result = registerSchema.safeParse({
+      ...values,
+      privacyConsent,
+    });
+
+    if (result.success) return {};
+
+    const fieldErrors: FieldErrors = {};
+    for (const issue of result.error.issues) {
+      const field = issue.path[0] as keyof FieldErrors;
+      if (!fieldErrors[field]) {
+        fieldErrors[field] = issue.message;
+      }
+    }
+    return fieldErrors;
+  }
+
   /**
-   * Validates the form with the register zod schema and surfaces per-field
-   * error messages instead of submitting.
+   * Validates the whole form and surfaces every field's error at once instead
+   * of submitting.
    * TODO: on successful validation, POST /api/auth/register with
    * { name, email, password, privacyConsent }, using src/lib/auth.ts
    * (hashPassword + signToken) on the server.
@@ -105,24 +131,15 @@ export default function RegisterPage() {
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const result = registerSchema.safeParse({
-      ...values,
-      privacyConsent,
-    });
+    const fieldErrors = validateAll();
+    setErrors(fieldErrors);
 
-    if (!result.success) {
-      const fieldErrors: FieldErrors = {};
-      for (const issue of result.error.issues) {
-        const field = issue.path[0] as keyof FieldErrors;
-        if (!fieldErrors[field]) {
-          fieldErrors[field] = issue.message;
-        }
-      }
-      setErrors(fieldErrors);
+    if (Object.keys(fieldErrors).length > 0) {
+      // Invalid: every offending field is now highlighted above. Don't submit.
       return;
     }
 
-    setErrors({});
+    // TODO: replace with the real POST /api/auth/register call once the API exists.
   }
 
   return (
@@ -273,7 +290,7 @@ export default function RegisterPage() {
                 id="register-privacy-consent"
                 name="privacyConsent"
                 checked={privacyConsent}
-                onCheckedChange={setPrivacyConsent}
+                onCheckedChange={handlePrivacyConsentChange}
                 aria-invalid={Boolean(errors.privacyConsent)}
                 aria-describedby={
                   errors.privacyConsent ? "register-privacy-consent-error" : undefined

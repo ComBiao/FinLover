@@ -10,7 +10,11 @@ export const registerFieldsSchema = z.object({
     .regex(/[a-z]/, "Include at least one lowercase letter")
     .regex(/[0-9]/, "Include at least one number"),
   confirmPassword: z.string().min(1, "Please confirm your password"),
-  privacyConsent: z.literal(true, {
+  // A boolean + .refine() (rather than z.literal(true)) so an unchecked box
+  // reports as a normal "dirty" issue instead of an abort-level one — a
+  // literal mismatch here would short-circuit registerSchema's password-match
+  // .refine() below, silently dropping the confirmPassword mismatch error.
+  privacyConsent: z.boolean().refine((value) => value === true, {
     error: "You must agree to the privacy policy to continue",
   }),
 });
