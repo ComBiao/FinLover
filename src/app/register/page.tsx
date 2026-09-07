@@ -14,35 +14,99 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import { registerSchema } from "@/types/auth";
+import { cn } from "@/lib/utils";
+import { registerFieldsSchema, registerSchema } from "@/types/auth";
 
-type FieldErrors = Partial<
-  Record<"name" | "email" | "password" | "confirmPassword" | "privacyConsent", string>
->;
+type FieldName = "name" | "email" | "password" | "confirmPassword";
+type FieldErrors = Partial<Record<FieldName | "privacyConsent", string>>;
+
+// Style the pill wrapper only — the nested shadcn Input already paints its own
+// aria-invalid border/ring, which would otherwise double up with the wrapper's.
+const ERROR_INPUT_CLASS =
+  "border-destructive focus-visible:ring-3 focus-visible:ring-destructive/20 [&_[data-slot=input]]:border-0 [&_[data-slot=input]]:shadow-none [&_[data-slot=input]]:ring-0";
+
+/** Validates a single register field; confirmPassword is checked against the live password value. */
+function getFieldError(field: FieldName, value: string, password: string): string | undefined {
+  if (field === "confirmPassword") {
+    const result = registerFieldsSchema.shape.confirmPassword.safeParse(value);
+    if (!result.success) return result.error.issues[0]?.message;
+    return value === password ? undefined : "Passwords do not match";
+  }
+  const result = registerFieldsSchema.shape[field].safeParse(value);
+  return result.success ? undefined : result.error.issues[0]?.message;
+}
 
 /**
  * Registration page for creating a new user account with email/password or Google OAuth.
  */
 export default function RegisterPage() {
+  const [values, setValues] = React.useState({
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
   const [errors, setErrors] = React.useState<FieldErrors>({});
   const [privacyConsent, setPrivacyConsent] = React.useState(false);
+
+  function setFieldError(field: FieldName, error: string | undefined) {
+    setErrors((prev) => {
+      if (!error) {
+        if (!(field in prev)) return prev;
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      }
+      return { ...prev, [field]: error };
+    });
+  }
+
+  function handleChange(field: FieldName) {
+    return (event: React.ChangeEvent<HTMLInputElement>) => {
+      const value = event.target.value;
+      const nextValues = { ...values, [field]: value };
+      setValues(nextValues);
+
+      // Dynamically clear this field's error as soon as it becomes valid.
+      if (errors[field]) {
+        setFieldError(field, getFieldError(field, value, nextValues.password));
+      }
+      // Keep confirmPassword in sync if the user edits password afterwards.
+      if (field === "password" && errors.confirmPassword && nextValues.confirmPassword) {
+        setFieldError(
+          "confirmPassword",
+          getFieldError("confirmPassword", nextValues.confirmPassword, nextValues.password)
+        );
+      }
+    };
+  }
+
+  function handleBlur(field: FieldName) {
+    return (event: React.FocusEvent<HTMLInputElement>) => {
+      const value = event.target.value;
+      const nextValues = { ...values, [field]: value };
+      setFieldError(field, getFieldError(field, value, nextValues.password));
+      if (field === "password" && nextValues.confirmPassword) {
+        setFieldError(
+          "confirmPassword",
+          getFieldError("confirmPassword", nextValues.confirmPassword, nextValues.password)
+        );
+      }
+    };
+  }
 
   /**
    * Validates the form with the register zod schema and surfaces per-field
    * error messages instead of submitting.
    * TODO: on successful validation, POST /api/auth/register with
-   * { email, password, privacyConsent }, using src/lib/auth.ts
+   * { name, email, password, privacyConsent }, using src/lib/auth.ts
    * (hashPassword + signToken) on the server.
    */
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const formData = new FormData(event.currentTarget);
     const result = registerSchema.safeParse({
-      name: formData.get("name"),
-      email: formData.get("email"),
-      password: formData.get("password"),
-      confirmPassword: formData.get("confirmPassword"),
+      ...values,
       privacyConsent,
     });
 
@@ -116,8 +180,12 @@ export default function RegisterPage() {
               icon={User}
               placeholder="Jane Doe"
               autoComplete="name"
+              value={values.name}
+              onChange={handleChange("name")}
+              onBlur={handleBlur("name")}
               aria-invalid={Boolean(errors.name)}
               aria-describedby={errors.name ? "register-name-error" : undefined}
+              className={cn(errors.name && ERROR_INPUT_CLASS)}
             />
             {errors.name ? (
               <p id="register-name-error" className="text-xs text-destructive">
@@ -135,8 +203,12 @@ export default function RegisterPage() {
               icon={Mail}
               placeholder="you@example.com"
               autoComplete="email"
+              value={values.email}
+              onChange={handleChange("email")}
+              onBlur={handleBlur("email")}
               aria-invalid={Boolean(errors.email)}
               aria-describedby={errors.email ? "register-email-error" : undefined}
+              className={cn(errors.email && ERROR_INPUT_CLASS)}
             />
             {errors.email ? (
               <p id="register-email-error" className="text-xs text-destructive">
@@ -152,10 +224,14 @@ export default function RegisterPage() {
               name="password"
               placeholder="••••••••"
               autoComplete="new-password"
+              value={values.password}
+              onChange={handleChange("password")}
+              onBlur={handleBlur("password")}
               aria-invalid={Boolean(errors.password)}
               aria-describedby={
                 errors.password ? "register-password-error" : "register-password-hint"
               }
+              className={cn(errors.password && ERROR_INPUT_CLASS)}
             />
             {errors.password ? (
               <p id="register-password-error" className="text-xs text-destructive">
@@ -163,7 +239,7 @@ export default function RegisterPage() {
               </p>
             ) : (
               <p id="register-password-hint" className="text-xs text-muted-foreground">
-                Use at least 8 characters.
+                At least 8 characters, with uppercase, lowercase, and a number.
               </p>
             )}
           </div>
@@ -175,10 +251,14 @@ export default function RegisterPage() {
               name="confirmPassword"
               placeholder="••••••••"
               autoComplete="new-password"
+              value={values.confirmPassword}
+              onChange={handleChange("confirmPassword")}
+              onBlur={handleBlur("confirmPassword")}
               aria-invalid={Boolean(errors.confirmPassword)}
               aria-describedby={
                 errors.confirmPassword ? "register-confirm-password-error" : undefined
               }
+              className={cn(errors.confirmPassword && ERROR_INPUT_CLASS)}
             />
             {errors.confirmPassword ? (
               <p id="register-confirm-password-error" className="text-xs text-destructive">
