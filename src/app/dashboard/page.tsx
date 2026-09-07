@@ -1,5 +1,6 @@
 "use client";
 
+import { QuickAddBar } from "@/components/QuickAddBar";
 import { Button } from "@/components/ui/button";
 import { useTransactionModal } from "@/store/useTransactionModal";
 
@@ -63,6 +64,7 @@ export default function DashboardPage() {
       </div>
 
       <AddTransactionModal />
+      <QuickAddBar />
     </main>
   );
 }
