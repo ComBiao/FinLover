@@ -24,14 +24,14 @@ type NavItem = {
 };
 
 const NAV_ITEMS: NavItem[] = [
-  { label: "Transactions", href: "/dashboard/transactions", icon: Receipt },
-  { label: "Category", href: "/dashboard/categories", icon: LayoutGrid },
-  { label: "Reports", href: "/dashboard/reports", icon: BarChart3 },
+  { label: "Transactions", href: "/transactions", icon: Receipt },
+  { label: "Category", href: "/categories", icon: LayoutGrid },
+  { label: "Reports", href: "/reports", icon: BarChart3 },
 ];
 
 const BOTTOM_ITEMS: NavItem[] = [
-  { label: "Settings", href: "/dashboard/settings", icon: Settings },
-  { label: "Profile", href: "/dashboard/profile", icon: User },
+  { label: "Settings", href: "/settings", icon: Settings },
+  { label: "Profile", href: "/profile", icon: User },
 ];
 
 /**
@@ -108,6 +108,7 @@ export function Sidebar() {
       >
         <Link
           href="/dashboard"
+          title="Dashboard"
           className="flex h-16 shrink-0 items-center gap-2.5 px-4"
           onClick={() => setMobileOpen(false)}
         >
