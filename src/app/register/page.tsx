@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Mail } from "lucide-react";
+import { Mail, User } from "lucide-react";
 
 import { AuthCard } from "@/components/AuthCard";
 import { GoogleButton } from "@/components/GoogleButton";
@@ -16,7 +16,9 @@ import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { registerSchema } from "@/types/auth";
 
-type FieldErrors = Partial<Record<"email" | "password" | "privacyConsent", string>>;
+type FieldErrors = Partial<
+  Record<"name" | "email" | "password" | "confirmPassword" | "privacyConsent", string>
+>;
 
 /**
  * Registration page for creating a new user account with email/password or Google OAuth.
@@ -37,8 +39,10 @@ export default function RegisterPage() {
 
     const formData = new FormData(event.currentTarget);
     const result = registerSchema.safeParse({
+      name: formData.get("name"),
       email: formData.get("email"),
       password: formData.get("password"),
+      confirmPassword: formData.get("confirmPassword"),
       privacyConsent,
     });
 
@@ -104,6 +108,25 @@ export default function RegisterPage() {
 
         <form className="mt-6 flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
           <div className="flex flex-col gap-1.5">
+            <Label htmlFor="register-name">Full Name</Label>
+            <IconInput
+              id="register-name"
+              name="name"
+              type="text"
+              icon={User}
+              placeholder="Jane Doe"
+              autoComplete="name"
+              aria-invalid={Boolean(errors.name)}
+              aria-describedby={errors.name ? "register-name-error" : undefined}
+            />
+            {errors.name ? (
+              <p id="register-name-error" className="text-xs text-destructive">
+                {errors.name}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="flex flex-col gap-1.5">
             <Label htmlFor="register-email">Email</Label>
             <IconInput
               id="register-email"
@@ -143,6 +166,25 @@ export default function RegisterPage() {
                 Use at least 8 characters.
               </p>
             )}
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="register-confirm-password">Confirm Password</Label>
+            <PasswordInput
+              id="register-confirm-password"
+              name="confirmPassword"
+              placeholder="••••••••"
+              autoComplete="new-password"
+              aria-invalid={Boolean(errors.confirmPassword)}
+              aria-describedby={
+                errors.confirmPassword ? "register-confirm-password-error" : undefined
+              }
+            />
+            {errors.confirmPassword ? (
+              <p id="register-confirm-password-error" className="text-xs text-destructive">
+                {errors.confirmPassword}
+              </p>
+            ) : null}
           </div>
 
           <div className="flex flex-col gap-1.5">
