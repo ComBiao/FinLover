@@ -24,14 +24,14 @@ type NavItem = {
 };
 
 const NAV_ITEMS: NavItem[] = [
-  { label: "Transactions", href: "/transactions", icon: Receipt },
-  { label: "Category", href: "/category", icon: LayoutGrid },
-  { label: "Reports", href: "/reports", icon: BarChart3 },
+  { label: "Transactions", href: "/dashboard/transactions", icon: Receipt },
+  { label: "Category", href: "/dashboard/categories", icon: LayoutGrid },
+  { label: "Reports", href: "/dashboard/reports", icon: BarChart3 },
 ];
 
 const BOTTOM_ITEMS: NavItem[] = [
-  { label: "Settings", href: "/settings", icon: Settings },
-  { label: "Profile", href: "/profile", icon: User },
+  { label: "Settings", href: "/dashboard/settings", icon: Settings },
+  { label: "Profile", href: "/dashboard/profile", icon: User },
 ];
 
 /**
