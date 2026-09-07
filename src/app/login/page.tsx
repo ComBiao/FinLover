@@ -1,4 +1,8 @@
+"use client";
+
+import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Mail } from "lucide-react";
 
 import { AuthCard } from "@/components/AuthCard";
@@ -14,6 +18,17 @@ import { Separator } from "@/components/ui/separator";
  * Login page with email/password form and Google OAuth option.
  */
 export default function LoginPage() {
+  const router = useRouter();
+
+  /**
+   * TODO: wire to a real submit handler — POST /api/auth/login, using
+   * src/lib/auth.ts (comparePassword + signToken) on the server.
+   */
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    router.push("/dashboard");
+  }
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4 py-10 sm:px-6">
       <AuthCard
@@ -82,9 +97,7 @@ export default function LoginPage() {
           Pick up right where you left off with your budget.
         </p>
 
-        {/* TODO: wire to a real submit handler — POST /api/auth/login, using
-            src/lib/auth.ts (comparePassword + signToken) on the server. */}
-        <form className="mt-6 flex flex-col gap-4">
+        <form className="mt-6 flex flex-col gap-4" onSubmit={handleSubmit}>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="login-email">Email</Label>
             <IconInput

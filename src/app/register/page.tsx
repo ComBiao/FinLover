@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Mail } from "lucide-react";
 
 import { AuthCard } from "@/components/AuthCard";
@@ -22,6 +23,7 @@ type FieldErrors = Partial<Record<"email" | "password" | "privacyConsent", strin
  * Registration page for creating a new user account with email/password or Google OAuth.
  */
 export default function RegisterPage() {
+  const router = useRouter();
   const [errors, setErrors] = React.useState<FieldErrors>({});
   const [privacyConsent, setPrivacyConsent] = React.useState(false);
 
@@ -55,6 +57,7 @@ export default function RegisterPage() {
     }
 
     setErrors({});
+    router.push("/login");
   }
 
   return (
