@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 
 import { registerFieldsSchema, registerSchema } from "@/types/auth";
 
@@ -31,7 +30,6 @@ function getFieldError(
  * (hashPassword + signToken) on the server.
  */
 export function useRegisterForm() {
-  const router = useRouter();
   const [values, setValues] = React.useState({
     name: "",
     email: "",
@@ -151,17 +149,9 @@ export function useRegisterForm() {
 
     setIsSubmitting(false);
 
-    // The register API doesn't exist yet, so only follow through to the
-    // redirect in development. Elsewhere, confirm the client-side check
-    // passed instead of silently going nowhere or faking a real signup.
-    if (process.env.NODE_ENV === "development") {
-      router.push("/login");
-      return;
-    }
-
-    setSubmitNotice(
-      "Client-side validation passed. Account creation is not live yet — backend integration is pending."
-    );
+    // The register API doesn't exist yet, so stay on the page and confirm the
+    // client-side check passed instead of faking a real signup.
+    setSubmitNotice("Client-side validation passed. Backend integration is pending.");
   }
 
   return {

@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 
 import { loginSchema } from "@/types/auth";
 
@@ -21,7 +20,6 @@ function getFieldError(field: LoginFieldName, value: string): string | undefined
  * on the server.
  */
 export function useLoginForm() {
-  const router = useRouter();
   const [errors, setErrors] = React.useState<LoginFieldErrors>({});
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [submitNotice, setSubmitNotice] = React.useState<string | null>(null);
@@ -83,17 +81,9 @@ export function useLoginForm() {
 
     setIsSubmitting(false);
 
-    // The login API doesn't exist yet, so only follow through to the
-    // redirect in development. Elsewhere, confirm the client-side check
-    // passed instead of silently going nowhere or faking a real login.
-    if (process.env.NODE_ENV === "development") {
-      router.push("/dashboard");
-      return;
-    }
-
-    setSubmitNotice(
-      "Client-side validation passed. Login is not live yet — backend integration is pending."
-    );
+    // The login API doesn't exist yet, so stay on the page and confirm the
+    // client-side check passed instead of faking a real login.
+    setSubmitNotice("Client-side validation passed. Backend integration is pending.");
   }
 
   return {
