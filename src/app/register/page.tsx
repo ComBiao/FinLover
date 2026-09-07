@@ -1,8 +1,6 @@
 "use client";
 
-import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Mail, User } from "lucide-react";
 
 import { AuthCard } from "@/components/AuthCard";
@@ -15,135 +13,28 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
+import { useRegisterForm } from "@/hooks/useRegisterForm";
 import { cn } from "@/lib/utils";
-import { registerFieldsSchema, registerSchema } from "@/types/auth";
-
-type FieldName = "name" | "email" | "password" | "confirmPassword";
-type FieldErrors = Partial<Record<FieldName | "privacyConsent", string>>;
 
 // Style the pill wrapper only — the nested shadcn Input already paints its own
 // aria-invalid border/ring, which would otherwise double up with the wrapper's.
 const ERROR_INPUT_CLASS =
   "border-destructive focus-visible:ring-3 focus-visible:ring-destructive/20 [&_[data-slot=input]]:border-0 [&_[data-slot=input]]:shadow-none [&_[data-slot=input]]:ring-0";
 
-/** Validates a single register field; confirmPassword is checked against the live password value. */
-function getFieldError(field: FieldName, value: string, password: string): string | undefined {
-  if (field === "confirmPassword") {
-    const result = registerFieldsSchema.shape.confirmPassword.safeParse(value);
-    if (!result.success) return result.error.issues[0]?.message;
-    return value === password ? undefined : "Passwords do not match";
-  }
-  const result = registerFieldsSchema.shape[field].safeParse(value);
-  return result.success ? undefined : result.error.issues[0]?.message;
-}
-
 /**
  * Registration page for creating a new user account with email/password or Google OAuth.
  */
 export default function RegisterPage() {
-  const router = useRouter();
-  const [values, setValues] = React.useState({
-    name: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-  });
-  const [errors, setErrors] = React.useState<FieldErrors>({});
-  const [privacyConsent, setPrivacyConsent] = React.useState(false);
-
-  function setFieldError(field: keyof FieldErrors, error: string | undefined) {
-    setErrors((prev) => {
-      if (!error) {
-        if (!(field in prev)) return prev;
-        const next = { ...prev };
-        delete next[field];
-        return next;
-      }
-      return { ...prev, [field]: error };
-    });
-  }
-
-  function handleChange(field: FieldName) {
-    return (event: React.ChangeEvent<HTMLInputElement>) => {
-      const value = event.target.value;
-      const nextValues = { ...values, [field]: value };
-      setValues(nextValues);
-
-      // Dynamically clear this field's error as soon as it becomes valid.
-      if (errors[field]) {
-        setFieldError(field, getFieldError(field, value, nextValues.password));
-      }
-      // Keep confirmPassword in sync if the user edits password afterwards.
-      if (field === "password" && errors.confirmPassword && nextValues.confirmPassword) {
-        setFieldError(
-          "confirmPassword",
-          getFieldError("confirmPassword", nextValues.confirmPassword, nextValues.password)
-        );
-      }
-    };
-  }
-
-  function handleBlur(field: FieldName) {
-    return (event: React.FocusEvent<HTMLInputElement>) => {
-      const value = event.target.value;
-      const nextValues = { ...values, [field]: value };
-      setFieldError(field, getFieldError(field, value, nextValues.password));
-      if (field === "password" && nextValues.confirmPassword) {
-        setFieldError(
-          "confirmPassword",
-          getFieldError("confirmPassword", nextValues.confirmPassword, nextValues.password)
-        );
-      }
-    };
-  }
-
-  function handlePrivacyConsentChange(checked: boolean) {
-    setPrivacyConsent(checked);
-    if (checked) {
-      setFieldError("privacyConsent", undefined);
-    }
-  }
-
-  /** Validates every field (name, email, password, confirmPassword, privacyConsent) at once. */
-  function validateAll(): FieldErrors {
-    const result = registerSchema.safeParse({
-      ...values,
-      privacyConsent,
-    });
-
-    if (result.success) return {};
-
-    const fieldErrors: FieldErrors = {};
-    for (const issue of result.error.issues) {
-      const field = issue.path[0] as keyof FieldErrors;
-      if (!fieldErrors[field]) {
-        fieldErrors[field] = issue.message;
-      }
-    }
-    return fieldErrors;
-  }
-
-  /**
-   * Validates the whole form and surfaces every field's error at once instead
-   * of submitting.
-   * TODO: on successful validation, POST /api/auth/register with
-   * { name, email, password, privacyConsent }, using src/lib/auth.ts
-   * (hashPassword + signToken) on the server.
-   */
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    const fieldErrors = validateAll();
-    setErrors(fieldErrors);
-
-    if (Object.keys(fieldErrors).length > 0) {
-      // Invalid: every offending field is now highlighted above. Don't submit.
-      return;
-    }
-
-    // TODO: replace with the real POST /api/auth/register call once the API exists.
-    router.push("/login");
-  }
+  const {
+    values,
+    errors,
+    privacyConsent,
+    isSubmitting,
+    handleChange,
+    handleBlur,
+    handlePrivacyConsentChange,
+    handleSubmit,
+  } = useRegisterForm();
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4 py-10 sm:px-6">
@@ -321,8 +212,12 @@ export default function RegisterPage() {
             ) : null}
           </div>
 
-          <Button type="submit" className="mt-2 h-12 rounded-lg text-base">
-            Create account
+          <Button
+            type="submit"
+            className="mt-2 h-12 rounded-lg text-base"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Creating account..." : "Create account"}
           </Button>
         </form>
 
