@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Mail, User } from "lucide-react";
 
 import { AuthCard } from "@/components/AuthCard";
@@ -40,6 +41,7 @@ function getFieldError(field: FieldName, value: string, password: string): strin
  * Registration page for creating a new user account with email/password or Google OAuth.
  */
 export default function RegisterPage() {
+  const router = useRouter();
   const [values, setValues] = React.useState({
     name: "",
     email: "",
@@ -140,6 +142,7 @@ export default function RegisterPage() {
     }
 
     // TODO: replace with the real POST /api/auth/register call once the API exists.
+    router.push("/login");
   }
 
   return (
