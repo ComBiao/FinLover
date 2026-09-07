@@ -1,4 +1,8 @@
+"use client";
+
+import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Mail } from "lucide-react";
 
 import { AuthCard } from "@/components/AuthCard";
@@ -9,11 +13,53 @@ import { PasswordInput } from "@/components/PasswordInput";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
+import { loginSchema } from "@/types/auth";
+
+type FieldErrors = Partial<Record<"email" | "password", string>>;
+
+const ERROR_INPUT_CLASS =
+  "border-destructive focus-visible:ring-3 focus-visible:ring-destructive/20 [&_[data-slot=input]]:border-0 [&_[data-slot=input]]:shadow-none [&_[data-slot=input]]:ring-0";
 
 /**
  * Login page with email/password form and Google OAuth option.
  */
 export default function LoginPage() {
+  const router = useRouter();
+  const [errors, setErrors] = React.useState<FieldErrors>({});
+
+  /**
+   * Validates the form with the login zod schema and surfaces per-field
+   * error messages instead of submitting.
+   * TODO: on successful validation, POST /api/auth/login with
+   * { email, password }, using src/lib/auth.ts (comparePassword + signToken)
+   * on the server.
+   */
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const formData = new FormData(event.currentTarget);
+    const result = loginSchema.safeParse({
+      email: formData.get("email"),
+      password: formData.get("password"),
+    });
+
+    if (!result.success) {
+      const fieldErrors: FieldErrors = {};
+      for (const issue of result.error.issues) {
+        const field = issue.path[0] as keyof FieldErrors;
+        if (!fieldErrors[field]) {
+          fieldErrors[field] = issue.message;
+        }
+      }
+      setErrors(fieldErrors);
+      return;
+    }
+
+    setErrors({});
+    router.push("/dashboard");
+  }
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4 py-10 sm:px-6">
       <AuthCard
@@ -82,9 +128,7 @@ export default function LoginPage() {
           Pick up right where you left off with your budget.
         </p>
 
-        {/* TODO: wire to a real submit handler — POST /api/auth/login, using
-            src/lib/auth.ts (comparePassword + signToken) on the server. */}
-        <form className="mt-6 flex flex-col gap-4">
+        <form className="mt-6 flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="login-email">Email</Label>
             <IconInput
@@ -94,8 +138,15 @@ export default function LoginPage() {
               icon={Mail}
               placeholder="you@example.com"
               autoComplete="email"
-              required
+              aria-invalid={Boolean(errors.email)}
+              aria-describedby={errors.email ? "login-email-error" : undefined}
+              className={cn(errors.email && ERROR_INPUT_CLASS)}
             />
+            {errors.email ? (
+              <p id="login-email-error" className="text-xs text-destructive">
+                {errors.email}
+              </p>
+            ) : null}
           </div>
 
           <div className="flex flex-col gap-1.5">
@@ -113,8 +164,15 @@ export default function LoginPage() {
               name="password"
               placeholder="••••••••"
               autoComplete="current-password"
-              required
+              aria-invalid={Boolean(errors.password)}
+              aria-describedby={errors.password ? "login-password-error" : undefined}
+              className={cn(errors.password && ERROR_INPUT_CLASS)}
             />
+            {errors.password ? (
+              <p id="login-password-error" className="text-xs text-destructive">
+                {errors.password}
+              </p>
+            ) : null}
           </div>
 
           <Button type="submit" className="mt-2 h-12 rounded-lg text-base">
