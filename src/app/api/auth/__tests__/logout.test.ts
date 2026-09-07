@@ -13,6 +13,7 @@ import { SESSION_COOKIE_NAME } from "@/lib/session";
 
 type Store = {
   get: ReturnType<typeof vi.fn>;
+  set: ReturnType<typeof vi.fn>;
   delete: ReturnType<typeof vi.fn>;
 };
 
@@ -23,6 +24,7 @@ function mockCookieStore(existingToken?: string): Store {
         ? { name, value: existingToken }
         : undefined
     ),
+    set: vi.fn(),
     delete: vi.fn(),
   };
   vi.mocked(cookies).mockResolvedValue(
@@ -66,11 +68,18 @@ describe("POST /api/auth/logout", () => {
     await expect(POST()).resolves.toBeDefined();
   });
 
-  it("does not re-issue a session token in the response", async () => {
-    mockCookieStore("a.valid.looking.token");
+  it("only deletes the session cookie — never writes a new one", async () => {
+    const store = mockCookieStore("a.valid.looking.token");
 
-    const res = await POST();
+    await POST();
 
-    expect(res.headers.get("set-cookie")).toBeNull();
+    expect(store.delete).toHaveBeenCalledWith(SESSION_COOKIE_NAME);
+    // Logout must not issue a replacement token (e.g. a blank cookie via
+    // set() with maxAge 0, or an accidental re-sign). Asserting on the
+    // mutation, not the response header, since the mocked store does not
+    // wire cookie writes into NextResponse — a header assertion here would
+    // pass even for a broken route. End-to-end Set-Cookie verification
+    // belongs in an integration test against a running server.
+    expect(store.set).not.toHaveBeenCalled();
   });
 });
