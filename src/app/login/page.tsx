@@ -1,8 +1,6 @@
 "use client";
 
-import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Mail } from "lucide-react";
 
 import { AuthCard } from "@/components/AuthCard";
@@ -13,21 +11,22 @@ import { PasswordInput } from "@/components/PasswordInput";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { useLoginForm } from "@/hooks/useLoginForm";
+import { cn } from "@/lib/utils";
+
+// Style the pill wrapper only — the nested shadcn Input already paints its own
+// aria-invalid border/ring, which would otherwise double up with the wrapper's.
+// Uses focus-within (not focus-visible): this wrapper is a plain div that
+// never itself receives focus, but focus-within reacts when the nested
+// input inside it does.
+const ERROR_INPUT_CLASS =
+  "border-destructive focus-within:ring-3 focus-within:ring-destructive/20 [&_[data-slot=input]]:border-0 [&_[data-slot=input]]:shadow-none [&_[data-slot=input]]:ring-0";
 
 /**
  * Login page with email/password form and Google OAuth option.
  */
 export default function LoginPage() {
-  const router = useRouter();
-
-  /**
-   * TODO: wire to a real submit handler — POST /api/auth/login, using
-   * src/lib/auth.ts (comparePassword + signToken) on the server.
-   */
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    router.push("/dashboard");
-  }
+  const { errors, isSubmitting, submitNotice, handleFieldChange, handleSubmit } = useLoginForm();
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4 py-10 sm:px-6">
@@ -97,7 +96,7 @@ export default function LoginPage() {
           Pick up right where you left off with your budget.
         </p>
 
-        <form className="mt-6 flex flex-col gap-4" onSubmit={handleSubmit}>
+        <form className="mt-6 flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="login-email">Email</Label>
             <IconInput
@@ -107,8 +106,16 @@ export default function LoginPage() {
               icon={Mail}
               placeholder="you@example.com"
               autoComplete="email"
-              required
+              onChange={handleFieldChange("email")}
+              aria-invalid={Boolean(errors.email)}
+              aria-describedby={errors.email ? "login-email-error" : undefined}
+              className={cn(errors.email && ERROR_INPUT_CLASS)}
             />
+            {errors.email ? (
+              <p id="login-email-error" role="alert" className="text-xs text-destructive">
+                {errors.email}
+              </p>
+            ) : null}
           </div>
 
           <div className="flex flex-col gap-1.5">
@@ -126,13 +133,35 @@ export default function LoginPage() {
               name="password"
               placeholder="••••••••"
               autoComplete="current-password"
-              required
+              onChange={handleFieldChange("password")}
+              aria-invalid={Boolean(errors.password)}
+              aria-describedby={errors.password ? "login-password-error" : undefined}
+              className={cn(errors.password && ERROR_INPUT_CLASS)}
             />
+            {errors.password ? (
+              <p id="login-password-error" role="alert" className="text-xs text-destructive">
+                {errors.password}
+              </p>
+            ) : null}
           </div>
 
-          <Button type="submit" className="mt-2 h-12 rounded-lg text-base">
-            Log in
+          <Button
+            type="submit"
+            className="mt-2 h-12 rounded-lg text-base"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Logging in..." : "Log in"}
           </Button>
+
+          {submitNotice ? (
+            <p
+              role="status"
+              aria-live="polite"
+              className="text-center text-sm text-muted-foreground"
+            >
+              {submitNotice}
+            </p>
+          ) : null}
         </form>
 
         <div className="my-6 flex items-center gap-3">
