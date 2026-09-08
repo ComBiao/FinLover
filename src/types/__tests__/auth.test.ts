@@ -148,6 +148,26 @@ describe("registerSchema", () => {
       );
     }
   });
+
+  it("returns both a mismatched-password error and a consent error when both are invalid", () => {
+    const result = registerSchema.safeParse({
+      ...validRegisterInput,
+      confirmPassword: "Different1",
+      dataPrivacyConsent: false,
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const confirmPasswordIssue = result.error.issues.find(
+        (issue) => issue.path[0] === "confirmPassword"
+      );
+      const dataPrivacyConsentIssue = result.error.issues.find(
+        (issue) => issue.path[0] === "dataPrivacyConsent"
+      );
+      expect(confirmPasswordIssue?.message).toBe("Passwords do not match");
+      expect(dataPrivacyConsentIssue).toBeDefined();
+    }
+  });
 });
 
 describe("loginSchema", () => {

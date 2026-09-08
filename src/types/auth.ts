@@ -15,9 +15,11 @@ export const registerFieldsSchema = z.object({
     .regex(/[a-z]/, "Include at least one lowercase letter")
     .regex(/[0-9]/, "Include at least one number"),
   confirmPassword: z.string().min(1, "Please confirm your password"),
-  dataPrivacyConsent: z.literal(true, {
-    error: "You must agree to the privacy policy to continue",
-  }),
+  dataPrivacyConsent: z
+    .boolean()
+    .refine((value) => value === true, {
+      message: "You must agree to the privacy policy to continue",
+    }),
 });
 
 export const registerSchema = registerFieldsSchema.refine(
