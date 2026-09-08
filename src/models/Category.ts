@@ -25,6 +25,17 @@ const CategorySchema: Schema = new Schema({
 CategorySchema.index({ userId: 1, name: 1 }, { unique: true });
 
 /**
+ * Pre-save guard that prevents modification of existing system categories.
+ * New system category creation is still allowed (isNew === true).
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+CategorySchema.pre('save', function (this: any) {
+  if (!this.isNew && this.isSystem) {
+    throw new Error('System categories cannot be modified.');
+  }
+});
+
+/**
  * Pre-update hook that prevents modification of system categories.
  */
 CategorySchema.pre('findOneAndUpdate', async function() {

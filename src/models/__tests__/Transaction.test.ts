@@ -490,7 +490,8 @@ describe('EPIC 2 — Transaction Management', () => {
         err = e;
       }
 
-      expect(err).toBeDefined();
+      expect(err).toBeInstanceOf(mongoose.Error.ValidationError);
+      expect(err.errors['recurrence.frequency']).toBeDefined();
     });
 
     it('AC2 — rejects isRecurring:true without startDate', async () => {
@@ -503,7 +504,8 @@ describe('EPIC 2 — Transaction Management', () => {
         err = e;
       }
 
-      expect(err).toBeDefined();
+      expect(err).toBeInstanceOf(mongoose.Error.ValidationError);
+      expect(err.errors['recurrence.startDate']).toBeDefined();
     });
 
     it('default — recurrence.isRecurring defaults to false when omitted', async () => {
@@ -646,6 +648,21 @@ describe('EPIC 2 — Transaction Management', () => {
 
       const updated = await Wallet.findById(wallet._id);
       expect(updated?.balance).toBe(0); // 500 reversed
+    });
+
+    it('US2-2 regression — findOneAndUpdate without { new: true } still syncs wallet balance', async () => {
+      // Guard against the updatedDoc bug: when { new: true } is omitted, Mongoose
+      // passes the pre-update document to the post hook. Our fix re-reads the
+      // committed state, so this must still produce the correct balance.
+      const wallet = await makeWallet({ balance: 0 });
+      const tx = await makeTransaction({ walletId: wallet._id, amount: 300, type: 'expense' }).save();
+      // wallet.balance = -300
+
+      // Omit { new: true } deliberately
+      await Transaction.findOneAndUpdate({ _id: tx._id }, { $set: { amount: 150 } });
+
+      const updated = await Wallet.findById(wallet._id);
+      expect(updated?.balance).toBe(-150); // 300 reversed, 150 applied
     });
   });
 });

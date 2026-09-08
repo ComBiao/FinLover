@@ -17,25 +17,22 @@ const RecurrenceSchema = new Schema<IRecurrence>(
     frequency: {
       type: String,
       enum: ['Weekly', 'Monthly'],
-      required: false,
+      required: [
+        function (this: IRecurrence) { return this.isRecurring; },
+        'recurrence.frequency is required when isRecurring is true',
+      ],
     },
-    startDate: { type: Date, required: false },
+    startDate: {
+      type: Date,
+      required: [
+        function (this: IRecurrence) { return this.isRecurring; },
+        'recurrence.startDate is required when isRecurring is true',
+      ],
+    },
     parentId: { type: Schema.Types.ObjectId, ref: 'Transaction', default: null },
   },
   { _id: false }
 );
-
-// Cross-field validation: frequency and startDate are required when isRecurring is true
-RecurrenceSchema.pre('validate', function (this: IRecurrence) {
-  if (this.isRecurring) {
-    if (!this.frequency) {
-      throw new mongoose.Error.ValidationError(undefined);
-    }
-    if (!this.startDate) {
-      throw new mongoose.Error.ValidationError(undefined);
-    }
-  }
-});
 
 // ---------------------------------------------------------------------------
 // Transaction document interface
@@ -165,28 +162,33 @@ TransactionSchema.pre('findOneAndUpdate', async function (this: any) {
 
 /**
  * After updating a transaction, reverse the old balance delta and apply the new one.
+ * Re-reads the committed document to guard against callers omitting { new: true },
+ * which would otherwise pass the pre-update snapshot as updatedDoc.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-TransactionSchema.post('findOneAndUpdate', async function (this: any, updatedDoc: ITransaction | null) {
-  if (!updatedDoc) return;
+TransactionSchema.post('findOneAndUpdate', async function (this: any) {
   const Wallet = mongoose.model('Wallet');
   const oldDoc = this._oldDoc as ITransaction | null;
-  if (oldDoc) {
-    const reverseDelta = toDelta(oldDoc.type, oldDoc.amount) * -1;
-    const newDelta = toDelta(updatedDoc.type, updatedDoc.amount);
+  if (!oldDoc) return;
 
-    if (oldDoc.walletId.toString() !== updatedDoc.walletId.toString()) {
-      // Wallet changed: reverse from old wallet, apply to new wallet
-      await Promise.all([
-        Wallet.findByIdAndUpdate(oldDoc.walletId, { $inc: { balance: reverseDelta } }),
-        Wallet.findByIdAndUpdate(updatedDoc.walletId, { $inc: { balance: newDelta } })
-      ]);
-    } else {
-      // Same wallet: combine deltas
-      await Wallet.findByIdAndUpdate(updatedDoc.walletId, {
-        $inc: { balance: reverseDelta + newDelta },
-      });
-    }
+  // Re-read after update to always get the committed state.
+  const newDoc = await mongoose.model('Transaction').findById(oldDoc._id).lean() as ITransaction | null;
+  if (!newDoc) return;
+
+  const reverseDelta = toDelta(oldDoc.type, oldDoc.amount) * -1;
+  const newDelta = toDelta(newDoc.type, newDoc.amount);
+
+  if (oldDoc.walletId.toString() !== newDoc.walletId.toString()) {
+    // Wallet changed: reverse from old wallet, apply to new wallet
+    await Promise.all([
+      Wallet.findByIdAndUpdate(oldDoc.walletId, { $inc: { balance: reverseDelta } }),
+      Wallet.findByIdAndUpdate(newDoc.walletId, { $inc: { balance: newDelta } })
+    ]);
+  } else {
+    // Same wallet: combine deltas
+    await Wallet.findByIdAndUpdate(newDoc.walletId, {
+      $inc: { balance: reverseDelta + newDelta },
+    });
   }
 });
 
