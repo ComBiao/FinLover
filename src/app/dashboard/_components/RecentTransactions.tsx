@@ -12,14 +12,12 @@ export function RecentTransactions() {
         <div className="mb-3.5 text-sm font-bold text-foreground">
           Recent transactions
         </div>
-        <ul>
-          {transactions.map((tx, index) => (
-            <li
-              key={`${tx.name}-${tx.date}`}
-              className={`flex items-center gap-3.5 py-2.5 ${
-                index < transactions.length - 1 ? "border-b border-border" : ""
-              }`}
-            >
+        <ul className="divide-y divide-border">
+          {transactions.map((tx) => (
+          <li
+            key={`${tx.name}-${tx.date}`}
+            className="flex items-center gap-3.5 py-2.5"
+          >
               <div
                 className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${tx.iconClassName}`}
               >
