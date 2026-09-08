@@ -205,6 +205,25 @@ describe('EPIC 3 — Category Management', () => {
       expect(err.message).toMatch(/System categories cannot be modified/);
     });
 
+    it('US3-3 guard — prevents bypassing isSystem via save() by setting it to false', async () => {
+      const systemCat = await makeCategory({ name: 'Food', isSystem: true }).save();
+
+      let err: any = null;
+      try {
+        systemCat.isSystem = false;
+        systemCat.name = 'Hacked Food';
+        await systemCat.save();
+      } catch (e: any) {
+        err = e;
+      }
+
+      expect(err).toBeDefined();
+      expect(err.message).toMatch(/System categories cannot be modified/);
+      
+      const inDb = await Category.findById(systemCat._id);
+      expect(inDb?.name).toBe('Food');
+    });
+
     it('US3-3 guard — allows updating a non-system category', async () => {
       const cat = await makeCategory({ name: 'Coffee', isSystem: false }).save();
 
@@ -253,6 +272,62 @@ describe('EPIC 3 — Category Management', () => {
     it('US3-4 guard — allows deleting a non-system category', async () => {
       const cat = await makeCategory({ name: 'Misc', isSystem: false }).save();
       await Category.findOneAndDelete({ _id: cat._id });
+
+      const found = await Category.findById(cat._id);
+      expect(found).toBeNull();
+    });
+
+    // --- updateOne / deleteOne guards (bypass-prevention) ---
+
+    it('US3-3 guard — throws when attempting to updateOne a system category', async () => {
+      const systemCat = await makeCategory({ name: 'Transport', isSystem: true }).save();
+
+      let err: any = null;
+      try {
+        await Category.updateOne(
+          { _id: systemCat._id },
+          { $set: { name: 'Vehicles' } }
+        );
+      } catch (e: any) {
+        err = e;
+      }
+
+      expect(err).toBeDefined();
+      expect(err.message).toMatch(/System categories cannot be modified/);
+    });
+
+    it('US3-3 guard — allows updateOne on a non-system category', async () => {
+      const cat = await makeCategory({ name: 'Snacks', isSystem: false }).save();
+
+      await Category.updateOne(
+        { _id: cat._id },
+        { $set: { name: 'Treats' } }
+      );
+
+      const updated = await Category.findById(cat._id);
+      expect(updated?.name).toBe('Treats');
+    });
+
+    it('US3-4 guard — throws when attempting to deleteOne a system category', async () => {
+      const systemCat = await makeCategory({ name: 'Salary', type: 'income', isSystem: true }).save();
+
+      let err: any = null;
+      try {
+        await Category.deleteOne({ _id: systemCat._id });
+      } catch (e: any) {
+        err = e;
+      }
+
+      expect(err).toBeDefined();
+      expect(err.message).toMatch(/System categories cannot be deleted/);
+
+      const still = await Category.findById(systemCat._id);
+      expect(still).not.toBeNull();
+    });
+
+    it('US3-4 guard — allows deleteOne on a non-system category', async () => {
+      const cat = await makeCategory({ name: 'Hobby', isSystem: false }).save();
+      await Category.deleteOne({ _id: cat._id });
 
       const found = await Category.findById(cat._id);
       expect(found).toBeNull();

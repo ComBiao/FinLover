@@ -449,22 +449,22 @@ describe('EPIC 2 — Transaction Management', () => {
       const tx = await makeTransaction({
         recurrence: {
           isRecurring: true,
-          frequency: 'Monthly',
+          frequency: 'monthly',
           startDate: new Date('2026-09-01'),
         },
       }).save();
 
       expect(tx.recurrence.isRecurring).toBe(true);
-      expect(tx.recurrence.frequency).toBe('Monthly');
+      expect(tx.recurrence.frequency).toBe('monthly');
       expect(tx.recurrence.startDate).toBeInstanceOf(Date);
     });
 
     it('AC1 — saves a valid Weekly recurring transaction', async () => {
       const tx = await makeTransaction({
-        recurrence: { isRecurring: true, frequency: 'Weekly', startDate: new Date('2026-09-01') },
+        recurrence: { isRecurring: true, frequency: 'weekly', startDate: new Date('2026-09-01') },
       }).save();
 
-      expect(tx.recurrence.frequency).toBe('Weekly');
+      expect(tx.recurrence.frequency).toBe('weekly');
     });
 
     it('AC2 — rejects a frequency value outside {Weekly, Monthly}', async () => {
@@ -498,7 +498,7 @@ describe('EPIC 2 — Transaction Management', () => {
       let err: any = null;
       try {
         await makeTransaction({
-          recurrence: { isRecurring: true, frequency: 'Monthly' },
+          recurrence: { isRecurring: true, frequency: 'monthly' },
         }).save();
       } catch (e: any) {
         err = e;
@@ -515,7 +515,7 @@ describe('EPIC 2 — Transaction Management', () => {
 
     it('parentId — links a child posting back to its parent rule', async () => {
       const parentTx = await makeTransaction({
-        recurrence: { isRecurring: true, frequency: 'Monthly', startDate: new Date('2026-09-01') },
+        recurrence: { isRecurring: true, frequency: 'monthly', startDate: new Date('2026-09-01') },
       }).save();
 
       const childTx = await makeTransaction({
@@ -663,6 +663,26 @@ describe('EPIC 2 — Transaction Management', () => {
 
       const updated = await Wallet.findById(wallet._id);
       expect(updated?.balance).toBe(-150); // 300 reversed, 150 applied
+    });
+
+    it('US2-2 regression — updateOne syncs wallet balance correctly', async () => {
+      const wallet = await makeWallet({ balance: 0 });
+      const tx = await makeTransaction({ walletId: wallet._id, amount: 100, type: 'income' }).save();
+      
+      await Transaction.updateOne({ _id: tx._id }, { $set: { amount: 250 } });
+      
+      const updated = await Wallet.findById(wallet._id);
+      expect(updated?.balance).toBe(250); // 100 reversed, 250 applied
+    });
+
+    it('US2-3 regression — deleteOne syncs wallet balance correctly', async () => {
+      const wallet = await makeWallet({ balance: 0 });
+      const tx = await makeTransaction({ walletId: wallet._id, amount: 400, type: 'income' }).save();
+      
+      await Transaction.deleteOne({ _id: tx._id });
+      
+      const updated = await Wallet.findById(wallet._id);
+      expect(updated?.balance).toBe(0); // 400 reversed
     });
   });
 });

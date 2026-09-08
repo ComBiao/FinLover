@@ -46,4 +46,4 @@
 |  |  |  |  | Given the user has no expense transactions in the selected period, When the user attempts to view the distribution chart, Then the system should display an appropriate empty-state message instead of an incorrectly rendered chart. |  |  |
 |  |  | US4-4 | As a user, I want to filter my financial reports by weekly, monthly, annual, or a custom date range, So that I can analyze specific periods. | Given the user selects "Custom Range" with start date "2026-08-01" and end date "2026-08-31", When the user attempts to apply the filter, Then the system should allow the action and display only transactions and totals within that exact range including the start and end date. |  | Ref: FR 3.3 Time Period Filtering |
 |  |  |  |  | Given the user input is invalid, e.g., an end date earlier than the start date such as start "2026-08-31" and end "2026-08-01", When the user attempts to apply the filter, Then the system should display an appropriate error message and not apply the range. |  |  |
-| **TOTAL PRODUCT BACKLOG POINTS** |  |  |  |  | **59** |  |
+| **TOTAL PRODUCT BACKLOG POINTS** |  |  |  |  | **45** |  |

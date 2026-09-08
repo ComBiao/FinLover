@@ -1,12 +1,17 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import mongooseLeanGetters from 'mongoose-lean-getters';
 
+// Side-effect import: ensure the Wallet schema is registered before any
+// hook calls mongoose.model('Wallet'). Prevents MissingSchemaError when
+// Transaction is loaded before Wallet in production route ordering.
+import './Wallet';
+
 // ---------------------------------------------------------------------------
 // Recurrence sub-document
 // ---------------------------------------------------------------------------
 export interface IRecurrence {
   isRecurring: boolean;
-  frequency?: 'Weekly' | 'Monthly';
+  frequency?: 'weekly' | 'monthly';
   startDate?: Date;
   parentId?: mongoose.Types.ObjectId | null;
 }
@@ -16,7 +21,7 @@ const RecurrenceSchema = new Schema<IRecurrence>(
     isRecurring: { type: Boolean, default: false },
     frequency: {
       type: String,
-      enum: ['Weekly', 'Monthly'],
+      enum: ['weekly', 'monthly'],
       required: [
         function (this: IRecurrence) { return this.isRecurring; },
         'recurrence.frequency is required when isRecurring is true',
@@ -78,7 +83,18 @@ const TransactionSchema: Schema = new Schema({
         if (!category) return false;
         
         // Mongoose 'this' might be the document (save) or query (update)
-        const txType = this.type || (this.getUpdate && this.getUpdate()?.$set?.type);
+        let txType = this.type;
+        
+        if (this.getUpdate) {
+          const update = this.getUpdate();
+          txType = update.$set?.type || update.type;
+          
+          if (!txType) {
+            const existing = await this.model.findOne(this.getQuery());
+            if (existing) txType = existing.type;
+          }
+        }
+        
         if (txType && category.type !== txType) return false;
         return true;
       },
@@ -105,7 +121,20 @@ TransactionSchema.plugin(mongooseLeanGetters);
 
 // ---------------------------------------------------------------------------
 // Wallet balance sync — post hooks
-// Use mongoose.model('Wallet') string lookup to avoid circular imports.
+//
+// KNOWN LIMITATIONS:
+//   1. Atomicity: Wallet $inc updates are NOT wrapped in a MongoDB session
+//      with the transaction write. Each $inc is individually atomic, but a
+//      failure between two writes (e.g. cross-wallet transfer) can leave
+//      balances drifted. Wrapping in withTransaction() requires all
+//      environments (including test mongodb-memory-server) to run as a
+//      replica set. See walletService.ts for the session-based pattern.
+//   2. insertMany: Mongoose save middleware does not fire for insertMany().
+//      If bulk-creating transactions, callers must manually adjust wallet
+//      balances.
+//   3. Isolation: The post('findOneAndUpdate') re-read (findById after
+//      update) has no session — a concurrent delete/update in the gap can
+//      cause a skipped or mis-applied reversal.
 // ---------------------------------------------------------------------------
 
 /**
@@ -136,8 +165,12 @@ TransactionSchema.post('save', async function (this: any, doc: ITransaction) {
     if (oldDoc) {
       const reverseDelta = toDelta(oldDoc.type, oldDoc.amount) * -1;
       const newDelta = toDelta(doc.type, doc.amount);
+      const sameWallet = oldDoc.walletId.toString() === doc.walletId.toString();
 
-      if (oldDoc.walletId.toString() !== doc.walletId.toString()) {
+      // Skip the DB write when type, amount, and wallet are all unchanged.
+      if (sameWallet && reverseDelta + newDelta === 0) return;
+
+      if (!sameWallet) {
         await Promise.all([
           Wallet.findByIdAndUpdate(oldDoc.walletId, { $inc: { balance: reverseDelta } }),
           Wallet.findByIdAndUpdate(doc.walletId, { $inc: { balance: newDelta } })
@@ -156,7 +189,7 @@ TransactionSchema.post('save', async function (this: any, doc: ITransaction) {
  * can reverse its delta.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-TransactionSchema.pre('findOneAndUpdate', async function (this: any) {
+TransactionSchema.pre(['findOneAndUpdate', 'updateOne'], async function (this: any) {
   this._oldDoc = await mongoose.model('Transaction').findOne(this.getQuery()).lean();
 });
 
@@ -166,7 +199,7 @@ TransactionSchema.pre('findOneAndUpdate', async function (this: any) {
  * which would otherwise pass the pre-update snapshot as updatedDoc.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-TransactionSchema.post('findOneAndUpdate', async function (this: any) {
+TransactionSchema.post(['findOneAndUpdate', 'updateOne'], async function (this: any) {
   const Wallet = mongoose.model('Wallet');
   const oldDoc = this._oldDoc as ITransaction | null;
   if (!oldDoc) return;
@@ -193,9 +226,30 @@ TransactionSchema.post('findOneAndUpdate', async function (this: any) {
 });
 
 /**
- * After deleting a transaction, reverse its balance delta from the wallet.
+ * After deleting a transaction via findOneAndDelete, reverse its balance delta from the wallet.
  */
 TransactionSchema.post('findOneAndDelete', async function (deletedDoc: ITransaction | null) {
+  if (!deletedDoc) return;
+  const Wallet = mongoose.model('Wallet');
+  await Wallet.findByIdAndUpdate(deletedDoc.walletId, {
+    $inc: { balance: toDelta(deletedDoc.type, deletedDoc.amount) * -1 },
+  });
+});
+
+/**
+ * Pre-hook for deleteOne to stash the document before it is deleted.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+TransactionSchema.pre('deleteOne', { document: false, query: true }, async function (this: any) {
+  this._deletedDoc = await mongoose.model('Transaction').findOne(this.getQuery()).lean();
+});
+
+/**
+ * Post-hook for deleteOne to reverse the stashed document's balance delta.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+TransactionSchema.post('deleteOne', { document: false, query: true }, async function (this: any) {
+  const deletedDoc = this._deletedDoc as ITransaction | null;
   if (!deletedDoc) return;
   const Wallet = mongoose.model('Wallet');
   await Wallet.findByIdAndUpdate(deletedDoc.walletId, {
