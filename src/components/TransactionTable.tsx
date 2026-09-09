@@ -119,7 +119,11 @@ export function TransactionTable({
               <div className="flex flex-wrap items-center gap-1.5">
                 <Badge
                   variant="outline"
-                  className={cn("border-transparent", categoryTone?.className)}
+                  className={
+                    categoryTone
+                      ? cn("border-transparent", categoryTone.className)
+                      : "border-border bg-muted text-muted-foreground"
+                  }
                   style={categoryTone?.style}
                 >
                   {CategoryIcon ? <CategoryIcon className="size-3" /> : null}
@@ -219,7 +223,11 @@ export function TransactionTable({
                 <TableCell className="py-3.5">
                   <Badge
                     variant="outline"
-                    className={cn("border-transparent", categoryTone?.className)}
+                    className={
+                      categoryTone
+                        ? cn("border-transparent", categoryTone.className)
+                        : "border-border bg-muted text-muted-foreground"
+                    }
                     style={categoryTone?.style}
                   >
                     {CategoryIcon ? <CategoryIcon className="size-3" /> : null}

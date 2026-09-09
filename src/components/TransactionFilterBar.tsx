@@ -95,6 +95,7 @@ export function TransactionFilterBar({
               value={value.categoryId}
               onValueChange={(categoryId) => patch({ categoryId })}
               allowAll
+              allowUncategorized
               className="w-full"
             />
             <WalletSelector
@@ -143,6 +144,7 @@ export function TransactionFilterBar({
             value={value.categoryId}
             onValueChange={(categoryId) => patch({ categoryId })}
             allowAll
+            allowUncategorized
             className="min-w-[110px] flex-1 sm:max-w-44 sm:flex-none"
           />
           <WalletSelector
