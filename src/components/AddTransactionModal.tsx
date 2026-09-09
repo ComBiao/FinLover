@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { z } from "zod";
 
 import { CategorySelector } from "@/components/CategorySelector";
 import { Button } from "@/components/ui/button";
@@ -14,12 +15,17 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { WalletSelector } from "@/components/WalletSelector";
 import { cn, todayISODate } from "@/lib/utils";
 import { useTransactionModal } from "@/store/useTransactionModal";
 import type { TransactionType } from "@/types/category";
 import { transactionSchema } from "@/types/transaction";
 
-type FieldErrors = Partial<Record<"amount" | "date", string>>;
+const addTransactionSchema = transactionSchema.extend({
+  walletId: z.string().min(1, "Wallet is required"),
+});
+
+type FieldErrors = Partial<Record<"amount" | "date" | "categoryId" | "walletId", string>>;
 
 /**
  * Modal form for creating a new income or expense transaction, opened via
@@ -30,6 +36,7 @@ export function AddTransactionModal() {
 
   const [type, setType] = React.useState<TransactionType>(defaultType);
   const [categoryId, setCategoryId] = React.useState("");
+  const [walletId, setWalletId] = React.useState("");
   const [errors, setErrors] = React.useState<FieldErrors>({});
   const [wasOpen, setWasOpen] = React.useState(isOpen);
 
@@ -38,6 +45,7 @@ export function AddTransactionModal() {
     if (isOpen) {
       setType(defaultType);
       setCategoryId("");
+      setWalletId("");
       setErrors({});
     }
   }
@@ -51,17 +59,18 @@ export function AddTransactionModal() {
    * Validates the form with the transaction zod schema and surfaces per-field
    * error messages instead of submitting.
    * TODO: on successful validation, POST /api/transactions with
-   * { type, amount, date, categoryId, note }.
+   * { type, amount, date, categoryId, walletId, note }.
    */
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const formData = new FormData(event.currentTarget);
-    const result = transactionSchema.safeParse({
+    const result = addTransactionSchema.safeParse({
       type,
       amount: formData.get("amount"),
       date: formData.get("date"),
       categoryId: categoryId || null,
+      walletId,
       note: formData.get("note"),
     });
 
@@ -155,6 +164,18 @@ export function AddTransactionModal() {
               <p id="transaction-date-error" className="text-xs text-destructive">
                 {errors.date}
               </p>
+            ) : null}
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="transaction-wallet">Wallet</Label>
+            <WalletSelector
+              id="transaction-wallet"
+              value={walletId}
+              onValueChange={(nextWalletId) => setWalletId(nextWalletId ?? "")}
+            />
+            {errors.walletId ? (
+              <p className="text-xs text-destructive">{errors.walletId}</p>
             ) : null}
           </div>
 
