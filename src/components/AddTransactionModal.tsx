@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 
 import { CategorySelector } from "@/components/CategorySelector";
@@ -19,77 +21,104 @@ import { WalletSelector } from "@/components/WalletSelector";
 import { cn, todayISODate } from "@/lib/utils";
 import { useTransactionModal } from "@/store/useTransactionModal";
 import type { TransactionType } from "@/types/category";
-import { transactionSchema } from "@/types/transaction";
+import type { Transaction } from "@/types/transaction";
 
-const addTransactionSchema = transactionSchema.extend({
+const addTransactionFormSchema = z.object({
+  type: z.enum(["income", "expense"]),
+  amount: z.string().superRefine((value, ctx) => {
+    if (!value.trim()) {
+      ctx.addIssue({ code: "custom", message: "Amount is required" });
+      return;
+    }
+    if (Number.isNaN(Number(value)) || Number(value) <= 0) {
+      ctx.addIssue({ code: "custom", message: "Amount must be greater than 0" });
+    }
+  }),
+  date: z.string().min(1, "Date is required"),
   walletId: z.string().min(1, "Wallet is required"),
+  categoryId: z.string().min(1, "Category is required"),
+  note: z.string().optional(),
 });
 
-type FieldErrors = Partial<Record<"amount" | "date" | "categoryId" | "walletId", string>>;
+type AddTransactionFormValues = z.infer<typeof addTransactionFormSchema>;
 
-/**
- * Modal form for creating a new income or expense transaction, opened via
- * the zustand `useTransactionModal` store.
- */
-export function AddTransactionModal() {
-  const { isOpen, defaultType, closeModal } = useTransactionModal();
+type AddTransactionModalProps = {
+  /** Row to edit, populating the form and switching the modal into edit mode. Omit (or `null`) for Add mode. */
+  initialData?: Transaction | null;
+};
 
-  const [type, setType] = React.useState<TransactionType>(defaultType);
-  const [categoryId, setCategoryId] = React.useState("");
-  const [walletId, setWalletId] = React.useState("");
-  const [errors, setErrors] = React.useState<FieldErrors>({});
-  const [wasOpen, setWasOpen] = React.useState(isOpen);
-
-  if (isOpen !== wasOpen) {
-    setWasOpen(isOpen);
-    if (isOpen) {
-      setType(defaultType);
-      setCategoryId("");
-      setWalletId("");
-      setErrors({});
-    }
+function toFormValues(
+  transaction: Transaction | null | undefined,
+  fallbackType: TransactionType
+): AddTransactionFormValues {
+  if (!transaction) {
+    return {
+      type: fallbackType,
+      amount: "",
+      date: todayISODate(),
+      walletId: "",
+      categoryId: "",
+      note: "",
+    };
   }
 
+  return {
+    type: transaction.type,
+    amount: String(transaction.amount),
+    date: transaction.date.toISOString().slice(0, 10),
+    walletId: transaction.walletId,
+    categoryId: transaction.categoryId ?? "",
+    note: transaction.note ?? "",
+  };
+}
+
+/**
+ * Modal form for creating a new income/expense transaction, or (when given
+ * `initialData`) editing an existing one — both share this one form, opened
+ * via the zustand `useTransactionModal` store.
+ */
+export function AddTransactionModal({ initialData }: AddTransactionModalProps = {}) {
+  const { isOpen, defaultType, editingTransaction, closeModal } = useTransactionModal();
+  const effectiveInitialData = initialData ?? editingTransaction;
+  const isEditMode = Boolean(effectiveInitialData);
+
+  const {
+    control,
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    formState: { errors },
+  } = useForm<AddTransactionFormValues>({
+    resolver: zodResolver(addTransactionFormSchema),
+    defaultValues: toFormValues(effectiveInitialData, defaultType),
+  });
+
+  const type = useWatch({ control, name: "type" });
+
+  React.useEffect(() => {
+    if (isOpen) {
+      reset(toFormValues(effectiveInitialData, defaultType));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
   function handleTypeChange(nextType: TransactionType) {
-    setType(nextType);
-    setCategoryId("");
+    setValue("type", nextType);
+    setValue("categoryId", "");
   }
 
   /**
-   * Validates the form with the transaction zod schema and surfaces per-field
-   * error messages instead of submitting. Creation isn't wired up yet, so a
-   * valid submission intentionally leaves the modal open rather than closing
-   * as if the transaction were saved.
-   * TODO: on successful validation, POST /api/transactions with
-   * { type, amount, date, categoryId, walletId, note }, then closeModal().
+   * Validates the form with react-hook-form + zod. Creation/update isn't
+   * wired up yet, so a valid submission intentionally leaves the modal open
+   * rather than closing as if the transaction were saved.
+   * TODO: on successful validation, POST /api/transactions (create) or
+   * PUT /api/transactions/:id (edit) with { type, amount, date, categoryId,
+   * walletId, note }, then closeModal().
    */
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    const formData = new FormData(event.currentTarget);
-    const result = addTransactionSchema.safeParse({
-      type,
-      amount: formData.get("amount"),
-      date: formData.get("date"),
-      categoryId: categoryId || null,
-      walletId,
-      note: formData.get("note"),
-    });
-
-    if (!result.success) {
-      const fieldErrors: FieldErrors = {};
-      for (const issue of result.error.issues) {
-        const field = issue.path[0] as keyof FieldErrors;
-        if (!fieldErrors[field]) {
-          fieldErrors[field] = issue.message;
-        }
-      }
-      setErrors(fieldErrors);
-      return;
-    }
-
-    setErrors({});
-    console.log("Transaction creation not implemented yet", result.data);
+  function onSubmit(values: AddTransactionFormValues) {
+    const payload = { ...values, amount: Number(values.amount) };
+    console.log(isEditMode ? "Update transaction" : "Create transaction", payload);
   }
 
   return (
@@ -101,10 +130,10 @@ export function AddTransactionModal() {
     >
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Add transaction</DialogTitle>
+          <DialogTitle>{isEditMode ? "Edit Transaction" : "Add Transaction"}</DialogTitle>
         </DialogHeader>
 
-        <form className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
+        <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)} noValidate>
           <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
             <button
               type="button"
@@ -136,7 +165,6 @@ export function AddTransactionModal() {
             <Label htmlFor="transaction-amount">Amount</Label>
             <Input
               id="transaction-amount"
-              name="amount"
               type="number"
               inputMode="decimal"
               step="0.01"
@@ -144,10 +172,11 @@ export function AddTransactionModal() {
               placeholder="0.00"
               aria-invalid={Boolean(errors.amount)}
               aria-describedby={errors.amount ? "transaction-amount-error" : undefined}
+              {...register("amount")}
             />
             {errors.amount ? (
-              <p id="transaction-amount-error" className="text-xs text-destructive">
-                {errors.amount}
+              <p id="transaction-amount-error" className="text-destructive text-sm">
+                {errors.amount.message}
               </p>
             ) : null}
           </div>
@@ -156,49 +185,62 @@ export function AddTransactionModal() {
             <Label htmlFor="transaction-date">Date</Label>
             <Input
               id="transaction-date"
-              name="date"
               type="date"
-              defaultValue={todayISODate()}
               aria-invalid={Boolean(errors.date)}
               aria-describedby={errors.date ? "transaction-date-error" : undefined}
+              {...register("date")}
             />
             {errors.date ? (
-              <p id="transaction-date-error" className="text-xs text-destructive">
-                {errors.date}
+              <p id="transaction-date-error" className="text-destructive text-sm">
+                {errors.date.message}
               </p>
             ) : null}
           </div>
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="transaction-wallet">Wallet</Label>
-            <WalletSelector
-              id="transaction-wallet"
-              value={walletId}
-              onValueChange={(nextWalletId) => setWalletId(nextWalletId ?? "")}
+            <Controller
+              control={control}
+              name="walletId"
+              render={({ field }) => (
+                <WalletSelector
+                  id="transaction-wallet"
+                  value={field.value}
+                  onValueChange={(nextWalletId) => field.onChange(nextWalletId ?? "")}
+                />
+              )}
             />
             {errors.walletId ? (
-              <p className="text-xs text-destructive">{errors.walletId}</p>
+              <p className="text-destructive text-sm">{errors.walletId.message}</p>
             ) : null}
           </div>
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="transaction-category">Category</Label>
-            <CategorySelector
-              id="transaction-category"
-              type={type}
-              value={categoryId}
-              onValueChange={(nextCategoryId) => setCategoryId(nextCategoryId ?? "")}
-              allowUncategorized
+            <Controller
+              control={control}
+              name="categoryId"
+              render={({ field }) => (
+                <CategorySelector
+                  id="transaction-category"
+                  type={type}
+                  value={field.value}
+                  onValueChange={(nextCategoryId) => field.onChange(nextCategoryId ?? "")}
+                />
+              )}
             />
+            {errors.categoryId ? (
+              <p className="text-destructive text-sm">{errors.categoryId.message}</p>
+            ) : null}
           </div>
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="transaction-note">Note</Label>
             <Textarea
               id="transaction-note"
-              name="note"
               placeholder="Optional note"
               rows={3}
+              {...register("note")}
             />
           </div>
 
@@ -206,7 +248,7 @@ export function AddTransactionModal() {
             <Button type="button" variant="outline" onClick={closeModal}>
               Cancel
             </Button>
-            <Button type="submit">Save transaction</Button>
+            <Button type="submit">{isEditMode ? "Save changes" : "Save transaction"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

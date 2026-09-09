@@ -25,6 +25,8 @@ export default function TransactionsPage() {
   const setFilters = useTransactionFilters((state) => state.setFilters);
   const resetFilters = useTransactionFilters((state) => state.resetFilters);
   const openModal = useTransactionModal((state) => state.openModal);
+  const openEditModal = useTransactionModal((state) => state.openEditModal);
+  const editingTransaction = useTransactionModal((state) => state.editingTransaction);
 
   const filteredTransactions = useMemo(
     () => filterTransactions(transactions, filters),
@@ -68,10 +70,14 @@ export default function TransactionsPage() {
           </span>
         </div>
 
-        <TransactionTable transactions={filteredTransactions} onDelete={handleDelete} />
+        <TransactionTable
+          transactions={filteredTransactions}
+          onEdit={openEditModal}
+          onDelete={handleDelete}
+        />
       </div>
 
-      <AddTransactionModal />
+      <AddTransactionModal initialData={editingTransaction} />
     </main>
   );
 }
