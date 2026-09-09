@@ -39,7 +39,9 @@ const UserSchema: Schema = new Schema({
  * Database-Level Cascade Delete for Strict Data Privacy.
  */
 UserSchema.pre('findOneAndDelete', async function() {
-  const userId = this.getQuery()._id;
+  const user = await this.model.findOne(this.getQuery());
+  if (!user) return;
+  const userId = user._id;
   
   const Wallet = mongoose.model('Wallet');
   const Category = mongoose.model('Category');

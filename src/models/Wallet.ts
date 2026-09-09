@@ -28,7 +28,9 @@ WalletSchema.index({ userId: 1, name: 1 }, { unique: true });
  * Database-Level Cascade Delete.
  */
 WalletSchema.pre('findOneAndDelete', async function() {
-  const walletId = this.getQuery()._id;
+  const wallet = await this.model.findOne(this.getQuery());
+  if (!wallet) return;
+  const walletId = wallet._id;
   const Transaction = mongoose.model('Transaction');
   
   // Automatically delete all transactions linked to this wallet to prevent orphaned data

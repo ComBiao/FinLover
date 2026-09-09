@@ -32,6 +32,7 @@ erDiagram
     String name
     String type
     String color
+    String icon
     Boolean isSystem
     ObjectId _id
     Date createdAt
@@ -46,6 +47,7 @@ erDiagram
     Number amount
     Date date
     String notes
+    Embedded recurrence
     ObjectId _id
     Date createdAt
     Date updatedAt
