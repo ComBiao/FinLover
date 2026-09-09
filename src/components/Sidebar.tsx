@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   BarChart3,
   CreditCard,
+  Home,
   LayoutGrid,
   Menu,
   Receipt,
@@ -24,6 +25,7 @@ type NavItem = {
 };
 
 const NAV_ITEMS: NavItem[] = [
+  { label: "Home", href: "/dashboard", icon: Home },
   { label: "Transactions", href: "/transactions", icon: Receipt },
   { label: "Category", href: "/category", icon: LayoutGrid },
   { label: "Reports", href: "/reports", icon: BarChart3 },
