@@ -1,3 +1,4 @@
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -5,9 +6,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { resolveChipTone, WALLET_TYPE_STYLES } from "@/lib/chipColor";
 import { MOCK_WALLETS } from "@/lib/mockWallets";
 import { cn } from "@/lib/utils";
 import type { Wallet } from "@/types/wallet";
+
+function walletTone(wallet: Wallet) {
+  return resolveChipTone(wallet.color, WALLET_TYPE_STYLES, wallet.type ?? wallet.id);
+}
 
 const ALL_VALUE = "all";
 const OPTION_PREFIX = "option:";
@@ -18,10 +24,6 @@ function encodeOptionValue(id: string) {
 
 function decodeOptionValue(value: string) {
   return value.slice(OPTION_PREFIX.length);
-}
-
-function formatBalance(balance: number) {
-  return `฿${balance.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
 }
 
 type WalletSelectorProps = {
@@ -79,24 +81,38 @@ export function WalletSelector({
             const selected = wallets.find((wallet) => wallet.id === selectedId);
             if (!selected) return placeholder;
             const Icon = selected.icon;
+            const tone = walletTone(selected);
             return (
-              <>
-                <Icon className="size-4 shrink-0 text-muted-foreground" />
+              <Badge
+                variant="secondary"
+                className={cn("gap-1 border-transparent", tone.className)}
+                style={tone.style}
+              >
+                <Icon className="size-3" />
                 {selected.name}
-              </>
+              </Badge>
             );
           }}
         </SelectValue>
       </SelectTrigger>
       <SelectContent>
         {allowAll ? <SelectItem value={ALL_VALUE}>{allLabel}</SelectItem> : null}
-        {wallets.map(({ id: walletId, name: walletName, balance, icon: Icon }) => (
-          <SelectItem key={walletId} value={encodeOptionValue(walletId)}>
-            <Icon className="size-4 shrink-0 text-muted-foreground" />
-            <span className="flex-1">{walletName}</span>
-            <span className="ml-2 text-xs text-muted-foreground">{formatBalance(balance)}</span>
-          </SelectItem>
-        ))}
+        {wallets.map((wallet) => {
+          const Icon = wallet.icon;
+          const tone = walletTone(wallet);
+          return (
+            <SelectItem key={wallet.id} value={encodeOptionValue(wallet.id)}>
+              <Badge
+                variant="secondary"
+                className={cn("gap-1 border-transparent", tone.className)}
+                style={tone.style}
+              >
+                <Icon className="size-3" />
+                {wallet.name}
+              </Badge>
+            </SelectItem>
+          );
+        })}
       </SelectContent>
     </Select>
   );
