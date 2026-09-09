@@ -31,6 +31,7 @@ export type Transaction = {
 /** Filter criteria for the Transactions list — `undefined`/empty means "no filter". */
 export type TransactionFilters = {
   search: string;
+  type?: TransactionType;
   walletId?: string;
   categoryId?: string;
   dateRange?: DateRange;
@@ -38,6 +39,7 @@ export type TransactionFilters = {
 
 export const DEFAULT_TRANSACTION_FILTERS: TransactionFilters = {
   search: "",
+  type: undefined,
   walletId: undefined,
   categoryId: undefined,
   dateRange: undefined,

@@ -1,3 +1,4 @@
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -5,9 +6,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CATEGORY_STYLES, resolveChipTone } from "@/lib/chipColor";
 import { MOCK_CATEGORIES } from "@/lib/mockCategories";
 import { cn } from "@/lib/utils";
 import type { Category, TransactionType } from "@/types/category";
+
+function categoryTone(category: Category) {
+  return resolveChipTone(category.color, CATEGORY_STYLES, category.id);
+}
 
 const ALL_VALUE = "all";
 const UNCATEGORIZED_VALUE = "uncategorized";
@@ -101,11 +107,16 @@ export function CategorySelector({
             const selected = options.find((option) => option.id === selectedId);
             if (!selected) return placeholder;
             const Icon = selected.icon;
+            const tone = categoryTone(selected);
             return (
-              <>
-                <Icon className="size-4 shrink-0 text-muted-foreground" />
+              <Badge
+                variant="outline"
+                className={cn("gap-1 border-transparent", tone.className)}
+                style={tone.style}
+              >
+                <Icon className="size-3" />
                 {selected.name}
-              </>
+              </Badge>
             );
           }}
         </SelectValue>
@@ -115,12 +126,22 @@ export function CategorySelector({
         {allowUncategorized ? (
           <SelectItem value={UNCATEGORIZED_VALUE}>{uncategorizedLabel}</SelectItem>
         ) : null}
-        {options.map(({ id: categoryId, name: categoryName, icon: Icon }) => (
-          <SelectItem key={categoryId} value={encodeOptionValue(categoryId)}>
-            <Icon className="size-4 shrink-0 text-muted-foreground" />
-            {categoryName}
-          </SelectItem>
-        ))}
+        {options.map((option) => {
+          const Icon = option.icon;
+          const tone = categoryTone(option);
+          return (
+            <SelectItem key={option.id} value={encodeOptionValue(option.id)}>
+              <Badge
+                variant="outline"
+                className={cn("gap-1 border-transparent", tone.className)}
+                style={tone.style}
+              >
+                <Icon className="size-3" />
+                {option.name}
+              </Badge>
+            </SelectItem>
+          );
+        })}
       </SelectContent>
     </Select>
   );

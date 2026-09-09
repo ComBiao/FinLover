@@ -30,6 +30,7 @@ export default function TransactionsPage() {
 
     return transactions
       .filter((transaction) => {
+        if (filters.type && transaction.type !== filters.type) return false;
         if (filters.walletId && transaction.walletId !== filters.walletId) return false;
         if (filters.categoryId && transaction.categoryId !== filters.categoryId) return false;
         if (filters.dateRange?.from && transaction.date < filters.dateRange.from) return false;
