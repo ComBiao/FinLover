@@ -27,7 +27,7 @@ export function DeleteTransactionDialog({
 }: DeleteTransactionDialogProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
+      <AlertDialogContent className="w-[calc(100%-2rem)] p-6 data-[size=default]:max-w-md data-[size=default]:sm:max-w-md">
         <AlertDialogHeader>
           <AlertDialogTitle>Delete transaction?</AlertDialogTitle>
           <AlertDialogDescription>
@@ -36,10 +36,11 @@ export function DeleteTransactionDialog({
               : "This will permanently delete this transaction. This action cannot be undone."}
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+        <AlertDialogFooter className="-mx-6 -mb-6 flex-col-reverse gap-2 p-6 sm:flex-row sm:justify-end">
+          <AlertDialogCancel variant="outline">Cancel</AlertDialogCancel>
           <AlertDialogAction
             variant="destructive"
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             onClick={() => {
               onConfirm();
               onOpenChange(false);
