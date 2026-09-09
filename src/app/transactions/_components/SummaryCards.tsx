@@ -21,19 +21,36 @@ export function SummaryCards({ transactions }: SummaryCardsProps) {
   const netBalance = totalIncome - totalExpense;
 
   const cards = [
-    { label: "Total Income", value: totalIncome, valueClassName: "text-success" },
-    { label: "Total Expense", value: totalExpense, valueClassName: "text-destructive" },
+    {
+      label: "Total Income",
+      value: totalIncome,
+      valueClassName: "text-success",
+      cardClassName: "border-l-4 border-l-success bg-gradient-to-br from-success-bg to-card",
+    },
+    {
+      label: "Total Expense",
+      value: totalExpense,
+      valueClassName: "text-destructive",
+      cardClassName: "border-l-4 border-l-destructive bg-gradient-to-br from-danger-bg to-card",
+    },
     {
       label: "Net Balance",
       value: netBalance,
       valueClassName: netBalance >= 0 ? "text-success" : "text-destructive",
+      cardClassName: "border-l-4 border-l-primary bg-gradient-to-br from-primary/10 to-card",
     },
   ];
 
   return (
     <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-3">
       {cards.map((card) => (
-        <Card key={card.label} className="rounded-2xl shadow-sm">
+        <Card
+          key={card.label}
+          className={cn(
+            "rounded-2xl shadow-sm transition-shadow hover:shadow-md",
+            card.cardClassName
+          )}
+        >
           <CardContent className="py-1">
             <div className="text-sm font-medium text-muted-foreground">{card.label}</div>
             <div className={cn("mt-1.5 text-2xl font-bold", card.valueClassName)}>

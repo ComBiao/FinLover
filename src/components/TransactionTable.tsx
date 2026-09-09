@@ -1,7 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  ChevronDown,
+  ChevronUp,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 
 import { DeleteTransactionDialog } from "@/components/DeleteTransactionDialog";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +34,24 @@ function formatAmount(amount: number, type: Transaction["type"]) {
   const formatted = `฿${amount.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
   return type === "income" ? `+${formatted}` : `-${formatted}`;
 }
+
+/** Chip colors reuse the app's chart/semantic tokens (never ad-hoc hex) so badges stay on-theme. */
+const WALLET_TYPE_STYLES: Record<string, string> = {
+  cash: "bg-chart-1/15 text-chart-1",
+  savings: "bg-success-bg text-success",
+  bank: "bg-chart-2/15 text-chart-2",
+  credit: "bg-chart-3/15 text-chart-3",
+};
+
+const CATEGORY_STYLES: Record<string, string> = {
+  "food-drink": "bg-chart-1/15 text-chart-1",
+  transport: "bg-chart-2/15 text-chart-2",
+  shopping: "bg-chart-3/15 text-chart-3",
+  gifts: "bg-chart-4/15 text-chart-4",
+  salary: "bg-success-bg text-success",
+  freelance: "bg-primary/10 text-primary",
+  investment: "bg-accent/10 text-accent",
+};
 
 type TransactionTableProps = {
   transactions: Transaction[];
@@ -83,9 +108,17 @@ export function TransactionTable({
             const category = MOCK_CATEGORIES.find(({ id }) => id === transaction.categoryId);
             const wallet = MOCK_WALLETS.find(({ id }) => id === transaction.walletId);
             const CategoryIcon = category?.icon;
+            const WalletIcon = wallet?.icon;
+            const isExpanded = expandedRowId === transaction.id;
 
             return (
-              <TableRow key={transaction.id}>
+              <TableRow
+                key={transaction.id}
+                className={cn(
+                  "transition-colors",
+                  isExpanded && "bg-primary/5 hover:bg-primary/5"
+                )}
+              >
                 <TableCell className="text-muted-foreground">
                   {formatDate(transaction.date)}
                 </TableCell>
@@ -93,13 +126,28 @@ export function TransactionTable({
                   {transaction.title}
                 </TableCell>
                 <TableCell>
-                  <Badge variant="outline">
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      "border-transparent",
+                      category ? CATEGORY_STYLES[category.id] : undefined
+                    )}
+                  >
                     {CategoryIcon ? <CategoryIcon className="size-3" /> : null}
                     {category?.name ?? "Uncategorized"}
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge variant="secondary">{wallet?.name ?? "Unknown wallet"}</Badge>
+                  <Badge
+                    variant="secondary"
+                    className={cn(
+                      "border-transparent",
+                      wallet ? WALLET_TYPE_STYLES[wallet.type] : undefined
+                    )}
+                  >
+                    {WalletIcon ? <WalletIcon className="size-3" /> : null}
+                    {wallet?.name ?? "Unknown wallet"}
+                  </Badge>
                 </TableCell>
                 <TableCell className="text-muted-foreground">
                   {transaction.note ? (
@@ -110,14 +158,21 @@ export function TransactionTable({
                           current === transaction.id ? null : transaction.id
                         )
                       }
-                      className={cn(
-                        "block w-full text-left transition-colors hover:text-foreground",
-                        expandedRowId === transaction.id
-                          ? "whitespace-pre-wrap break-words"
-                          : "truncate"
-                      )}
+                      className="group/note flex w-full items-start gap-1 text-left transition-colors hover:text-foreground"
                     >
-                      {transaction.note}
+                      <span
+                        className={cn(
+                          "min-w-0 flex-1",
+                          isExpanded ? "whitespace-pre-wrap break-words" : "truncate"
+                        )}
+                      >
+                        {transaction.note}
+                      </span>
+                      {isExpanded ? (
+                        <ChevronUp className="mt-0.5 size-3.5 shrink-0 text-primary" />
+                      ) : (
+                        <ChevronDown className="mt-0.5 size-3.5 shrink-0 text-muted-foreground/70 transition-colors group-hover/note:text-foreground" />
+                      )}
                     </button>
                   ) : (
                     "—"
@@ -129,7 +184,14 @@ export function TransactionTable({
                     transaction.type === "income" ? "text-success" : "text-destructive"
                   )}
                 >
-                  {formatAmount(transaction.amount, transaction.type)}
+                  <span className="inline-flex items-center justify-end gap-1">
+                    {transaction.type === "income" ? (
+                      <ArrowUpRight className="size-3.5" />
+                    ) : (
+                      <ArrowDownRight className="size-3.5" />
+                    )}
+                    {formatAmount(transaction.amount, transaction.type)}
+                  </span>
                 </TableCell>
                 <TableCell>
                   <div className="flex justify-end gap-1">
@@ -138,6 +200,7 @@ export function TransactionTable({
                       variant="ghost"
                       size="icon-sm"
                       aria-label="Edit transaction"
+                      className="hover:bg-primary/10 hover:text-primary"
                       onClick={() => onEdit?.(transaction)}
                     >
                       <Pencil className="size-4" />
@@ -147,6 +210,7 @@ export function TransactionTable({
                       variant="ghost"
                       size="icon-sm"
                       aria-label="Delete transaction"
+                      className="hover:bg-destructive/10 hover:text-destructive"
                       onClick={() => setPendingDelete(transaction)}
                     >
                       <Trash2 className="size-4" />
