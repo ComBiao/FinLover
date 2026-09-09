@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Plus } from "lucide-react";
 
 import { AddTransactionModal } from "@/components/AddTransactionModal";
@@ -19,7 +19,7 @@ import { SummaryCards } from "./_components/SummaryCards";
  * transaction with edit/delete actions per row.
  */
 export default function TransactionsPage() {
-  const [transactions, setTransactions] = useState<Transaction[]>(MOCK_TRANSACTIONS);
+  const transactions = MOCK_TRANSACTIONS;
   const filters = useTransactionFilters((state) => state.filters);
   const setFilters = useTransactionFilters((state) => state.setFilters);
   const resetFilters = useTransactionFilters((state) => state.resetFilters);
@@ -46,8 +46,13 @@ export default function TransactionsPage() {
       .sort((a, b) => b.date.getTime() - a.date.getTime());
   }, [transactions, filters]);
 
+  /**
+   * Deleting isn't wired up yet — the row action and confirm dialog are UI
+   * only for now, so nothing is actually removed from the list.
+   * TODO: call DELETE /api/transactions/:id once the endpoint exists.
+   */
   function handleDelete(transaction: Transaction) {
-    setTransactions((prev) => prev.filter((item) => item.id !== transaction.id));
+    console.log("Delete requested for transaction", transaction.id);
   }
 
   return (
