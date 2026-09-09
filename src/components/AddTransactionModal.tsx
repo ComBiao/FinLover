@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 
-import { CategorySelector } from "@/components/CategorySelector";
+import { CategorySelector, UNCATEGORIZED_VALUE } from "@/components/CategorySelector";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -25,6 +25,7 @@ import type { Transaction } from "@/types/transaction";
 
 const addTransactionFormSchema = z.object({
   type: z.enum(["income", "expense"]),
+  title: z.string().min(1, "Title is required"),
   amount: z.string().superRefine((value, ctx) => {
     if (!value.trim()) {
       ctx.addIssue({ code: "custom", message: "Amount is required" });
@@ -36,7 +37,7 @@ const addTransactionFormSchema = z.object({
   }),
   date: z.string().min(1, "Date is required"),
   walletId: z.string().min(1, "Wallet is required"),
-  categoryId: z.string().min(1, "Category is required"),
+  categoryId: z.string().optional(),
   note: z.string().optional(),
 });
 
@@ -45,6 +46,10 @@ type AddTransactionFormValues = z.infer<typeof addTransactionFormSchema>;
 type AddTransactionModalProps = {
   /** Row to edit, populating the form and switching the modal into edit mode. Omit (or `null`) for Add mode. */
   initialData?: Transaction | null;
+  /** Called with the newly created transaction when submitting in Add mode. */
+  onAdd?: (transaction: Transaction) => void;
+  /** Called with the updated transaction when submitting in Edit mode. */
+  onEdit?: (transaction: Transaction) => void;
 };
 
 function toFormValues(
@@ -54,6 +59,7 @@ function toFormValues(
   if (!transaction) {
     return {
       type: fallbackType,
+      title: "",
       amount: "",
       date: todayISODate(),
       walletId: "",
@@ -64,6 +70,7 @@ function toFormValues(
 
   return {
     type: transaction.type,
+    title: transaction.title,
     amount: String(transaction.amount),
     date: transaction.date.toISOString().slice(0, 10),
     walletId: transaction.walletId,
@@ -77,7 +84,11 @@ function toFormValues(
  * `initialData`) editing an existing one — both share this one form, opened
  * via the zustand `useTransactionModal` store.
  */
-export function AddTransactionModal({ initialData }: AddTransactionModalProps = {}) {
+export function AddTransactionModal({
+  initialData,
+  onAdd,
+  onEdit,
+}: AddTransactionModalProps = {}) {
   const { isOpen, defaultType, editingTransaction, closeModal } = useTransactionModal();
   const effectiveInitialData = initialData ?? editingTransaction;
   const isEditMode = Boolean(effectiveInitialData);
@@ -109,16 +120,29 @@ export function AddTransactionModal({ initialData }: AddTransactionModalProps = 
   }
 
   /**
-   * Validates the form with react-hook-form + zod. Creation/update isn't
-   * wired up yet, so a valid submission intentionally leaves the modal open
-   * rather than closing as if the transaction were saved.
-   * TODO: on successful validation, POST /api/transactions (create) or
-   * PUT /api/transactions/:id (edit) with { type, amount, date, categoryId,
-   * walletId, note }, then closeModal().
+   * Validates the form with react-hook-form + zod, then updates client-side
+   * state via `onAdd`/`onEdit` so the list reflects the change immediately.
+   * TODO: also POST /api/transactions (create) or PUT /api/transactions/:id
+   * (edit) once the endpoint exists.
    */
   function onSubmit(values: AddTransactionFormValues) {
-    const payload = { ...values, amount: Number(values.amount) };
-    console.log(isEditMode ? "Update transaction" : "Create transaction", payload);
+    const shared = {
+      type: values.type,
+      title: values.title,
+      amount: Number(values.amount),
+      date: new Date(values.date),
+      walletId: values.walletId,
+      categoryId: values.categoryId ? values.categoryId : undefined,
+      note: values.note ? values.note : undefined,
+    };
+
+    if (isEditMode && effectiveInitialData) {
+      onEdit?.({ ...effectiveInitialData, ...shared });
+    } else {
+      onAdd?.({ id: crypto.randomUUID(), ...shared });
+    }
+
+    closeModal();
   }
 
   return (
@@ -159,6 +183,22 @@ export function AddTransactionModal({ initialData }: AddTransactionModalProps = 
             >
               Income
             </button>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="transaction-title">Title</Label>
+            <Input
+              id="transaction-title"
+              placeholder="e.g. Grab ride"
+              aria-invalid={Boolean(errors.title)}
+              aria-describedby={errors.title ? "transaction-title-error" : undefined}
+              {...register("title")}
+            />
+            {errors.title ? (
+              <p id="transaction-title-error" className="text-destructive text-sm">
+                {errors.title.message}
+              </p>
+            ) : null}
           </div>
 
           <div className="flex flex-col gap-1.5">
@@ -225,13 +265,15 @@ export function AddTransactionModal({ initialData }: AddTransactionModalProps = 
                   id="transaction-category"
                   type={type}
                   value={field.value}
-                  onValueChange={(nextCategoryId) => field.onChange(nextCategoryId ?? "")}
+                  onValueChange={(nextCategoryId) =>
+                    field.onChange(
+                      nextCategoryId === UNCATEGORIZED_VALUE ? "" : (nextCategoryId ?? "")
+                    )
+                  }
+                  allowUncategorized
                 />
               )}
             />
-            {errors.categoryId ? (
-              <p className="text-destructive text-sm">{errors.categoryId.message}</p>
-            ) : null}
           </div>
 
           <div className="flex flex-col gap-1.5">

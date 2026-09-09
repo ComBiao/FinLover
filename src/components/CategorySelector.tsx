@@ -16,7 +16,7 @@ function categoryTone(category: Category) {
   return resolveChipTone(category.color, CATEGORY_STYLES, category.id);
 }
 
-const UNCATEGORIZED_VALUE = "uncategorized";
+export const UNCATEGORIZED_VALUE = "uncategorized";
 
 type CategorySelectorProps = {
   id?: string;

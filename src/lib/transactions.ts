@@ -1,3 +1,4 @@
+import { UNCATEGORIZED_VALUE } from "@/components/CategorySelector";
 import type { Transaction, TransactionFilters } from "@/types/transaction";
 
 /** End of the given day (23:59:59.999) — so an inclusive "to" date filter doesn't exclude a same-day transaction with a later time-of-day. */
@@ -20,7 +21,11 @@ export function filterTransactions(
   return transactions
     .filter((transaction) => {
       if (filters.walletId && transaction.walletId !== filters.walletId) return false;
-      if (filters.categoryId && transaction.categoryId !== filters.categoryId) return false;
+      if (filters.categoryId === UNCATEGORIZED_VALUE) {
+        if (transaction.categoryId) return false;
+      } else if (filters.categoryId && transaction.categoryId !== filters.categoryId) {
+        return false;
+      }
       if (filters.type && transaction.type !== filters.type) return false;
       if (filters.dateRange?.from && transaction.date < filters.dateRange.from) return false;
       if (filters.dateRange?.to && transaction.date > endOfDay(filters.dateRange.to)) return false;
