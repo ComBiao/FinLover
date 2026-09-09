@@ -4,6 +4,34 @@ import { Car, Coffee, ShoppingBag, Wallet, Zap, type LucideIcon } from "lucide-r
 // (src/hooks/) backed by GET /api/transactions, /api/categories, etc.,
 // once those API routes and models exist.
 
+// TODO: replace with the signed-in user's real name once the User model
+// gains a `name` field and a route exposes the current session's profile
+// (session.ts today only carries { userId } in the JWT payload).
+export const userName = "Alex";
+
+export const balance = {
+  amount: "48,290.00",
+  changeLabel: "+12.4% this month",
+};
+
+export const income = {
+  amount: "32,000",
+  sourceLabel: "Salary deposit",
+  dateLabel: "yesterday",
+};
+
+export const spending = {
+  amount: "9,180",
+  changeLabel: "↑ 6% vs last month",
+};
+
+export const savingsGoal = {
+  name: "Emergency fund",
+  current: 12400,
+  target: 20000,
+  percent: 62,
+};
+
 export interface Category {
   name: string;
   amount: string;
@@ -11,10 +39,9 @@ export interface Category {
 }
 
 export const categories: Category[] = [
-  { name: "Food & Drink", amount: "3,240", dotClassName: "bg-chart-1" },
+  { name: "Food & drink", amount: "3,240", dotClassName: "bg-chart-1" },
   { name: "Transport", amount: "1,180", dotClassName: "bg-chart-2" },
   { name: "Shopping", amount: "2,860", dotClassName: "bg-chart-3" },
-  { name: "Bills", amount: "1,900", dotClassName: "bg-chart-4" },
 ];
 
 export interface Transaction {

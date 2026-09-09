@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 
-import { categories } from "./mock-data";
+import { categories } from "@/components/mock-data";
 
 /**
  * Displays a breakdown of spending by category with color-coded dots and amounts.
