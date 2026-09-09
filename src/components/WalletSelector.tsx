@@ -10,6 +10,15 @@ import { cn } from "@/lib/utils";
 import type { Wallet } from "@/types/wallet";
 
 const ALL_VALUE = "all";
+const OPTION_PREFIX = "option:";
+
+function encodeOptionValue(id: string) {
+  return `${OPTION_PREFIX}${id}`;
+}
+
+function decodeOptionValue(value: string) {
+  return value.slice(OPTION_PREFIX.length);
+}
 
 function formatBalance(balance: number) {
   return `฿${balance.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
@@ -31,7 +40,8 @@ type WalletSelectorProps = {
 /**
  * Dropdown for picking a wallet/account. Pass `allowAll` to add a sentinel
  * "all" option for filter UIs, which is reported back to `onValueChange` as
- * `undefined`.
+ * `undefined`. Real option values are encoded with a prefix so a wallet
+ * whose `id` happens to be "all" can never collide with the sentinel value.
  */
 export function WalletSelector({
   id,
@@ -45,7 +55,7 @@ export function WalletSelector({
   allowAll = false,
   allLabel = "All wallets",
 }: WalletSelectorProps) {
-  const selectValue = value || (allowAll ? ALL_VALUE : "");
+  const selectValue = value ? encodeOptionValue(value) : allowAll ? ALL_VALUE : "";
 
   return (
     <Select
@@ -53,14 +63,19 @@ export function WalletSelector({
       value={selectValue}
       onValueChange={(newValue) => {
         if (!newValue) return;
-        onValueChange?.(newValue === ALL_VALUE ? undefined : newValue);
+        if (allowAll && newValue === ALL_VALUE) {
+          onValueChange?.(undefined);
+          return;
+        }
+        onValueChange?.(decodeOptionValue(newValue));
       }}
       disabled={disabled}
     >
       <SelectTrigger id={id} className={cn("w-full", className)}>
         <SelectValue placeholder={placeholder}>
-          {(selectedId: string) => {
-            if (selectedId === ALL_VALUE) return allLabel;
+          {(selectedValue: string) => {
+            if (allowAll && selectedValue === ALL_VALUE) return allLabel;
+            const selectedId = decodeOptionValue(selectedValue);
             const selected = wallets.find((wallet) => wallet.id === selectedId);
             if (!selected) return placeholder;
             const Icon = selected.icon;
@@ -76,7 +91,7 @@ export function WalletSelector({
       <SelectContent>
         {allowAll ? <SelectItem value={ALL_VALUE}>{allLabel}</SelectItem> : null}
         {wallets.map(({ id: walletId, name: walletName, balance, icon: Icon }) => (
-          <SelectItem key={walletId} value={walletId}>
+          <SelectItem key={walletId} value={encodeOptionValue(walletId)}>
             <Icon className="size-4 shrink-0 text-muted-foreground" />
             <span className="flex-1">{walletName}</span>
             <span className="ml-2 text-xs text-muted-foreground">{formatBalance(balance)}</span>

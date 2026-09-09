@@ -10,6 +10,15 @@ import { cn } from "@/lib/utils";
 import type { Category, TransactionType } from "@/types/category";
 
 const ALL_VALUE = "all";
+const OPTION_PREFIX = "option:";
+
+function encodeOptionValue(id: string) {
+  return `${OPTION_PREFIX}${id}`;
+}
+
+function decodeOptionValue(value: string) {
+  return value.slice(OPTION_PREFIX.length);
+}
 
 type CategorySelectorProps = {
   id?: string;
@@ -29,6 +38,8 @@ type CategorySelectorProps = {
  * Dropdown for picking a category, optionally filtered by transaction type
  * (income/expense). Pass `allowAll` to add a sentinel "all" option for
  * filter UIs, which is reported back to `onValueChange` as `undefined`.
+ * Real option values are encoded with a prefix so a category whose `id`
+ * happens to be "all" can never collide with the sentinel value.
  */
 export function CategorySelector({
   id,
@@ -44,7 +55,7 @@ export function CategorySelector({
   allLabel = "All categories",
 }: CategorySelectorProps) {
   const options = type ? categories.filter((category) => category.type === type) : categories;
-  const selectValue = value || (allowAll ? ALL_VALUE : "");
+  const selectValue = value ? encodeOptionValue(value) : allowAll ? ALL_VALUE : "";
 
   return (
     <Select
@@ -52,14 +63,19 @@ export function CategorySelector({
       value={selectValue}
       onValueChange={(newValue) => {
         if (!newValue) return;
-        onValueChange?.(newValue === ALL_VALUE ? undefined : newValue);
+        if (allowAll && newValue === ALL_VALUE) {
+          onValueChange?.(undefined);
+          return;
+        }
+        onValueChange?.(decodeOptionValue(newValue));
       }}
       disabled={disabled}
     >
       <SelectTrigger id={id} className={cn("w-full", className)}>
         <SelectValue placeholder={placeholder}>
-          {(selectedId: string) => {
-            if (selectedId === ALL_VALUE) return allLabel;
+          {(selectedValue: string) => {
+            if (allowAll && selectedValue === ALL_VALUE) return allLabel;
+            const selectedId = decodeOptionValue(selectedValue);
             const selected = options.find((option) => option.id === selectedId);
             if (!selected) return placeholder;
             const Icon = selected.icon;
@@ -75,7 +91,7 @@ export function CategorySelector({
       <SelectContent>
         {allowAll ? <SelectItem value={ALL_VALUE}>{allLabel}</SelectItem> : null}
         {options.map(({ id: categoryId, name: categoryName, icon: Icon }) => (
-          <SelectItem key={categoryId} value={categoryId}>
+          <SelectItem key={categoryId} value={encodeOptionValue(categoryId)}>
             <Icon className="size-4 shrink-0 text-muted-foreground" />
             {categoryName}
           </SelectItem>

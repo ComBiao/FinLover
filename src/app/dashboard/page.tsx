@@ -1,10 +1,10 @@
 "use client";
 
+import { AddTransactionModal } from "@/components/AddTransactionModal";
 import { QuickAddBar } from "@/components/QuickAddBar";
 import { Button } from "@/components/ui/button";
 import { useTransactionModal } from "@/store/useTransactionModal";
 
-import { AddTransactionModal } from "./_components/AddTransactionModal";
 import { CategoryBreakdown } from "./_components/CategoryBreakdown";
 import { DashboardHeader } from "./_components/DashboardHeader";
 import { RecentTransactions } from "./_components/RecentTransactions";

@@ -136,6 +136,7 @@ export function DateRangePicker({
             onSelect={(range) => onValueChange?.(range)}
             defaultMonth={value?.from}
             numberOfMonths={2}
+            disabled={disabled}
           />
         </PopoverContent>
       </Popover>
