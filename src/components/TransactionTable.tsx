@@ -65,16 +65,16 @@ export function TransactionTable({
 
   return (
     <div className={cn("rounded-xl border border-border bg-card", className)}>
-      <Table>
+      <Table className="table-fixed">
         <TableHeader>
           <TableRow>
-            <TableHead>Date</TableHead>
-            <TableHead>Title</TableHead>
-            <TableHead>Category</TableHead>
-            <TableHead>Wallet</TableHead>
-            <TableHead>Note</TableHead>
-            <TableHead className="text-right">Amount</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
+            <TableHead className="w-[12%]">Date</TableHead>
+            <TableHead className="w-[22%]">Title</TableHead>
+            <TableHead className="w-[14%]">Category</TableHead>
+            <TableHead className="w-[14%]">Wallet</TableHead>
+            <TableHead className="w-[20%]">Note</TableHead>
+            <TableHead className="w-[10%] text-right">Amount</TableHead>
+            <TableHead className="w-[8%] text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -88,7 +88,9 @@ export function TransactionTable({
                 <TableCell className="text-muted-foreground">
                   {formatDate(transaction.date)}
                 </TableCell>
-                <TableCell className="font-medium text-foreground">{transaction.title}</TableCell>
+                <TableCell className="truncate font-medium text-foreground">
+                  {transaction.title}
+                </TableCell>
                 <TableCell>
                   <Badge variant="outline">
                     {CategoryIcon ? <CategoryIcon className="size-3" /> : null}
@@ -98,7 +100,7 @@ export function TransactionTable({
                 <TableCell>
                   <Badge variant="secondary">{wallet?.name ?? "Unknown wallet"}</Badge>
                 </TableCell>
-                <TableCell className="max-w-48 truncate text-muted-foreground">
+                <TableCell className="truncate text-muted-foreground">
                   {transaction.note ?? "—"}
                 </TableCell>
                 <TableCell
