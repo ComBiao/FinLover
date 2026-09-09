@@ -27,9 +27,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { CATEGORY_STYLES, resolveChipTone, WALLET_TYPE_STYLES } from "@/components/chipColor";
+import { CATEGORY_STYLES, resolveChipTone } from "@/components/chipColor";
 import { MOCK_CATEGORIES } from "@/mocks/mockCategories";
 import { MOCK_WALLETS } from "@/mocks/mockWallets";
+import { resolveWalletIcon } from "@/components/walletIcons";
 import { cn } from "@/lib/utils";
 import type { Transaction } from "@/types/transaction";
 
@@ -85,13 +86,11 @@ export function TransactionTable({
           const category = MOCK_CATEGORIES.find(({ id }) => id === transaction.categoryId);
           const wallet = MOCK_WALLETS.find(({ id }) => id === transaction.walletId);
           const CategoryIcon = category?.icon;
-          const WalletIcon = wallet?.icon;
+          const WalletIcon = wallet ? resolveWalletIcon(wallet.icon) : undefined;
           const categoryTone = category
             ? resolveChipTone(category.color, CATEGORY_STYLES, category.id)
             : undefined;
-          const walletTone = wallet
-            ? resolveChipTone(wallet.color, WALLET_TYPE_STYLES, wallet.type ?? wallet.id)
-            : undefined;
+          const walletTone = wallet ? resolveChipTone(wallet.color, {}, wallet.id) : undefined;
 
           return (
             <div key={transaction.id} className="flex flex-col gap-2 p-3.5">
@@ -196,14 +195,12 @@ export function TransactionTable({
             const category = MOCK_CATEGORIES.find(({ id }) => id === transaction.categoryId);
             const wallet = MOCK_WALLETS.find(({ id }) => id === transaction.walletId);
             const CategoryIcon = category?.icon;
-            const WalletIcon = wallet?.icon;
+            const WalletIcon = wallet ? resolveWalletIcon(wallet.icon) : undefined;
             const isExpanded = expandedRowId === transaction.id;
             const categoryTone = category
               ? resolveChipTone(category.color, CATEGORY_STYLES, category.id)
               : undefined;
-            const walletTone = wallet
-              ? resolveChipTone(wallet.color, WALLET_TYPE_STYLES, wallet.type ?? wallet.id)
-              : undefined;
+            const walletTone = wallet ? resolveChipTone(wallet.color, {}, wallet.id) : undefined;
 
             return (
               <TableRow

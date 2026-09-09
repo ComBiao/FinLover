@@ -1,4 +1,4 @@
-import { resolveChipTone, WALLET_TYPE_STYLES } from "@/components/chipColor";
+import { resolveChipTone } from "@/components/chipColor";
 import { ALL_VALUE, decodeOptionValue, encodeOptionValue } from "@/components/optionValue";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -8,12 +8,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { resolveWalletIcon } from "@/components/walletIcons";
 import { cn } from "@/lib/utils";
 import type { Wallet } from "@/types/wallet";
 import { MOCK_WALLETS } from "@/mocks/mockWallets";
 
+/** No curated presets for wallets (no stable type to key off of) — always falls through to the deterministic color fallback. */
 function walletTone(wallet: Wallet) {
-  return resolveChipTone(wallet.color, WALLET_TYPE_STYLES, wallet.type ?? wallet.id);
+  return resolveChipTone(wallet.color, {}, wallet.id);
 }
 
 type WalletSelectorProps = {
@@ -70,7 +72,7 @@ export function WalletSelector({
             const selectedId = decodeOptionValue(selectedValue);
             const selected = wallets.find((wallet) => wallet.id === selectedId);
             if (!selected) return placeholder;
-            const Icon = selected.icon;
+            const Icon = resolveWalletIcon(selected.icon);
             const tone = walletTone(selected);
             return (
               <Badge
@@ -88,7 +90,7 @@ export function WalletSelector({
       <SelectContent>
         {allowAll ? <SelectItem value={ALL_VALUE}>{allLabel}</SelectItem> : null}
         {wallets.map((wallet) => {
-          const Icon = wallet.icon;
+          const Icon = resolveWalletIcon(wallet.icon);
           const tone = walletTone(wallet);
           return (
             <SelectItem key={wallet.id} value={encodeOptionValue(wallet.id)}>

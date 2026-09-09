@@ -52,14 +52,6 @@ const FALLBACK_CHIP_STYLES: ChipPreset[] = [
   { chip: "bg-chart-5/15 text-chart-5", dot: "bg-chart-5" },
 ];
 
-/** Curated on-theme presets, shared by `TransactionTable` and the Wallet/Category filter selectors. */
-export const WALLET_TYPE_STYLES: Record<string, ChipPreset> = {
-  cash: { chip: "bg-chart-1/15 text-chart-1", dot: "bg-chart-1" },
-  savings: { chip: "bg-success-bg text-success", dot: "bg-success" },
-  bank: { chip: "bg-chart-2/15 text-chart-2", dot: "bg-chart-2" },
-  credit: { chip: "bg-chart-3/15 text-chart-3", dot: "bg-chart-3" },
-};
-
 export const CATEGORY_STYLES: Record<string, ChipPreset> = {
   "food-drink": { chip: "bg-chart-1/15 text-chart-1", dot: "bg-chart-1" },
   transport: { chip: "bg-chart-2/15 text-chart-2", dot: "bg-chart-2" },
@@ -95,8 +87,10 @@ function deriveDotClassName(className: string) {
  *    (`#RRGGBB`/`#RGB`) becomes an inline soft-tint background with the
  *    full color used for the text/icon; any other non-empty string is
  *    treated as a ready-made Tailwind class string and used as-is.
- * 2. A curated on-theme preset keyed by `presetKey` (a category id or
- *    wallet type), supplied by the caller.
+ * 2. A curated on-theme preset keyed by `presetKey` (a category id),
+ *    supplied by the caller — pass an empty object when the caller has no
+ *    curated presets (e.g. wallets, which have no stable type to key off
+ *    of), which always falls through to step 3.
  * 3. A deterministic hash of `presetKey` into the chart-1..5 tokens, so a
  *    brand-new category/wallet with neither a `color` nor a preset still
  *    gets a distinct, on-theme color instead of a plain gray chip.
