@@ -21,7 +21,7 @@ type TransactionFilterBarProps = {
 
 /**
  * Below `sm`, only Search and a "Filters" toggle button show by default —
- * the rest of the controls (Type/Wallet/Category/DateRange/Reset) stay
+ * the rest of the controls (Type/Category/Wallet/DateRange/Reset) stay
  * collapsed underneath and only render once the toggle is opened, so the
  * screen isn't crowded before the user asks for it. The toggle button
  * carries a count badge whenever a filter is already active, so a collapsed
@@ -91,15 +91,15 @@ export function TransactionFilterBar({
               onValueChange={(type) => patch({ type })}
               className="w-full"
             />
-            <WalletSelector
-              value={value.walletId}
-              onValueChange={(walletId) => patch({ walletId })}
-              allowAll
-              className="w-full"
-            />
             <CategorySelector
               value={value.categoryId}
               onValueChange={(categoryId) => patch({ categoryId })}
+              allowAll
+              className="w-full"
+            />
+            <WalletSelector
+              value={value.walletId}
+              onValueChange={(walletId) => patch({ walletId })}
               allowAll
               className="w-full"
             />
@@ -139,15 +139,15 @@ export function TransactionFilterBar({
             onValueChange={(type) => patch({ type })}
             className="min-w-[110px] flex-1 sm:max-w-40 sm:flex-none"
           />
-          <WalletSelector
-            value={value.walletId}
-            onValueChange={(walletId) => patch({ walletId })}
-            allowAll
-            className="min-w-[110px] flex-1 sm:max-w-44 sm:flex-none"
-          />
           <CategorySelector
             value={value.categoryId}
             onValueChange={(categoryId) => patch({ categoryId })}
+            allowAll
+            className="min-w-[110px] flex-1 sm:max-w-44 sm:flex-none"
+          />
+          <WalletSelector
+            value={value.walletId}
+            onValueChange={(walletId) => patch({ walletId })}
             allowAll
             className="min-w-[110px] flex-1 sm:max-w-44 sm:flex-none"
           />

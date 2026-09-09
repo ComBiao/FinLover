@@ -71,6 +71,14 @@ export default function TransactionsPage() {
 
         <TransactionFilterBar value={filters} onValueChange={setFilters} onReset={resetFilters} />
 
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="text-lg font-semibold text-foreground">All Transaction</h2>
+          <span className="text-sm text-muted-foreground">
+            {filteredTransactions.length}{" "}
+            {filteredTransactions.length === 1 ? "transaction" : "transactions"}
+          </span>
+        </div>
+
         <TransactionTable transactions={filteredTransactions} onDelete={handleDelete} />
       </div>
 
