@@ -73,8 +73,93 @@ export function TransactionTable({
   }
 
   return (
-    <div className={cn("rounded-xl border border-border bg-card", className)}>
-      <Table className="table-fixed">
+    <div className={cn("overflow-hidden rounded-xl border border-border bg-card", className)}>
+      <div className="divide-y divide-border md:hidden">
+        {transactions.map((transaction) => {
+          const category = MOCK_CATEGORIES.find(({ id }) => id === transaction.categoryId);
+          const wallet = MOCK_WALLETS.find(({ id }) => id === transaction.walletId);
+          const CategoryIcon = category?.icon;
+          const WalletIcon = wallet?.icon;
+          const categoryTone = category
+            ? resolveChipTone(category.color, CATEGORY_STYLES, category.id)
+            : undefined;
+          const walletTone = wallet
+            ? resolveChipTone(wallet.color, WALLET_TYPE_STYLES, wallet.type ?? wallet.id)
+            : undefined;
+
+          return (
+            <div key={transaction.id} className="flex flex-col gap-2 p-3.5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate font-medium text-foreground">{transaction.title}</p>
+                  <p className="text-xs text-muted-foreground">{formatDate(transaction.date)}</p>
+                </div>
+                <span
+                  className={cn(
+                    "inline-flex shrink-0 items-center gap-1 font-semibold",
+                    transaction.type === "income" ? "text-success" : "text-destructive"
+                  )}
+                >
+                  {transaction.type === "income" ? (
+                    <ArrowUpRight className="size-3.5" />
+                  ) : (
+                    <ArrowDownRight className="size-3.5" />
+                  )}
+                  {formatAmount(transaction.amount, transaction.type)}
+                </span>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-1.5">
+                <Badge
+                  variant="outline"
+                  className={cn("border-transparent", categoryTone?.className)}
+                  style={categoryTone?.style}
+                >
+                  {CategoryIcon ? <CategoryIcon className="size-3" /> : null}
+                  {category?.name ?? "Uncategorized"}
+                </Badge>
+                <Badge
+                  variant="secondary"
+                  className={cn("border-transparent", walletTone?.className)}
+                  style={walletTone?.style}
+                >
+                  {WalletIcon ? <WalletIcon className="size-3" /> : null}
+                  {wallet?.name ?? "Unknown wallet"}
+                </Badge>
+              </div>
+
+              {transaction.note ? (
+                <p className="text-sm break-words text-muted-foreground">{transaction.note}</p>
+              ) : null}
+
+              <div className="flex justify-end gap-1 pt-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Edit transaction"
+                  className="hover:bg-primary/10 hover:text-primary"
+                  onClick={() => onEdit?.(transaction)}
+                >
+                  <Pencil className="size-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Delete transaction"
+                  className="hover:bg-destructive/10 hover:text-destructive"
+                  onClick={() => setPendingDelete(transaction)}
+                >
+                  <Trash2 className="size-4" />
+                </Button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <Table className="hidden table-fixed md:table">
         <TableHeader>
           <TableRow>
             <TableHead className="w-[12%]">Date</TableHead>
