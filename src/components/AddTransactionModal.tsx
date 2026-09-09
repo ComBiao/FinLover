@@ -57,9 +57,11 @@ export function AddTransactionModal() {
 
   /**
    * Validates the form with the transaction zod schema and surfaces per-field
-   * error messages instead of submitting.
+   * error messages instead of submitting. Creation isn't wired up yet, so a
+   * valid submission intentionally leaves the modal open rather than closing
+   * as if the transaction were saved.
    * TODO: on successful validation, POST /api/transactions with
-   * { type, amount, date, categoryId, walletId, note }.
+   * { type, amount, date, categoryId, walletId, note }, then closeModal().
    */
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -87,7 +89,7 @@ export function AddTransactionModal() {
     }
 
     setErrors({});
-    closeModal();
+    console.log("Transaction creation not implemented yet", result.data);
   }
 
   return (

@@ -9,7 +9,7 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
     type: "income",
     categoryId: "salary",
     walletId: "kbank-savings",
-    date: new Date("2026-09-01"),
+    date: new Date(2026, 8, 1),
   },
   {
     id: "txn-2",
@@ -18,7 +18,7 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
     type: "expense",
     categoryId: "food-drink",
     walletId: "cash",
-    date: new Date("2026-09-02"),
+    date: new Date(2026, 8, 2),
     note: "Weekly groceries at Big C",
   },
   {
@@ -28,7 +28,7 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
     type: "expense",
     categoryId: "transport",
     walletId: "credit-card",
-    date: new Date("2026-09-02"),
+    date: new Date(2026, 8, 2),
   },
   {
     id: "txn-4",
@@ -37,7 +37,7 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
     type: "income",
     categoryId: "freelance",
     walletId: "scb-checking",
-    date: new Date("2026-09-03"),
+    date: new Date(2026, 8, 3),
     note: "Client: Nomad Coffee website",
   },
   {
@@ -47,7 +47,7 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
     type: "expense",
     categoryId: "shopping",
     walletId: "credit-card",
-    date: new Date("2026-09-04"),
+    date: new Date(2026, 8, 4),
   },
   {
     id: "txn-6",
@@ -56,7 +56,7 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
     type: "expense",
     categoryId: "gifts",
     walletId: "cash",
-    date: new Date("2026-09-05"),
+    date: new Date(2026, 8, 5),
     note: "Gift for mom's birthday",
   },
   {
@@ -66,7 +66,7 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
     type: "income",
     categoryId: "investment",
     walletId: "scb-checking",
-    date: new Date("2026-09-06"),
+    date: new Date(2026, 8, 6),
   },
   {
     id: "txn-8",
@@ -75,7 +75,7 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
     type: "expense",
     categoryId: "food-drink",
     walletId: "cash",
-    date: new Date("2026-09-07"),
+    date: new Date(2026, 8, 7),
   },
   {
     id: "txn-9",
@@ -84,7 +84,7 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
     type: "expense",
     categoryId: "transport",
     walletId: "credit-card",
-    date: new Date("2026-09-08"),
+    date: new Date(2026, 8, 8),
   },
   {
     id: "txn-10",
@@ -93,7 +93,7 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
     type: "expense",
     categoryId: "shopping",
     walletId: "kbank-savings",
-    date: new Date("2026-09-08"),
+    date: new Date(2026, 8, 8),
     note: "Udemy course - Advanced React",
   },
   {
@@ -103,7 +103,7 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
     type: "income",
     categoryId: "freelance",
     walletId: "cash",
-    date: new Date("2026-09-09"),
+    date: new Date(2026, 8, 9),
   },
   {
     id: "txn-12",
@@ -112,7 +112,7 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
     type: "expense",
     categoryId: "food-drink",
     walletId: "cash",
-    date: new Date("2026-09-09"),
+    date: new Date(2026, 8, 9),
   },
   {
     id: "txn-13",
@@ -121,7 +121,7 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
     type: "income",
     categoryId: "investment",
     walletId: "scb-checking",
-    date: new Date("2026-08-28"),
+    date: new Date(2026, 7, 28),
     note: "Sold SET50 index shares",
   },
   {
@@ -131,6 +131,6 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
     type: "expense",
     categoryId: "gifts",
     walletId: "credit-card",
-    date: new Date("2026-08-25"),
+    date: new Date(2026, 7, 25),
   },
 ];
