@@ -6,6 +6,7 @@ import {
   ArrowUpRight,
   ChevronDown,
   ChevronUp,
+  MoreVertical,
   Pencil,
   Trash2,
 } from "lucide-react";
@@ -13,6 +14,12 @@ import {
 import { DeleteTransactionDialog } from "@/components/DeleteTransactionDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -132,27 +139,35 @@ export function TransactionTable({
                 <p className="text-sm break-words text-muted-foreground">{transaction.note}</p>
               ) : null}
 
-              <div className="flex justify-end gap-1 pt-1">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label="Edit transaction"
-                  className="hover:bg-primary/10 hover:text-primary"
-                  onClick={() => onEdit?.(transaction)}
-                >
-                  <Pencil className="size-4" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label="Delete transaction"
-                  className="hover:bg-destructive/10 hover:text-destructive"
-                  onClick={() => setPendingDelete(transaction)}
-                >
-                  <Trash2 className="size-4" />
-                </Button>
+              <div className="flex justify-end pt-1">
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    render={
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label="Transaction actions"
+                        className="text-muted-foreground hover:text-foreground"
+                      />
+                    }
+                  >
+                    <MoreVertical className="size-4" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => onEdit?.(transaction)}>
+                      <Pencil className="size-4" />
+                      Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      variant="destructive"
+                      onClick={() => setPendingDelete(transaction)}
+                    >
+                      <Trash2 className="size-4" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           );
@@ -162,13 +177,15 @@ export function TransactionTable({
       <Table className="hidden table-fixed md:table">
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[12%]">Date</TableHead>
-            <TableHead className="w-[22%]">Title</TableHead>
-            <TableHead className="w-[14%]">Category</TableHead>
-            <TableHead className="w-[14%]">Wallet</TableHead>
-            <TableHead className="w-[20%]">Note</TableHead>
-            <TableHead className="w-[10%] text-right">Amount</TableHead>
-            <TableHead className="w-[8%] text-right">Actions</TableHead>
+            <TableHead className="w-[10%] py-3.5">Date</TableHead>
+            <TableHead className="w-[24%] py-3.5">Title</TableHead>
+            <TableHead className="w-[15%] py-3.5">Category</TableHead>
+            <TableHead className="w-[15%] py-3.5">Wallet</TableHead>
+            <TableHead className="w-[22%] py-3.5">Note</TableHead>
+            <TableHead className="w-[10%] py-3.5 text-right">Amount</TableHead>
+            <TableHead className="w-[4%] py-3.5 text-right">
+              <span className="sr-only">Actions</span>
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -193,13 +210,13 @@ export function TransactionTable({
                   isExpanded && "bg-primary/5 hover:bg-primary/5"
                 )}
               >
-                <TableCell className="text-muted-foreground">
+                <TableCell className="py-3.5 text-muted-foreground">
                   {formatDate(transaction.date)}
                 </TableCell>
-                <TableCell className="truncate font-medium text-foreground">
+                <TableCell className="truncate py-3.5 font-medium text-foreground">
                   {transaction.title}
                 </TableCell>
-                <TableCell>
+                <TableCell className="py-3.5">
                   <Badge
                     variant="outline"
                     className={cn("border-transparent", categoryTone?.className)}
@@ -209,7 +226,7 @@ export function TransactionTable({
                     {category?.name ?? "Uncategorized"}
                   </Badge>
                 </TableCell>
-                <TableCell>
+                <TableCell className="py-3.5">
                   <Badge
                     variant="secondary"
                     className={cn("border-transparent", walletTone?.className)}
@@ -219,7 +236,7 @@ export function TransactionTable({
                     {wallet?.name ?? "Unknown wallet"}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-muted-foreground">
+                <TableCell className="py-3.5 text-muted-foreground">
                   {transaction.note ? (
                     <button
                       type="button"
@@ -250,7 +267,7 @@ export function TransactionTable({
                 </TableCell>
                 <TableCell
                   className={cn(
-                    "text-right font-semibold",
+                    "py-3.5 text-right font-semibold",
                     transaction.type === "income" ? "text-success" : "text-destructive"
                   )}
                 >
@@ -263,28 +280,36 @@ export function TransactionTable({
                     {formatAmount(transaction.amount, transaction.type)}
                   </span>
                 </TableCell>
-                <TableCell>
-                  <div className="flex justify-end gap-1">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label="Edit transaction"
-                      className="hover:bg-primary/10 hover:text-primary"
-                      onClick={() => onEdit?.(transaction)}
-                    >
-                      <Pencil className="size-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label="Delete transaction"
-                      className="hover:bg-destructive/10 hover:text-destructive"
-                      onClick={() => setPendingDelete(transaction)}
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
+                <TableCell className="py-3.5">
+                  <div className="flex justify-end">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger
+                        render={
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label="Transaction actions"
+                            className="text-muted-foreground hover:text-foreground"
+                          />
+                        }
+                      >
+                        <MoreVertical className="size-4" />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => onEdit?.(transaction)}>
+                          <Pencil className="size-4" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          variant="destructive"
+                          onClick={() => setPendingDelete(transaction)}
+                        >
+                          <Trash2 className="size-4" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </TableCell>
               </TableRow>
