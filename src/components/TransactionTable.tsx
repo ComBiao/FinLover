@@ -29,8 +29,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { CATEGORY_STYLES, resolveChipTone, WALLET_TYPE_STYLES } from "@/components/chipColor";
-import { MOCK_CATEGORIES } from "@/lib/mockCategories";
-import { MOCK_WALLETS } from "@/lib/mockWallets";
+import { MOCK_CATEGORIES } from "@/components/mockCategories";
+import { MOCK_WALLETS } from "@/components/mockWallets";
 import { cn } from "@/lib/utils";
 import type { Transaction } from "@/types/transaction";
 
