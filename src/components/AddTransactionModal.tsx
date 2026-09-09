@@ -65,7 +65,7 @@ export function AddTransactionModal() {
       type,
       amount: formData.get("amount"),
       date: formData.get("date"),
-      categoryId,
+      categoryId: categoryId || undefined,
       note: formData.get("note"),
     });
 
@@ -169,6 +169,7 @@ export function AddTransactionModal() {
               type={type}
               value={categoryId}
               onValueChange={(nextCategoryId) => setCategoryId(nextCategoryId ?? "")}
+              allowUncategorized
             />
             {errors.categoryId ? (
               <p className="text-xs text-destructive">{errors.categoryId}</p>

@@ -21,7 +21,8 @@ export type Transaction = {
   title: string;
   amount: number;
   type: TransactionType;
-  categoryId: string;
+  /** Absent/undefined means the transaction is uncategorized. */
+  categoryId?: string;
   walletId: string;
   date: Date;
   note?: string;
