@@ -2,7 +2,7 @@
 
 import * as React from "react";
 
-import { CategorySelect, type TransactionType } from "@/components/CategorySelect";
+import { CategorySelector } from "@/components/CategorySelector";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useTransactionModal } from "@/store/useTransactionModal";
+import type { TransactionType } from "@/types/category";
 import { transactionSchema } from "@/types/transaction";
 
 type FieldErrors = Partial<Record<"amount" | "date" | "categoryId", string>>;
@@ -163,11 +164,11 @@ export function AddTransactionModal() {
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="transaction-category">Category</Label>
-            <CategorySelect
+            <CategorySelector
               id="transaction-category"
               type={type}
               value={categoryId}
-              onValueChange={setCategoryId}
+              onValueChange={(nextCategoryId) => setCategoryId(nextCategoryId ?? "")}
             />
             {errors.categoryId ? (
               <p className="text-xs text-destructive">{errors.categoryId}</p>
