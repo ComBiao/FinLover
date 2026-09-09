@@ -80,13 +80,13 @@ export default function CategoriesPage() {
 
   const currentCategories = type === "expense" ? expenses : incomes;
 
-  const handleDelete = (id: number) => {
-    if (type === "expense") {
-      setExpenses(expenses.filter(cat => cat.id !== id));
-    } else {
-      setIncomes(incomes.filter(cat => cat.id !== id));
-    }
-  };
+  // const handleDelete = (id: number) => {
+  //   if (type === "expense") {
+  //     setExpenses(expenses.filter(cat => cat.id !== id));
+  //   } else {
+  //     setIncomes(incomes.filter(cat => cat.id !== id));
+  //   }
+  // };
 
   const handleCreate = () => {
     if (!newName.trim()) return;
