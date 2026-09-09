@@ -1,6 +1,7 @@
 import { ArrowDownRight, ArrowUpRight, Wallet, type LucideIcon } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
+import { summarizeTransactions } from "@/lib/transactions";
 import { cn } from "@/lib/utils";
 import type { Transaction } from "@/types/transaction";
 
@@ -23,13 +24,7 @@ type SummaryCard = {
 
 /** Total Income / Total Expense / Net Balance, computed from the currently filtered transactions. */
 export function SummaryCards({ transactions }: SummaryCardsProps) {
-  const totalIncome = transactions
-    .filter((transaction) => transaction.type === "income")
-    .reduce((sum, transaction) => sum + transaction.amount, 0);
-  const totalExpense = transactions
-    .filter((transaction) => transaction.type === "expense")
-    .reduce((sum, transaction) => sum + transaction.amount, 0);
-  const netBalance = totalIncome - totalExpense;
+  const { totalIncome, totalExpense, netBalance } = summarizeTransactions(transactions);
 
   const cards: SummaryCard[] = [
     {
