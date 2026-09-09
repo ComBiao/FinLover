@@ -21,6 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { CATEGORY_STYLES, resolveChipTone, WALLET_TYPE_STYLES } from "@/components/chipColor";
 import { MOCK_CATEGORIES } from "@/lib/mockCategories";
 import { MOCK_WALLETS } from "@/lib/mockWallets";
 import { cn } from "@/lib/utils";
@@ -34,24 +35,6 @@ function formatAmount(amount: number, type: Transaction["type"]) {
   const formatted = `฿${amount.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
   return type === "income" ? `+${formatted}` : `-${formatted}`;
 }
-
-/** Chip colors reuse the app's chart/semantic tokens (never ad-hoc hex) so badges stay on-theme. */
-const WALLET_TYPE_STYLES: Record<string, string> = {
-  cash: "bg-chart-1/15 text-chart-1",
-  savings: "bg-success-bg text-success",
-  bank: "bg-chart-2/15 text-chart-2",
-  credit: "bg-chart-3/15 text-chart-3",
-};
-
-const CATEGORY_STYLES: Record<string, string> = {
-  "food-drink": "bg-chart-1/15 text-chart-1",
-  transport: "bg-chart-2/15 text-chart-2",
-  shopping: "bg-chart-3/15 text-chart-3",
-  gifts: "bg-chart-4/15 text-chart-4",
-  salary: "bg-success-bg text-success",
-  freelance: "bg-primary/10 text-primary",
-  investment: "bg-accent/10 text-accent",
-};
 
 type TransactionTableProps = {
   transactions: Transaction[];
@@ -110,6 +93,12 @@ export function TransactionTable({
             const CategoryIcon = category?.icon;
             const WalletIcon = wallet?.icon;
             const isExpanded = expandedRowId === transaction.id;
+            const categoryTone = category
+              ? resolveChipTone(category.color, CATEGORY_STYLES, category.id)
+              : undefined;
+            const walletTone = wallet
+              ? resolveChipTone(wallet.color, WALLET_TYPE_STYLES, wallet.type ?? wallet.id)
+              : undefined;
 
             return (
               <TableRow
@@ -128,10 +117,8 @@ export function TransactionTable({
                 <TableCell>
                   <Badge
                     variant="outline"
-                    className={cn(
-                      "border-transparent",
-                      category ? CATEGORY_STYLES[category.id] : undefined
-                    )}
+                    className={cn("border-transparent", categoryTone?.className)}
+                    style={categoryTone?.style}
                   >
                     {CategoryIcon ? <CategoryIcon className="size-3" /> : null}
                     {category?.name ?? "Uncategorized"}
@@ -140,10 +127,8 @@ export function TransactionTable({
                 <TableCell>
                   <Badge
                     variant="secondary"
-                    className={cn(
-                      "border-transparent",
-                      wallet ? WALLET_TYPE_STYLES[wallet.type] : undefined
-                    )}
+                    className={cn("border-transparent", walletTone?.className)}
+                    style={walletTone?.style}
                   >
                     {WalletIcon ? <WalletIcon className="size-3" /> : null}
                     {wallet?.name ?? "Unknown wallet"}
