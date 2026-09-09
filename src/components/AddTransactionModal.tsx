@@ -52,6 +52,20 @@ type AddTransactionModalProps = {
   onEdit?: (transaction: Transaction) => void;
 };
 
+/** Formats a `Date` as a local `YYYY-MM-DD` string, matching what an `<input type="date">` expects — using `toISOString()` here would shift the date across midnight for any timezone ahead of UTC. */
+function toLocalISODate(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+/** Parses a `YYYY-MM-DD` string (from `<input type="date">`) as a local date — `new Date(value)` would parse it as UTC midnight, which can render as the previous day in timezones behind UTC. */
+function parseLocalISODate(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
 function toFormValues(
   transaction: Transaction | null | undefined,
   fallbackType: TransactionType
@@ -72,7 +86,7 @@ function toFormValues(
     type: transaction.type,
     title: transaction.title,
     amount: String(transaction.amount),
-    date: transaction.date.toISOString().slice(0, 10),
+    date: toLocalISODate(transaction.date),
     walletId: transaction.walletId,
     categoryId: transaction.categoryId ?? "",
     note: transaction.note ?? "",
@@ -130,7 +144,7 @@ export function AddTransactionModal({
       type: values.type,
       title: values.title,
       amount: Number(values.amount),
-      date: new Date(values.date),
+      date: parseLocalISODate(values.date),
       walletId: values.walletId,
       categoryId: values.categoryId ? values.categoryId : undefined,
       note: values.note ? values.note : undefined,

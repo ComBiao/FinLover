@@ -16,8 +16,18 @@ function categoryTone(category: Category) {
   return resolveChipTone(category.color, CATEGORY_STYLES, category.id);
 }
 
-/** Reported to `onValueChange` when the "Uncategorized" option is picked — distinct from `undefined` (which `allowAll`'s "All categories" reports) so callers filtering a list can tell "no filter" apart from "only uncategorized rows". */
-export const UNCATEGORIZED_VALUE = "uncategorized";
+/**
+ * Reported to `onValueChange` when the "Uncategorized" option is picked —
+ * distinct from `undefined` (which `allowAll`'s "All categories" reports) so
+ * callers filtering a list can tell "no filter" apart from "only
+ * uncategorized rows". Deliberately shaped unlike a real `Category.id`
+ * (those are plain slugs, e.g. "food-drink", "salary") so it's effectively
+ * impossible for a real id to collide with it; `CategorySelector` also
+ * checks a value against the actual category list before ever treating it
+ * as this sentinel, so even a coincidental collision would still resolve to
+ * the real category.
+ */
+export const UNCATEGORIZED_VALUE = "__uncategorized__";
 
 type CategorySelectorProps = {
   id?: string;
@@ -44,9 +54,13 @@ type CategorySelectorProps = {
  * that should show only uncategorized rows (reported back as the exported
  * `UNCATEGORIZED_VALUE` sentinel, distinct from `undefined` so it never
  * collides with "no filter" when both options are shown together). Real
- * option values are encoded with a prefix so a category whose `id` happens
- * to be "all" or "uncategorized" can never collide with either sentinel
- * value.
+ * option values are encoded with a prefix internally so a category whose
+ * `id` happens to be "all" can never collide with the `allowAll` sentinel;
+ * for `allowUncategorized`, a `value` is only ever treated as the sentinel
+ * when it doesn't match any actual category's `id`, so a real category
+ * always takes priority even in the (practically impossible, since
+ * `UNCATEGORIZED_VALUE` isn't shaped like a real slug) case where its id
+ * collides with the sentinel's value.
  */
 export function CategorySelector({
   id,
@@ -69,13 +83,19 @@ export function CategorySelector({
       {uncategorizedLabel}
     </Badge>
   );
+  // A real category always wins over the sentinel, even if its id somehow
+  // matches `UNCATEGORIZED_VALUE` — checked against the full `categories`
+  // list (not the type-filtered `options`) so switching the type switcher
+  // never changes how an already-selected value is classified.
+  const isRealCategoryId = value ? categories.some((category) => category.id === value) : false;
+
   const selectValue = !value
     ? allowAll
       ? ALL_VALUE
       : allowUncategorized
         ? UNCATEGORIZED_VALUE
         : ""
-    : value === UNCATEGORIZED_VALUE
+    : !isRealCategoryId && value === UNCATEGORIZED_VALUE
       ? UNCATEGORIZED_VALUE
       : encodeOptionValue(value);
 
