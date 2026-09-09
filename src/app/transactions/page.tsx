@@ -3,11 +3,13 @@
 import { useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 
+import { AddTransactionModal } from "@/components/AddTransactionModal";
 import { TransactionFilterBar } from "@/components/TransactionFilterBar";
 import { TransactionTable } from "@/components/TransactionTable";
 import { Button } from "@/components/ui/button";
 import { MOCK_TRANSACTIONS } from "@/lib/mockTransactions";
 import { useTransactionFilters } from "@/store/useTransactionFilters";
+import { useTransactionModal } from "@/store/useTransactionModal";
 import type { Transaction } from "@/types/transaction";
 
 import { SummaryCards } from "./_components/SummaryCards";
@@ -21,6 +23,7 @@ export default function TransactionsPage() {
   const filters = useTransactionFilters((state) => state.filters);
   const setFilters = useTransactionFilters((state) => state.setFilters);
   const resetFilters = useTransactionFilters((state) => state.resetFilters);
+  const openModal = useTransactionModal((state) => state.openModal);
 
   const filteredTransactions = useMemo(() => {
     const query = filters.search.trim().toLowerCase();
@@ -57,8 +60,7 @@ export default function TransactionsPage() {
               View, search, and manage every transaction.
             </p>
           </div>
-          {/* TODO: wire up to an Add Transaction form/modal */}
-          <Button type="button">
+          <Button type="button" onClick={() => openModal()}>
             <Plus className="size-4" />
             Add Transaction
           </Button>
@@ -70,6 +72,8 @@ export default function TransactionsPage() {
 
         <TransactionTable transactions={filteredTransactions} onDelete={handleDelete} />
       </div>
+
+      <AddTransactionModal />
     </main>
   );
 }
