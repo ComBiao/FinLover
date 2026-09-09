@@ -158,6 +158,8 @@ export function CategoryClient() {
                       <button
                         key={iconObj.name}
                         onClick={() => setNewIcon(iconObj.name)}
+                        aria-label={iconObj.name}
+                        aria-pressed={isSelected}
                         className={cn(
                           "flex items-center justify-center p-2 rounded-lg border transition-all",
                           isSelected ? "border-primary bg-primary/10 text-primary shadow-sm" : "border-border hover:bg-muted text-muted-foreground"
@@ -179,6 +181,8 @@ export function CategoryClient() {
                       <button
                         key={color}
                         onClick={() => setNewColor(color)}
+                        aria-label={color}
+                        aria-pressed={isSelected}
                         className={cn(
                           "size-8 rounded-full flex items-center justify-center transition-transform hover:scale-110",
                           color,
