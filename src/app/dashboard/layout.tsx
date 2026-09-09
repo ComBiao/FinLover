@@ -13,7 +13,7 @@ export default function DashboardLayout({
   return (
     <>
       <Sidebar />
-      <div className="min-h-screen bg-[#f8f8f6] pl-16">{children}</div>
+      <div className="min-h-screen bg-background pl-16">{children}</div>
     </>
   );
 }
