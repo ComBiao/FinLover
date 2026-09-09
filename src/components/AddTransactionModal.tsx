@@ -165,6 +165,7 @@ export function AddTransactionModal() {
               type={type}
               value={categoryId}
               onValueChange={(nextCategoryId) => setCategoryId(nextCategoryId ?? "")}
+              allowUncategorized
             />
           </div>
 
