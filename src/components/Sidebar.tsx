@@ -96,7 +96,10 @@ export function Sidebar() {
         type="button"
         onClick={() => setMobileOpen((open) => !open)}
         aria-label={mobileOpen ? "Close menu" : "Open menu"}
-        className="fixed left-4 top-4 z-50 flex size-10 items-center justify-center rounded-lg border border-border bg-card shadow-md md:hidden"
+        className={cn(
+          "fixed left-4 top-4 flex size-10 items-center justify-center rounded-lg border border-border bg-card shadow-md md:hidden",
+          mobileOpen ? "z-[60]" : "z-50"
+        )}
       >
         {mobileOpen ? <X className="size-5" /> : <Menu className="size-5" />}
       </button>
@@ -110,6 +113,7 @@ export function Sidebar() {
       >
         <Link
           href="/dashboard"
+          title="Dashboard"
           className="flex h-16 shrink-0 items-center gap-2.5 px-4"
           onClick={() => setMobileOpen(false)}
         >

@@ -53,6 +53,32 @@ const CATEGORY_STYLES: Record<string, string> = {
   investment: "bg-accent/10 text-accent",
 };
 
+/**
+ * Colors for a wallet type or category id not covered above (e.g. a newly
+ * added wallet type or category). Cycles through the chart tokens by a
+ * stable hash of the key, so an unmapped id always gets the same color
+ * across renders instead of falling back to a plain gray chip.
+ */
+const FALLBACK_CHIP_STYLES = [
+  "bg-chart-1/15 text-chart-1",
+  "bg-chart-2/15 text-chart-2",
+  "bg-chart-3/15 text-chart-3",
+  "bg-chart-4/15 text-chart-4",
+  "bg-chart-5/15 text-chart-5",
+];
+
+function hashStringToIndex(key: string, modulo: number) {
+  let hash = 0;
+  for (let i = 0; i < key.length; i++) {
+    hash = (hash * 31 + key.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash) % modulo;
+}
+
+function getChipStyle(styles: Record<string, string>, key: string) {
+  return styles[key] ?? FALLBACK_CHIP_STYLES[hashStringToIndex(key, FALLBACK_CHIP_STYLES.length)];
+}
+
 type TransactionTableProps = {
   transactions: Transaction[];
   onEdit?: (transaction: Transaction) => void;
@@ -130,7 +156,7 @@ export function TransactionTable({
                     variant="outline"
                     className={cn(
                       "border-transparent",
-                      category ? CATEGORY_STYLES[category.id] : undefined
+                      category ? getChipStyle(CATEGORY_STYLES, category.id) : undefined
                     )}
                   >
                     {CategoryIcon ? <CategoryIcon className="size-3" /> : null}
@@ -142,7 +168,7 @@ export function TransactionTable({
                     variant="secondary"
                     className={cn(
                       "border-transparent",
-                      wallet ? WALLET_TYPE_STYLES[wallet.type] : undefined
+                      wallet ? getChipStyle(WALLET_TYPE_STYLES, wallet.type) : undefined
                     )}
                   >
                     {WalletIcon ? <WalletIcon className="size-3" /> : null}
