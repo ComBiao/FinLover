@@ -152,138 +152,144 @@ export function AddTransactionModal({
         if (!open) closeModal();
       }}
     >
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{isEditMode ? "Edit Transaction" : "Add Transaction"}</DialogTitle>
         </DialogHeader>
 
-        <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)} noValidate>
-          <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
-            <button
-              type="button"
-              onClick={() => handleTypeChange("expense")}
-              className={cn(
-                "h-9 rounded-md text-sm font-semibold transition-colors",
-                type === "expense"
-                  ? "bg-danger-bg text-destructive shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              Expense
-            </button>
-            <button
-              type="button"
-              onClick={() => handleTypeChange("income")}
-              className={cn(
-                "h-9 rounded-md text-sm font-semibold transition-colors",
-                type === "income"
-                  ? "bg-success-bg text-success shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              Income
-            </button>
-          </div>
+        <form
+          className="flex min-h-0 flex-1 flex-col"
+          onSubmit={handleSubmit(onSubmit)}
+          noValidate
+        >
+          <div className="flex flex-col gap-4 overflow-y-auto px-0.5 py-1">
+            <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
+              <button
+                type="button"
+                onClick={() => handleTypeChange("expense")}
+                className={cn(
+                  "h-9 rounded-md text-sm font-semibold transition-colors",
+                  type === "expense"
+                    ? "bg-danger-bg text-destructive shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Expense
+              </button>
+              <button
+                type="button"
+                onClick={() => handleTypeChange("income")}
+                className={cn(
+                  "h-9 rounded-md text-sm font-semibold transition-colors",
+                  type === "income"
+                    ? "bg-success-bg text-success shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Income
+              </button>
+            </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="transaction-title">Title</Label>
-            <Input
-              id="transaction-title"
-              placeholder="e.g. Grab ride"
-              aria-invalid={Boolean(errors.title)}
-              aria-describedby={errors.title ? "transaction-title-error" : undefined}
-              {...register("title")}
-            />
-            {errors.title ? (
-              <p id="transaction-title-error" className="text-destructive text-sm">
-                {errors.title.message}
-              </p>
-            ) : null}
-          </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="transaction-title">Title</Label>
+              <Input
+                id="transaction-title"
+                placeholder="e.g. Grab ride"
+                aria-invalid={Boolean(errors.title)}
+                aria-describedby={errors.title ? "transaction-title-error" : undefined}
+                {...register("title")}
+              />
+              {errors.title ? (
+                <p id="transaction-title-error" className="text-destructive text-sm">
+                  {errors.title.message}
+                </p>
+              ) : null}
+            </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="transaction-amount">Amount</Label>
-            <Input
-              id="transaction-amount"
-              type="number"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
-              placeholder="0.00"
-              aria-invalid={Boolean(errors.amount)}
-              aria-describedby={errors.amount ? "transaction-amount-error" : undefined}
-              {...register("amount")}
-            />
-            {errors.amount ? (
-              <p id="transaction-amount-error" className="text-destructive text-sm">
-                {errors.amount.message}
-              </p>
-            ) : null}
-          </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="transaction-amount">Amount</Label>
+              <Input
+                id="transaction-amount"
+                type="number"
+                inputMode="decimal"
+                step="0.01"
+                min="0"
+                placeholder="0.00"
+                aria-invalid={Boolean(errors.amount)}
+                aria-describedby={errors.amount ? "transaction-amount-error" : undefined}
+                {...register("amount")}
+              />
+              {errors.amount ? (
+                <p id="transaction-amount-error" className="text-destructive text-sm">
+                  {errors.amount.message}
+                </p>
+              ) : null}
+            </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="transaction-date">Date</Label>
-            <Input
-              id="transaction-date"
-              type="date"
-              aria-invalid={Boolean(errors.date)}
-              aria-describedby={errors.date ? "transaction-date-error" : undefined}
-              {...register("date")}
-            />
-            {errors.date ? (
-              <p id="transaction-date-error" className="text-destructive text-sm">
-                {errors.date.message}
-              </p>
-            ) : null}
-          </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="transaction-date">Date</Label>
+              <Input
+                id="transaction-date"
+                type="date"
+                aria-invalid={Boolean(errors.date)}
+                aria-describedby={errors.date ? "transaction-date-error" : undefined}
+                {...register("date")}
+              />
+              {errors.date ? (
+                <p id="transaction-date-error" className="text-destructive text-sm">
+                  {errors.date.message}
+                </p>
+              ) : null}
+            </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="transaction-wallet">Wallet</Label>
-            <Controller
-              control={control}
-              name="walletId"
-              render={({ field }) => (
-                <WalletSelector
-                  id="transaction-wallet"
-                  value={field.value}
-                  onValueChange={(nextWalletId) => field.onChange(nextWalletId ?? "")}
-                />
-              )}
-            />
-            {errors.walletId ? (
-              <p className="text-destructive text-sm">{errors.walletId.message}</p>
-            ) : null}
-          </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="transaction-wallet">Wallet</Label>
+              <Controller
+                control={control}
+                name="walletId"
+                render={({ field }) => (
+                  <WalletSelector
+                    id="transaction-wallet"
+                    value={field.value}
+                    onValueChange={(nextWalletId) => field.onChange(nextWalletId ?? "")}
+                  />
+                )}
+              />
+              {errors.walletId ? (
+                <p className="text-destructive text-sm">{errors.walletId.message}</p>
+              ) : null}
+            </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="transaction-category">Category</Label>
-            <Controller
-              control={control}
-              name="categoryId"
-              render={({ field }) => (
-                <CategorySelector
-                  id="transaction-category"
-                  type={type}
-                  value={field.value}
-                  onValueChange={(nextCategoryId) =>
-                    field.onChange(
-                      nextCategoryId === UNCATEGORIZED_VALUE ? "" : (nextCategoryId ?? "")
-                    )
-                  }
-                  allowUncategorized
-                />
-              )}
-            />
-          </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="transaction-category">Category</Label>
+              <Controller
+                control={control}
+                name="categoryId"
+                render={({ field }) => (
+                  <CategorySelector
+                    id="transaction-category"
+                    type={type}
+                    value={field.value}
+                    onValueChange={(nextCategoryId) =>
+                      field.onChange(
+                        nextCategoryId === UNCATEGORIZED_VALUE ? "" : (nextCategoryId ?? "")
+                      )
+                    }
+                    allowUncategorized
+                  />
+                )}
+              />
+            </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="transaction-note">Note</Label>
-            <Textarea
-              id="transaction-note"
-              placeholder="Optional note"
-              rows={3}
-              {...register("note")}
-            />
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="transaction-note">Note</Label>
+              <Textarea
+                id="transaction-note"
+                placeholder="Optional note"
+                rows={3}
+                {...register("note")}
+              />
+            </div>
           </div>
 
           <DialogFooter className="sm:justify-end">
