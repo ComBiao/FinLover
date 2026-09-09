@@ -48,6 +48,7 @@ export function TransactionTable({
   className,
 }: TransactionTableProps) {
   const [pendingDelete, setPendingDelete] = useState<Transaction | null>(null);
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
 
   if (transactions.length === 0) {
     return (
@@ -100,8 +101,27 @@ export function TransactionTable({
                 <TableCell>
                   <Badge variant="secondary">{wallet?.name ?? "Unknown wallet"}</Badge>
                 </TableCell>
-                <TableCell className="truncate text-muted-foreground">
-                  {transaction.note ?? "—"}
+                <TableCell className="text-muted-foreground">
+                  {transaction.note ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setExpandedRowId((current) =>
+                          current === transaction.id ? null : transaction.id
+                        )
+                      }
+                      className={cn(
+                        "block w-full text-left transition-colors hover:text-foreground",
+                        expandedRowId === transaction.id
+                          ? "whitespace-pre-wrap break-words"
+                          : "truncate"
+                      )}
+                    >
+                      {transaction.note}
+                    </button>
+                  ) : (
+                    "—"
+                  )}
                 </TableCell>
                 <TableCell
                   className={cn(
