@@ -25,7 +25,7 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   { label: "Transactions", href: "/transactions", icon: Receipt },
-  { label: "Category", href: "/categories", icon: LayoutGrid },
+  { label: "Category", href: "/category", icon: LayoutGrid },
   { label: "Reports", href: "/reports", icon: BarChart3 },
 ];
 

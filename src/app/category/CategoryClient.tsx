@@ -67,7 +67,7 @@ const initialIncomes = [
   { id: 6, name: "Others", iconName: "MoreHorizontal", color: "bg-gray-100 text-gray-600" },
 ];
 
-export default function CategoriesPage() {
+export function CategoryClient() {
   const [type, setType] = useState<"expense" | "income">("expense");
   const [expenses, setExpenses] = useState(initialExpenses);
   const [incomes, setIncomes] = useState(initialIncomes);
@@ -78,7 +78,7 @@ export default function CategoriesPage() {
   const [newIcon, setNewIcon] = useState(ICONS[0].name);
   const [newColor, setNewColor] = useState(COLORS[0]);
 
-  const currentCategories = type === "expense" ? expenses : incomes;
+  const currentCategory = type === "expense" ? expenses : incomes;
 
   // const handleDelete = (id: number) => {
   //   if (type === "expense") {
@@ -91,18 +91,18 @@ export default function CategoriesPage() {
   const handleCreate = () => {
     if (!newName.trim()) return;
 
-    const newCat = {
-      id: Date.now(),
-      name: newName,
-      iconName: newIcon,
-      color: newColor,
-    };
+    // const newCat = {
+    //   id: Date.now(),
+    //   name: newName,
+    //   iconName: newIcon,
+    //   color: newColor,
+    // };
 
-    if (type === "expense") {
-      setExpenses([...expenses, newCat]);
-    } else {
-      setIncomes([...incomes, newCat]);
-    }
+    // if (type === "expense") {
+    //   setExpenses([...expenses, newCat]);
+    // } else {
+    //   setIncomes([...incomes, newCat]);
+    // }
 
     setIsOpen(false);
     setNewName("");
@@ -119,16 +119,16 @@ export default function CategoriesPage() {
     <main className="p-6 sm:p-8 max-w-5xl mx-auto w-full">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Categories</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage your income and expense categories</p>
+          <h1 className="text-2xl font-bold text-foreground">Category</h1>
+          <p className="text-sm text-muted-foreground mt-1">Manage your income and expense category</p>
         </div>
-        
+
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
           <DialogTrigger render={<Button className="shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground gap-2 rounded-xl" />}>
             <Plus className="size-4" />
             Add new category
           </DialogTrigger>
-          
+
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle>Create New Category</DialogTitle>
@@ -136,15 +136,15 @@ export default function CategoriesPage() {
                 Add a new category for your {type === "expense" ? "expenses" : "incomes"}.
               </DialogDescription>
             </DialogHeader>
-            
+
             <div className="grid gap-6 py-4">
               <div className="grid gap-2">
                 <Label htmlFor="name">Name</Label>
-                <Input 
-                  id="name" 
+                <Input
+                  id="name"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  placeholder="e.g. Subscriptions" 
+                  placeholder="e.g. Subscriptions"
                 />
               </div>
 
@@ -208,8 +208,8 @@ export default function CategoriesPage() {
           onClick={() => setType("expense")}
           className={cn(
             "flex-1 py-2 px-4 text-sm font-semibold rounded-lg transition-all",
-            type === "expense" 
-              ? "bg-card text-foreground shadow-sm" 
+            type === "expense"
+              ? "bg-card text-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground"
           )}
         >
@@ -219,8 +219,8 @@ export default function CategoriesPage() {
           onClick={() => setType("income")}
           className={cn(
             "flex-1 py-2 px-4 text-sm font-semibold rounded-lg transition-all",
-            type === "income" 
-              ? "bg-card text-foreground shadow-sm" 
+            type === "income"
+              ? "bg-card text-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground"
           )}
         >
@@ -229,14 +229,14 @@ export default function CategoriesPage() {
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-        {currentCategories.map((cat) => {
+        {currentCategory.map((cat) => {
           const IconComponent = getIconComponent(cat.iconName);
           return (
-            <Card 
-              key={cat.id} 
+            <Card
+              key={cat.id}
               className="relative flex flex-col items-center justify-center p-6 gap-4 border-border/50 hover:border-primary/50 cursor-pointer transition-all hover:shadow-sm group bg-card"
             >
-              <button 
+              <button
                 onClick={(e) => {
                   e.stopPropagation();
                   // handleDelete(cat.id);
