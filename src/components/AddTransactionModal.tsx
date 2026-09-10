@@ -14,18 +14,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
+import { cn, todayISODate } from "@/lib/utils";
 import { useTransactionModal } from "@/store/useTransactionModal";
 import { transactionSchema } from "@/types/transaction";
 
-type FieldErrors = Partial<Record<"amount" | "date" | "categoryId", string>>;
-
-function todayISODate() {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
-    now.getDate()
-  ).padStart(2, "0")}`;
-}
+type FieldErrors = Partial<Record<"amount" | "date", string>>;
 
 /**
  * Modal form for creating a new income or expense transaction, opened via
@@ -67,7 +60,7 @@ export function AddTransactionModal() {
       type,
       amount: formData.get("amount"),
       date: formData.get("date"),
-      categoryId,
+      categoryId: categoryId || null,
       note: formData.get("note"),
     });
 
@@ -172,9 +165,6 @@ export function AddTransactionModal() {
               value={categoryId}
               onValueChange={setCategoryId}
             />
-            {errors.categoryId ? (
-              <p className="text-xs text-destructive">{errors.categoryId}</p>
-            ) : null}
           </div>
 
           <div className="flex flex-col gap-1.5">
