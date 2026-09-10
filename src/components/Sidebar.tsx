@@ -128,7 +128,7 @@ export function Sidebar() {
 
         <div className="mb-3 flex flex-col gap-1 border-t border-border pt-3">
           {BOTTOM_ITEMS.map(renderItem)}
-          <UserMenu mobileOpen={mobileOpen} />
+          <UserMenu mobileOpen={mobileOpen} onNavigate={() => setMobileOpen(false)} />
         </div>
       </nav>
     </>

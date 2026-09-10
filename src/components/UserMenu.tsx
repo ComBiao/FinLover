@@ -26,6 +26,8 @@ import { userName } from "@/components/mock-data";
 type UserMenuProps = {
   /** Forces the name label visible even without hover — the sidebar's hover-to-expand only applies on desktop, so mobile needs this to show the label when the rail is toggled open. */
   mobileOpen?: boolean;
+  /** Closes the mobile sidebar overlay before navigating away, mirroring the sidebar's own nav links. */
+  onNavigate?: () => void;
 };
 
 /**
@@ -33,9 +35,14 @@ type UserMenuProps = {
  * dropdown with Profile and Log out. Opens upward since it sits at the
  * bottom of the sidebar. Log out asks for confirmation before redirecting.
  */
-export function UserMenu({ mobileOpen = false }: UserMenuProps) {
+export function UserMenu({ mobileOpen = false, onNavigate }: UserMenuProps) {
   const router = useRouter();
   const [logoutDialogOpen, setLogoutDialogOpen] = React.useState(false);
+
+  function handleProfileClick() {
+    onNavigate?.();
+    router.push("/profile");
+  }
 
   /**
    * TODO: clear the session/JWT via src/lib/auth.ts and POST
@@ -44,6 +51,7 @@ export function UserMenu({ mobileOpen = false }: UserMenuProps) {
    */
   function handleConfirmLogout() {
     setLogoutDialogOpen(false);
+    onNavigate?.();
     router.push("/login");
   }
 
@@ -67,7 +75,7 @@ export function UserMenu({ mobileOpen = false }: UserMenuProps) {
           </span>
         </DropdownMenuTrigger>
         <DropdownMenuContent side="top" className="w-[170px]">
-          <DropdownMenuItem onClick={() => router.push("/profile")}>Profile</DropdownMenuItem>
+          <DropdownMenuItem onClick={handleProfileClick}>Profile</DropdownMenuItem>
           <DropdownMenuItem variant="destructive" onClick={() => setLogoutDialogOpen(true)}>
             Log out
           </DropdownMenuItem>
