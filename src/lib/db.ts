@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
 
+// The check is moved inside connectDB() to prevent build-time static analysis errors
+
 type MongooseCache = {
   conn: typeof mongoose | null;
   promise: Promise<typeof mongoose> | null;
