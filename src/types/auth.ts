@@ -43,6 +43,30 @@ export const registerSchema = z
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 
+/**
+ * Request body accepted by `POST /api/auth/login`.
+ *
+ * Deliberately looser than `registerSchema` on password: login only needs to
+ * confirm the request is *well-formed* (right shape, right types) — not
+ * re-enforce password policy, which was already applied at registration.
+ * #15 AC1 requires a merely non-empty password to pass validation, not an
+ * 8-character minimum.
+ *
+ * `.max(254, ...)` on email exists specifically for #15 AC6 — without an
+ * explicit bound, a 10,000-character string could still reach the database
+ * query before any check rejects it.
+ */
+export const loginSchema = z.object({
+  email: z
+    .email({ error: "Email must be a valid email address" })
+    .max(254, { error: "Email is too long" }),
+  password: z
+    .string({ error: "Password is required" })
+    .min(1, { error: "Password is required" }),
+});
+
+export type LoginInput = z.infer<typeof loginSchema>;
+
 /** Public shape of a user — never carries `passwordHash`. */
 export type PublicUser = {
   id: string;
