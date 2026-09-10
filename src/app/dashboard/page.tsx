@@ -1,13 +1,11 @@
-import { QuickAddBar } from "@/components/QuickAddBar";
-
+import { AddTransactionModal } from "@/components/AddTransactionModal";
 import { CategoryBreakdown } from "@/components/CategoryBreakdown";
+import { QuickAddBar } from "@/components/QuickAddBar";
+import { RecentTransactions } from "@/components/RecentTransactions";
 import { SavingsGoal } from "@/components/SavingsGoal";
 import { SpendingTrendChart } from "@/components/SpendingTrendChart";
 import { SummaryCards } from "@/components/SummaryCards";
-import { userName } from "@/components/mock-data";
-
-import { AddTransactionModal } from "./_components/AddTransactionModal";
-import { RecentTransactions } from "./_components/RecentTransactions";
+import { userName } from "@/lib/mock-data";
 
 /**
  * Main dashboard page displaying financial overview, spending trends, and recent transactions.

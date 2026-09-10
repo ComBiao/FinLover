@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
+import { cn, todayISODate } from "@/lib/utils";
 import { transactionSchema } from "@/types/transaction";
 
 type FieldErrors = Partial<Record<"amount", string>>;
@@ -32,13 +32,6 @@ const MONTH_ABBREVIATIONS = [
   "Nov",
   "Dec",
 ];
-
-function todayISODate() {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
-    now.getDate()
-  ).padStart(2, "0")}`;
-}
 
 /** Compact label for the date button: "Today" or e.g. "7 Sep". */
 function formatDateLabel(isoDate: string) {
