@@ -1,5 +1,8 @@
 import Image from "next/image";
 
+/**
+ * Home page component displaying the Next.js starter template.
+ */
 export default function Home() {
   return (
     <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">

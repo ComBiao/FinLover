@@ -28,18 +28,30 @@ function saltRounds() {
   return usable ? parsed : DEFAULT_SALT_ROUNDS;
 }
 
+/**
+ * Hashes a plaintext password using bcrypt.
+ */
 export function hashPassword(password: string) {
   return bcrypt.hash(password, saltRounds());
 }
 
+/**
+ * Compares a plaintext password against a bcrypt hash.
+ */
 export function comparePassword(password: string, hash: string) {
   return bcrypt.compare(password, hash);
 }
 
+/**
+ * Signs a JWT token with the given payload, expires in 7 days.
+ */
 export function signToken(payload: object) {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
 }
 
+/**
+ * Verifies a JWT token and returns the decoded payload.
+ */
 export function verifyToken<T>(token: string): T {
   return jwt.verify(token, JWT_SECRET) as T;
 }

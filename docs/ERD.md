@@ -20,7 +20,7 @@ erDiagram
   Wallet {
     ObjectId userId
     String name
-    Decimal128 balance
+    Number balance
     Boolean isDefault
     ObjectId _id
     Date createdAt
@@ -31,6 +31,7 @@ erDiagram
     ObjectId userId
     String name
     String type
+    String color
     String icon
     Boolean isSystem
     ObjectId _id
@@ -42,10 +43,11 @@ erDiagram
     ObjectId userId
     ObjectId walletId
     ObjectId categoryId
-    Decimal128 amount
     String type
+    Number amount
     Date date
     String notes
+    Embedded recurrence
     ObjectId _id
     Date createdAt
     Date updatedAt
