@@ -73,7 +73,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await mongoose.disconnect();
-  await replSet.stop();
+  await replSet?.stop();
 }, 60_000);
 
 beforeEach(async () => {
@@ -343,12 +343,12 @@ describe('PUT /api/categories/[id]', () => {
   });
 
   it('should update multiple fields at once', async () => {
-    const cat = await seedCategory({ name: 'OldCat', type: 'expense', color: '#000' });
+    const cat = await seedCategory({ name: 'OldCat', type: 'expense', color: '#000000' });
 
     const req = createRequest('PUT', `/api/categories/${cat._id}`, {
       name: 'NewCat',
       type: 'income',
-      color: '#FFF',
+      color: '#FFFFFF',
     });
     const res = await PUT(req, { params: Promise.resolve({ id: cat._id.toString() }) });
     const json = await res.json();
@@ -356,7 +356,7 @@ describe('PUT /api/categories/[id]', () => {
     expect(res.status).toBe(200);
     expect(json.data.name).toBe('NewCat');
     expect(json.data.type).toBe('income');
-    expect(json.data.color).toBe('#FFF');
+    expect(json.data.color).toBe('#FFFFFF');
   });
 
   it.each(['', '   ', '\t\n'])('rejects blank name %j without saving changes', async (name) => {
@@ -537,6 +537,31 @@ describe('DELETE /api/categories/[id]', () => {
     expect(tx!.categoryId).toBeNull();
   });
 
+  it('rolls back deletion when the cascade update fails', async () => {
+    const cat = await seedCategory();
+    const tx = await Transaction.create({
+      userId: MOCK_USER_ID, walletId: new mongoose.Types.ObjectId(),
+      categoryId: cat._id, type: 'expense', amount: 42, date: new Date(),
+    });
+    const update = vi.spyOn(Transaction, 'updateMany').mockImplementationOnce(() => {
+      throw new Error('Injected cascade failure');
+    });
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const res = await DELETE(createRequest('DELETE', `/api/categories/${cat._id}`), {
+        params: Promise.resolve({ id: cat._id.toString() }),
+      });
+      expect(res.status).toBe(500);
+      expect(update).toHaveBeenCalledOnce();
+      expect(update.mock.calls[0][2]?.session).toBeDefined();
+      expect(await Category.findById(cat._id)).not.toBeNull();
+      expect((await Transaction.findById(tx._id))!.categoryId!.toString()).toBe(cat._id.toString());
+    } finally {
+      update.mockRestore();
+      log.mockRestore();
+    }
+  });
+
   it('rolls back the category and transaction references when commit fails', async () => {
     const cat = await seedCategory();
     const tx = await Transaction.create({
@@ -651,3 +676,66 @@ describe('DELETE /api/categories/[id]', () => {
   });
 });
 
+
+// Shared create/update input and authentication regressions.
+describe.each(['POST', 'PUT'] as const)('%s input validation', (method) => {
+  async function call(body: unknown, raw = false, token = VALID_TOKEN) {
+    const cat = method === 'PUT' ? await seedCategory() : null;
+    const id = cat?._id.toString();
+    const req = new NextRequest(`http://localhost:3000/api/categories${id ? `/${id}` : ''}`, {
+      method,
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: raw ? String(body) : JSON.stringify(body),
+    });
+    const res = method === 'POST' ? await POST(req) : await PUT(req, { params: Promise.resolve({ id }) });
+    return { res, cat };
+  }
+
+  it.each(['', '   ', '\t\n'])('rejects blank name %j', async (name) => {
+    const { res } = await call({ name, type: 'expense' });
+    expect(res.status).toBe(400);
+    expect((await res.json()).error.fields).toHaveProperty('name');
+  });
+
+  it.each(['#FFF', '#12345G', 'red', '', null, 123])('rejects invalid color %j without mutation', async (color) => {
+    const { res, cat } = await call({ name: 'Changed', type: 'expense', color });
+    expect(res.status).toBe(400);
+    expect((await res.json()).error.fields).toHaveProperty('color');
+    if (cat) expect((await Category.findById(cat._id))!.name).toBe('Groceries');
+    else expect(await Category.countDocuments()).toBe(0);
+  });
+
+  it('trims the name and accepts a six-digit mixed-case color', async () => {
+    const { res } = await call({ name: '  Food  ', type: 'expense', color: '#aB12Ef' });
+    expect(res.status).toBe(method === 'POST' ? 201 : 200);
+    const { data } = await res.json();
+    expect(data.name).toBe('Food');
+    expect(data.color).toBe('#aB12Ef');
+    expect((await Category.findById(data._id))!.name).toBe('Food');
+  });
+
+  it('detects duplicates after trimming', async () => {
+    await seedCategory({ name: 'Food' });
+    const { res } = await call({ name: '  Food  ', type: 'expense' });
+    expect(res.status).toBe(409);
+  });
+
+  it('returns INVALID_JSON for malformed syntax without mutation', async () => {
+    const { res, cat } = await call('{"name":', true);
+    expect(res.status).toBe(400);
+    expect((await res.json()).error.code).toBe('INVALID_JSON');
+    if (cat) expect((await Category.findById(cat._id))!.name).toBe('Groceries');
+    else expect(await Category.countDocuments()).toBe(0);
+  });
+
+  it.each([null, [], 'text', 42])('rejects non-object JSON %j', async (body) => {
+    const { res } = await call(body);
+    expect(res.status).toBe(400);
+    expect((await res.json()).error.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('returns 401 for a signed JWT with an invalid user ID', async () => {
+    const { res } = await call({ name: 'Food', type: 'expense' }, false, signToken({ userId: 'invalid' }));
+    expect(res.status).toBe(401);
+  });
+});

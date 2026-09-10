@@ -9,19 +9,20 @@
  * Each describe/it block is annotated with the User Story + Acceptance Criteria it covers.
  */
 import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import Category from '../Category';
 import Transaction from '../Transaction';
 import Wallet from '../Wallet';
+import { deleteCategoryAndCascade } from '@/lib/services/categoryService';
 
 // ---------------------------------------------------------------------------
 // Test DB lifecycle
 // ---------------------------------------------------------------------------
-let mongoServer: MongoMemoryServer;
+let mongoServer: MongoMemoryReplSet;
 
 beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
+  mongoServer = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
   await mongoose.connect(mongoServer.getUri());
   // Ensure indexes are fully built before tests rely on them
   await Category.init();
@@ -444,8 +445,8 @@ describe('EPIC 3 — Category Management', () => {
       const tx1 = await makeTransaction({ categoryId: cat._id }).save();
       const tx2 = await makeTransaction({ categoryId: cat._id }).save();
 
-      // Delete the category — pre-hook should nullify categoryId on transactions
-      await Category.findOneAndDelete({ _id: cat._id });
+      // Delete through the service so reference cleanup shares the transaction.
+      await deleteCategoryAndCascade(cat._id, userId);
 
       const updatedTx1 = await Transaction.findById(tx1._id);
       const updatedTx2 = await Transaction.findById(tx2._id);
@@ -461,7 +462,7 @@ describe('EPIC 3 — Category Management', () => {
       const txLinkedToB = await makeTransaction({ categoryId: catB._id }).save();
 
       // Delete only catA
-      await Category.findOneAndDelete({ _id: catA._id });
+      await deleteCategoryAndCascade(catA._id, userId);
 
       const stillLinked = await Transaction.findById(txLinkedToB._id);
       expect(stillLinked?.categoryId?.toString()).toBe(catB._id.toString());
