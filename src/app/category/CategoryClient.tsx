@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { z } from "zod";
-import { Plus, Utensils, Car, Home, ShoppingCart, Zap, HeartPulse, Film, MoreHorizontal, Wallet, Banknote, Gift, Award, PieChart, Star, Smile, X, Check, Pencil } from "lucide-react";
+import { Plus, Utensils, Car, Home, ShoppingCart, Zap, HeartPulse, Film, MoreHorizontal, Wallet, Banknote, Gift, Award, PieChart, Star, Smile, Check, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -85,7 +85,7 @@ export function CategoryClient() {
   const [errors, setErrors] = useState<Record<string, string[] | undefined>>({});
 
   const [categoryToDelete, setCategoryToDelete] = useState<number | null>(null);
-  
+
   const [categoryToEdit, setCategoryToEdit] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
   const [editIcon, setEditIcon] = useState(ICONS[0].name);
@@ -119,7 +119,7 @@ export function CategoryClient() {
       setEditErrors(result.error.flatten().fieldErrors);
       return;
     }
-    
+
     if (type === "expense") {
       setExpenses(expenses.map(cat => cat.id === categoryToEdit ? { ...cat, name: editName, iconName: editIcon, color: editColor } : cat));
     } else {
@@ -135,7 +135,7 @@ export function CategoryClient() {
       setErrors(result.error.flatten().fieldErrors);
       return;
     }
-    
+
     setErrors({});
 
     const newCat = {
