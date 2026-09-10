@@ -8,6 +8,7 @@ import { GoogleButton } from "@/components/GoogleButton";
 import { IconInput } from "@/components/IconInput";
 import { Logo } from "@/components/Logo";
 import { PasswordInput } from "@/components/PasswordInput";
+import { PrivacyPolicyDialog } from "@/components/PrivacyPolicyDialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -203,14 +204,8 @@ export default function RegisterPage() {
                 htmlFor="register-privacy-consent"
                 className="block text-sm leading-relaxed font-normal text-foreground/85"
               >
-                I agree to the{" "}
-                <Link
-                  href="#"
-                  className="whitespace-nowrap font-semibold text-accent hover:underline"
-                >
-                  Privacy Policy
-                </Link>{" "}
-                and consent to my data being collected.
+                I agree to the <PrivacyPolicyDialog /> and consent to my data being
+                collected.
               </Label>
             </div>
             {errors.dataPrivacyConsent ? (
