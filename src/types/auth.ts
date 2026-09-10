@@ -64,8 +64,9 @@ export const loginSchema = z.object({
     .string({ error: "Password is required" })
     .min(1, { error: "Password is required" }),
 });
+
 export type LoginInput = z.infer<typeof loginSchema>;
- 
+
 /** Public shape of a user — never carries `passwordHash`. */
 export type PublicUser = {
   id: string;
