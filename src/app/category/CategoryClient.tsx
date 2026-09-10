@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { z } from "zod";
 import { Plus, Utensils, Car, Home, ShoppingCart, Zap, HeartPulse, Film, MoreHorizontal, Wallet, Banknote, Gift, Award, PieChart, Star, Smile, X, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -67,16 +68,21 @@ const initialIncomes = [
   { id: 6, name: "Others", iconName: "MoreHorizontal", color: "bg-gray-100 text-gray-600" },
 ];
 
+const categorySchema = z.object({
+  name: z.string().min(1, "Name is required").max(50, "Name must not exceed 50 characters"),
+});
+
 export function CategoryClient() {
   const [type, setType] = useState<"expense" | "income">("expense");
-  const [expenses, setExpenses] = useState(initialExpenses);
-  const [incomes, setIncomes] = useState(initialIncomes);
+  const [expenses] = useState(initialExpenses);
+  const [incomes] = useState(initialIncomes);
 
   // Modal State
   const [isOpen, setIsOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newIcon, setNewIcon] = useState(ICONS[0].name);
   const [newColor, setNewColor] = useState(COLORS[0]);
+  const [errors, setErrors] = useState<Record<string, string[] | undefined>>({});
 
   const currentCategory = type === "expense" ? expenses : incomes;
 
@@ -89,7 +95,13 @@ export function CategoryClient() {
   // };
 
   const handleCreate = () => {
-    if (!newName.trim()) return;
+    const result = categorySchema.safeParse({ name: newName });
+    if (!result.success) {
+      setErrors(result.error.flatten().fieldErrors);
+      return;
+    }
+    
+    setErrors({});
 
     // const newCat = {
     //   id: Date.now(),
@@ -143,9 +155,16 @@ export function CategoryClient() {
                 <Input
                   id="name"
                   value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
+                  onChange={(e) => {
+                    setNewName(e.target.value);
+                    if (errors.name) setErrors({});
+                  }}
                   placeholder="e.g. Subscriptions"
+                  aria-invalid={Boolean(errors.name)}
                 />
+                {errors.name && (
+                  <p className="text-[13px] font-medium text-destructive">{errors.name[0]}</p>
+                )}
               </div>
 
               <div className="grid gap-2">
