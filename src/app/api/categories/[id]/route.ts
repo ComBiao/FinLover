@@ -3,22 +3,12 @@ import mongoose from 'mongoose';
 import { connectDB } from '@/lib/db';
 import Category from '@/models/Category';
 import { deleteCategoryAndCascade } from '@/lib/services/categoryService';
-import { verifySessionToken } from '@/lib/session';
+import { authenticateRequest } from '@/lib/apiAuth';
 
 async function checkAuthAndGetCategory(req: NextRequest, id: string) {
-  const authHeader = req.headers.get('authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
-    return { errorRes: NextResponse.json({ error: { code: 'UNAUTHORIZED', message: 'Missing or invalid token' } }, { status: 401 }) };
-  }
-  
-  const token = authHeader.split(' ')[1];
-  const verification = verifySessionToken<{ userId: string }>(token);
-  
-  if (!verification.valid) {
-    return { errorRes: NextResponse.json({ error: { code: 'UNAUTHORIZED', message: 'Missing or invalid token' } }, { status: 401 }) };
-  }
-
-  const userId = new mongoose.Types.ObjectId(verification.payload.userId);
+  const auth = authenticateRequest(req);
+  if (auth.errorRes) return { errorRes: auth.errorRes };
+  const { userId } = auth;
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
     return { errorRes: NextResponse.json({ error: { code: 'VALIDATION_ERROR', message: 'Invalid category ID', fields: {} } }, { status: 400 }) };
@@ -53,7 +43,8 @@ export async function PUT(
 
     const fields: Record<string, string> = {};
     if (name !== undefined) {
-      if (typeof name !== 'string' || name.length > 50) fields.name = 'Name must be a string up to 50 characters';
+      if (typeof name !== 'string'|| name.trim().length === 0 || name.length > 50) fields.name = 'Name must be a string up to 50 characters';
+      else if (name.trim().length === 0) fields.name = 'Name is required';
       else category!.name = name;
     }
     if (type !== undefined) {

@@ -359,6 +359,16 @@ describe('PUT /api/categories/[id]', () => {
     expect(json.data.color).toBe('#FFF');
   });
 
+  it.each(['', '   ', '\t\n'])('rejects blank name %j without saving changes', async (name) => {
+    const cat = await seedCategory();
+    const res = await PUT(createRequest('PUT', `/api/categories/${cat._id}`, { name }), {
+      params: Promise.resolve({ id: cat._id.toString() }),
+    });
+    expect(res.status).toBe(400);
+    expect((await res.json()).error.fields).toHaveProperty('name');
+    expect((await Category.findById(cat._id))!.name).toBe('Groceries');
+  });
+
   // --- Validation errors (400) ---
   it('should return 400 when type is an invalid enum value', async () => {
     const cat = await seedCategory({ name: 'Food' });
@@ -525,6 +535,41 @@ describe('DELETE /api/categories/[id]', () => {
     const tx = await Transaction.findOne({ userId: MOCK_USER_ID });
     expect(tx).not.toBeNull();
     expect(tx!.categoryId).toBeNull();
+  });
+
+  it('rolls back the category and transaction references when commit fails', async () => {
+    const cat = await seedCategory();
+    const tx = await Transaction.create({
+      userId: MOCK_USER_ID,
+      walletId: new mongoose.Types.ObjectId(),
+      categoryId: cat._id,
+      type: 'expense',
+      amount: 42,
+      date: new Date(),
+    });
+    const session = await mongoose.startSession();
+    const start = vi.spyOn(mongoose, 'startSession').mockResolvedValueOnce(session);
+    const commit = vi.spyOn(session, 'commitTransaction').mockImplementationOnce(async () => {
+      // Both writes really happened inside the transaction before the injected failure.
+      expect(await Category.findById(cat._id).session(session)).toBeNull();
+      expect((await Transaction.findById(tx._id).session(session))!.categoryId).toBeNull();
+      throw new Error('Injected commit failure');
+    });
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const res = await DELETE(createRequest('DELETE', `/api/categories/${cat._id}`), {
+        params: Promise.resolve({ id: cat._id.toString() }),
+      });
+      expect(res.status).toBe(500);
+      expect(commit).toHaveBeenCalledOnce();
+      expect(await Category.findById(cat._id)).not.toBeNull();
+      expect((await Transaction.findById(tx._id))!.categoryId!.toString()).toBe(cat._id.toString());
+    } finally {
+      start.mockRestore();
+      commit.mockRestore();
+      log.mockRestore();
+      await session.endSession();
+    }
   });
 
   // --- Forbidden (403) — system category ---

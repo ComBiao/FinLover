@@ -2,37 +2,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import { connectDB } from '@/lib/db';
 import Category from '@/models/Category';
-import { verifySessionToken } from '@/lib/session';
+import { authenticateRequest } from '@/lib/apiAuth';
 
 export async function POST(req: NextRequest) {
   try {
     await connectDB();
 
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { error: { code: 'UNAUTHORIZED', message: 'Missing or invalid token' } },
-        { status: 401 }
-      );
-    }
-
-    const token = authHeader.split(' ')[1];
-    const verification = verifySessionToken<{ userId: string }>(token);
-    
-    if (!verification.valid) {
-      return NextResponse.json(
-        { error: { code: 'UNAUTHORIZED', message: 'Missing or invalid token' } },
-        { status: 401 }
-      );
-    }
-
-    const userId = new mongoose.Types.ObjectId(verification.payload.userId);
+    const auth = authenticateRequest(req);
+    if (auth.errorRes) return auth.errorRes;
+    const { userId } = auth;
 
     const body = await req.json().catch(() => ({}));
     const { name, type, color } = body;
 
     const fields: Record<string, string> = {};
-    if (!name) fields.name = 'Name is required';
+    if (!name || (typeof name === 'string' && name.trim().length === 0)) fields.name = 'Name is required';
     else if (typeof name !== 'string' || name.length > 50) fields.name = 'Name must be a string up to 50 characters';
 
     if (!type) fields.type = 'Type is required';
