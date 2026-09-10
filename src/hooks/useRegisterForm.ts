@@ -2,7 +2,7 @@
 
 import * as React from "react";
 
-import { registerFieldsSchema, registerSchema } from "@/types/auth";
+import { registerFieldsSchema, registerFormSchema } from "@/types/auth";
 
 export type RegisterFieldName = "name" | "email" | "password" | "confirmPassword";
 export type RegisterFieldErrors = Partial<Record<RegisterFieldName | "dataPrivacyConsent", string>>;
@@ -99,7 +99,7 @@ export function useRegisterForm() {
     fieldErrors: RegisterFieldErrors;
     firstInvalidField?: keyof RegisterFieldErrors;
   } {
-    const result = registerSchema.safeParse({
+    const result = registerFormSchema.safeParse({
       ...values,
       dataPrivacyConsent,
     });
