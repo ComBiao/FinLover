@@ -15,7 +15,7 @@ export function RecentTransactions() {
         <ul className="divide-y divide-border">
           {transactions.map((tx) => (
           <li
-            key={`${tx.name}-${tx.date}`}
+            key={tx.id}
             className="flex items-center gap-3.5 py-2.5"
           >
               <div

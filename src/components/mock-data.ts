@@ -45,6 +45,7 @@ export const categories: Category[] = [
 ];
 
 export interface Transaction {
+  id: string;
   name: string;
   category: string;
   date: string;
@@ -56,6 +57,7 @@ export interface Transaction {
 
 export const transactions: Transaction[] = [
   {
+    id: "tx-1",
     name: "Grab",
     category: "Transport",
     date: "Today",
@@ -65,6 +67,7 @@ export const transactions: Transaction[] = [
     amountClassName: "text-destructive",
   },
   {
+    id: "tx-2",
     name: "Salary deposit",
     category: "Income",
     date: "Yesterday",
@@ -74,6 +77,7 @@ export const transactions: Transaction[] = [
     amountClassName: "text-success",
   },
   {
+    id: "tx-3",
     name: "Central World",
     category: "Shopping",
     date: "Aug 21",
@@ -83,6 +87,7 @@ export const transactions: Transaction[] = [
     amountClassName: "text-destructive",
   },
   {
+    id: "tx-4",
     name: "Electricity bill",
     category: "Bills",
     date: "Aug 19",
@@ -92,6 +97,7 @@ export const transactions: Transaction[] = [
     amountClassName: "text-destructive",
   },
   {
+    id: "tx-5",
     name: "Coffee Beans Co.",
     category: "Food & Drink",
     date: "Aug 18",
