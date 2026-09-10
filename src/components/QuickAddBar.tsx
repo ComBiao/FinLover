@@ -34,7 +34,10 @@ const MONTH_ABBREVIATIONS = [
 ];
 
 function todayISODate() {
-  return new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
+    now.getDate()
+  ).padStart(2, "0")}`;
 }
 
 /** Compact label for the date button: "Today" or e.g. "7 Sep". */

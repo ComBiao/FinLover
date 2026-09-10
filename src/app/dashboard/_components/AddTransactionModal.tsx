@@ -21,7 +21,10 @@ import { transactionSchema } from "@/types/transaction";
 type FieldErrors = Partial<Record<"amount" | "date" | "categoryId", string>>;
 
 function todayISODate() {
-  return new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
+    now.getDate()
+  ).padStart(2, "0")}`;
 }
 
 /**

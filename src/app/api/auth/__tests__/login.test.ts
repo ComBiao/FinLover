@@ -172,21 +172,48 @@ describe("POST /api/auth/login", () => {
     expect(User.findOne).not.toHaveBeenCalled();
   });
 
-  it("rejects a password over bcrypt's 72-byte comparison window, so a real password's suffix can't be bypassed", async () => {
-    // REAL_PASSWORD is well under 72 bytes, so this isn't testing an actual
-    // account — it's proving the cap itself works, independent of any
-    // specific user's password length.
-    const oversizedPassword = "a".repeat(73);
+  // REAL_PASSWORD is well under 72 bytes, so these aren't testing an actual
+  // account — they're proving the cap itself works at the route level (not
+  // just in the schema's own unit tests), independent of any specific
+  // user's password length.
+  it.each([
+    ["73 ASCII bytes", "a".repeat(73)],
+    ["73 bytes via a multi-byte character", `${"😀".repeat(18)}a`],
+    ["76 bytes, all multi-byte characters", "😀".repeat(19)],
+  ])(
+    "rejects a password over bcrypt's 72-byte comparison window (%s), so a real password's suffix can't be bypassed",
+    async (_label, oversizedPassword) => {
+      const res = await POST(
+        loginRequest({ email: "person@example.com", password: oversizedPassword })
+      );
+      const body = await res.json();
 
-    const res = await POST(
-      loginRequest({ email: "person@example.com", password: oversizedPassword })
-    );
-    const body = await res.json();
+      expect(res.status).toBe(400);
+      expect(body.error.code).toBe("VALIDATION_ERROR");
+      expect(body.error.fields.password).toBeDefined();
+      expect(User.findOne).not.toHaveBeenCalled();
+      expect(setSessionCookie).not.toHaveBeenCalled();
+    }
+  );
 
-    expect(res.status).toBe(400);
-    expect(body.error.code).toBe("VALIDATION_ERROR");
-    expect(User.findOne).not.toHaveBeenCalled();
-  });
+  it.each([
+    ["72 ASCII bytes", "a".repeat(72)],
+    ["72 bytes via multi-byte characters", "😀".repeat(18)],
+  ])(
+    "accepts a password at exactly the 72-byte limit (%s), so the cap doesn't over-reject",
+    async (_label, boundaryPassword) => {
+      vi.mocked(User.findOne).mockResolvedValue(
+        fakeUser({ passwordHash: await hashPassword(boundaryPassword) })
+      );
+
+      const res = await POST(
+        loginRequest({ email: "person@example.com", password: boundaryPassword })
+      );
+
+      expect(res.status).toBe(200);
+      expect(setSessionCookie).toHaveBeenCalledWith(expect.any(String));
+    }
+  );
 
   it("returns a generic 500 rather than an unhandled exception when the database call fails", async () => {
     vi.mocked(User.findOne).mockRejectedValue(new Error("connection lost"));
