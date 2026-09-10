@@ -18,13 +18,12 @@ global._mongoose = cached;
  * Establishes a connection to MongoDB using a singleton pattern to prevent multiple connections.
  */
 export async function connectDB() {
-  const MONGODB_URI = process.env.MONGODB_URI as string;
+  const MONGODB_URI = process.env.MONGODB_URI; // moved into inside the function, check on call time, prevent CI error
   if (!MONGODB_URI) {
     throw new Error("Missing MONGODB_URI environment variable");
   }
-
   if (cached.conn) return cached.conn;
-
+  
   if (!cached.promise) {
     cached.promise = mongoose.connect(MONGODB_URI);
   }
