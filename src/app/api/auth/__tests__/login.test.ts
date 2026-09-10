@@ -83,6 +83,7 @@ describe("POST /api/auth/login", () => {
       code: "INVALID_CREDENTIALS",
       message: "Invalid email or password",
     });
+    expect(setSessionCookie).not.toHaveBeenCalled();
   });
 
   it("#13 AC3 — unknown email returns the identical 401 + error body as a wrong password", async () => {
@@ -98,6 +99,7 @@ describe("POST /api/auth/login", () => {
       code: "INVALID_CREDENTIALS",
       message: "Invalid email or password",
     });
+    expect(setSessionCookie).not.toHaveBeenCalled();
   });
 
   it("#13 AC4 / #15 AC3 — a non-string password is rejected with 400 before any DB query", async () => {
@@ -167,6 +169,22 @@ describe("POST /api/auth/login", () => {
     const res = await POST(loginRequest({ email: hugeEmail, password: "x" }));
 
     expect(res.status).toBe(400);
+    expect(User.findOne).not.toHaveBeenCalled();
+  });
+
+  it("rejects a password over bcrypt's 72-byte comparison window, so a real password's suffix can't be bypassed", async () => {
+    // REAL_PASSWORD is well under 72 bytes, so this isn't testing an actual
+    // account — it's proving the cap itself works, independent of any
+    // specific user's password length.
+    const oversizedPassword = "a".repeat(73);
+
+    const res = await POST(
+      loginRequest({ email: "person@example.com", password: oversizedPassword })
+    );
+    const body = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(body.error.code).toBe("VALIDATION_ERROR");
     expect(User.findOne).not.toHaveBeenCalled();
   });
 
