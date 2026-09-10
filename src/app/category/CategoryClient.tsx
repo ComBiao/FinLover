@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { z } from "zod";
-import { Plus, Utensils, Car, Home, ShoppingCart, Zap, HeartPulse, Film, MoreHorizontal, Wallet, Banknote, Gift, Award, PieChart, Star, Smile, X, Check } from "lucide-react";
+import { Plus, Utensils, Car, Home, ShoppingCart, Zap, HeartPulse, Film, MoreHorizontal, Wallet, Banknote, Gift, Award, PieChart, Star, Smile, X, Check, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -74,8 +74,8 @@ const categorySchema = z.object({
 
 export function CategoryClient() {
   const [type, setType] = useState<"expense" | "income">("expense");
-  const [expenses] = useState(initialExpenses);
-  const [incomes] = useState(initialIncomes);
+  const [expenses, setExpenses] = useState(initialExpenses);
+  const [incomes, setIncomes] = useState(initialIncomes);
 
   // Modal State
   const [isOpen, setIsOpen] = useState(false);
@@ -84,15 +84,50 @@ export function CategoryClient() {
   const [newColor, setNewColor] = useState(COLORS[0]);
   const [errors, setErrors] = useState<Record<string, string[] | undefined>>({});
 
+  const [categoryToDelete, setCategoryToDelete] = useState<number | null>(null);
+  
+  const [categoryToEdit, setCategoryToEdit] = useState<number | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editIcon, setEditIcon] = useState(ICONS[0].name);
+  const [editColor, setEditColor] = useState(COLORS[0]);
+  const [editErrors, setEditErrors] = useState<Record<string, string[] | undefined>>({});
+
   const currentCategory = type === "expense" ? expenses : incomes;
 
-  // const handleDelete = (id: number) => {
-  //   if (type === "expense") {
-  //     setExpenses(expenses.filter(cat => cat.id !== id));
-  //   } else {
-  //     setIncomes(incomes.filter(cat => cat.id !== id));
-  //   }
-  // };
+  const confirmDelete = () => {
+    if (categoryToDelete === null) return;
+    if (type === "expense") {
+      setExpenses(expenses.filter(cat => cat.id !== categoryToDelete));
+    } else {
+      setIncomes(incomes.filter(cat => cat.id !== categoryToDelete));
+    }
+    setCategoryToDelete(null);
+    setCategoryToEdit(null);
+  };
+
+  const openEditModal = (cat: { id: number; name: string; iconName: string; color: string }) => {
+    setCategoryToEdit(cat.id);
+    setEditName(cat.name);
+    setEditIcon(cat.iconName);
+    setEditColor(cat.color);
+    setEditErrors({});
+  };
+
+  const handleEdit = () => {
+    const result = categorySchema.safeParse({ name: editName });
+    if (!result.success) {
+      setEditErrors(result.error.flatten().fieldErrors);
+      return;
+    }
+    
+    if (type === "expense") {
+      setExpenses(expenses.map(cat => cat.id === categoryToEdit ? { ...cat, name: editName, iconName: editIcon, color: editColor } : cat));
+    } else {
+      setIncomes(incomes.map(cat => cat.id === categoryToEdit ? { ...cat, name: editName, iconName: editIcon, color: editColor } : cat));
+    }
+
+    setCategoryToEdit(null);
+  };
 
   const handleCreate = () => {
     const result = categorySchema.safeParse({ name: newName });
@@ -103,18 +138,18 @@ export function CategoryClient() {
     
     setErrors({});
 
-    // const newCat = {
-    //   id: Date.now(),
-    //   name: newName,
-    //   iconName: newIcon,
-    //   color: newColor,
-    // };
+    const newCat = {
+      id: Date.now(),
+      name: newName,
+      iconName: newIcon,
+      color: newColor,
+    };
 
-    // if (type === "expense") {
-    //   setExpenses([...expenses, newCat]);
-    // } else {
-    //   setIncomes([...incomes, newCat]);
-    // }
+    if (type === "expense") {
+      setExpenses([...expenses, newCat]);
+    } else {
+      setIncomes([...incomes, newCat]);
+    }
 
     setIsOpen(false);
     setNewName("");
@@ -226,6 +261,115 @@ export function CategoryClient() {
         </Dialog>
       </div>
 
+      {/* Edit Category Dialog */}
+      <Dialog open={categoryToEdit !== null} onOpenChange={(open) => !open && setCategoryToEdit(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit Category</DialogTitle>
+            <DialogDescription>
+              Update the details of your category.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-6 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit-name">Name</Label>
+              <Input
+                id="edit-name"
+                value={editName}
+                onChange={(e) => {
+                  setEditName(e.target.value);
+                  if (editErrors.name) setEditErrors({});
+                }}
+                placeholder="e.g. Subscriptions"
+                aria-invalid={Boolean(editErrors.name)}
+              />
+              {editErrors.name && (
+                <p className="text-[13px] font-medium text-destructive">{editErrors.name[0]}</p>
+              )}
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Icon</Label>
+              <div className="grid grid-cols-5 gap-2 max-h-[140px] overflow-y-auto p-1">
+                {ICONS.map((iconObj) => {
+                  const IconComp = iconObj.icon;
+                  const isSelected = editIcon === iconObj.name;
+                  return (
+                    <button
+                      key={`edit-${iconObj.name}`}
+                      onClick={() => setEditIcon(iconObj.name)}
+                      aria-label={iconObj.name}
+                      aria-pressed={isSelected}
+                      className={cn(
+                        "flex items-center justify-center p-2 rounded-lg border transition-all",
+                        isSelected ? "border-primary bg-primary/10 text-primary shadow-sm" : "border-border hover:bg-muted text-muted-foreground"
+                      )}
+                    >
+                      <IconComp className="size-5" />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Color Background</Label>
+              <div className="flex flex-wrap gap-2 pt-1">
+                {COLORS.map((color) => {
+                  const isSelected = editColor === color;
+                  return (
+                    <button
+                      key={`edit-${color}`}
+                      onClick={() => setEditColor(color)}
+                      aria-label={color}
+                      aria-pressed={isSelected}
+                      className={cn(
+                        "size-8 rounded-full flex items-center justify-center transition-transform hover:scale-110",
+                        color,
+                        isSelected ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "opacity-80 hover:opacity-100"
+                      )}
+                    >
+                      {isSelected && <Check className="size-4" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="sm:justify-between">
+            <Button
+              variant="destructive"
+              onClick={() => setCategoryToDelete(categoryToEdit)}
+              type="button"
+            >
+              Delete
+            </Button>
+            <div className="flex flex-col-reverse sm:flex-row gap-2 mt-4 sm:mt-0">
+              <Button variant="outline" onClick={() => setCategoryToEdit(null)}>Cancel</Button>
+              <Button onClick={handleEdit}>Save Changes</Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={categoryToDelete !== null} onOpenChange={(open) => !open && setCategoryToDelete(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Delete Category</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this category? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCategoryToDelete(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={confirmDelete}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <div className="mb-8 flex p-1.5 bg-muted rounded-xl w-full max-w-sm">
         <button
           onClick={() => setType("expense")}
@@ -257,17 +401,18 @@ export function CategoryClient() {
           return (
             <Card
               key={cat.id}
+              onClick={() => openEditModal(cat)}
               className="relative flex flex-col items-center justify-center p-6 gap-4 border-border/50 hover:border-primary/50 cursor-pointer transition-all hover:shadow-sm group bg-card"
             >
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  // handleDelete(cat.id);
+                  openEditModal(cat);
                 }}
-                className="absolute top-2 right-2 p-1.5 rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                title="Delete Category"
+                className="absolute top-2 right-2 p-1.5 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground opacity-0 group-hover:opacity-100 transition-all"
+                title="Edit Category"
               >
-                <X className="size-4" />
+                <Pencil className="size-4" />
               </button>
 
               <div className={cn("size-14 rounded-full flex items-center justify-center transition-transform group-hover:scale-110", cat.color)}>
