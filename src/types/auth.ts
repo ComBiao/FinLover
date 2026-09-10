@@ -1,8 +1,6 @@
 import { z } from "zod";
-
 /** Minimum password length accepted at registration. */
 export const PASSWORD_MIN_LENGTH = 8;
-
 /**
  * bcrypt hashes only the first 72 UTF-8 bytes and silently ignores the rest, so
  * two passwords sharing a 72-byte prefix would authenticate interchangeably.
@@ -10,9 +8,7 @@ export const PASSWORD_MIN_LENGTH = 8;
  * characters — one emoji is four of these.
  */
 export const PASSWORD_MAX_BYTES = 72;
-
 const utf8ByteLength = (value: string) => new TextEncoder().encode(value).length;
-
 /**
  * Request body accepted by `POST /api/auth/register`.
  *
@@ -40,17 +36,25 @@ export const registerSchema = z
     error: "Passwords do not match",
     path: ["confirmPassword"],
   });
-
 export type RegisterInput = z.infer<typeof registerSchema>;
 
 /**
  * Request body accepted by `POST /api/auth/login`.
  *
- * Deliberately looser than `registerSchema` on password: login only needs to
- * confirm the request is *well-formed* (right shape, right types) — not
- * re-enforce password policy, which was already applied at registration.
- * #15 AC1 requires a merely non-empty password to pass validation, not an
- * 8-character minimum.
+ * Looser than `registerSchema` on password *length policy* — login doesn't
+ * re-enforce the 8-character minimum, since that was already applied at
+ * registration. #15 AC1 requires a merely non-empty password to pass
+ * validation, not an 8-character one.
+ *
+ * The 72-byte cap is kept, though, and it's a security fix rather than
+ * policy: bcrypt only ever reads a password's first 72 bytes, both when
+ * hashing and when comparing. Since `registerSchema` already caps real
+ * passwords at 72 bytes, anyone whose actual password lands exactly at that
+ * boundary would authenticate against "their password + any suffix at all"
+ * if login didn't also reject anything longer — the suffix would fall
+ * entirely outside bcrypt's comparison window and never get checked.
+ * Rejecting oversized input here closes that off before comparePassword()
+ * ever runs, rather than relying on it happening to fail.
  *
  * `.max(254, ...)` on email exists specifically for #15 AC6 — without an
  * explicit bound, a 10,000-character string could still reach the database
@@ -62,9 +66,11 @@ export const loginSchema = z.object({
     .max(254, { error: "Email is too long" }),
   password: z
     .string({ error: "Password is required" })
-    .min(1, { error: "Password is required" }),
+    .min(1, { error: "Password is required" })
+    .refine((value) => utf8ByteLength(value) <= PASSWORD_MAX_BYTES, {
+      error: `Password must be at most ${PASSWORD_MAX_BYTES} bytes`,
+    }),
 });
-
 export type LoginInput = z.infer<typeof loginSchema>;
 
 /** Public shape of a user — never carries `passwordHash`. */
