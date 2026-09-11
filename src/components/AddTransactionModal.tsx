@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Trash2 } from "lucide-react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 
@@ -103,7 +104,8 @@ export function AddTransactionModal({
   onAdd,
   onEdit,
 }: AddTransactionModalProps = {}) {
-  const { isOpen, defaultType, editingTransaction, closeModal } = useTransactionModal();
+  const { isOpen, defaultType, editingTransaction, closeModal, openDeleteModal } =
+    useTransactionModal();
   const effectiveInitialData = initialData ?? editingTransaction;
   const isEditMode = Boolean(effectiveInitialData);
 
@@ -306,11 +308,24 @@ export function AddTransactionModal({
             </div>
           </div>
 
-          <DialogFooter className="sm:justify-end">
-            <Button type="button" variant="outline" onClick={closeModal}>
-              Cancel
-            </Button>
-            <Button type="submit">{isEditMode ? "Save changes" : "Save transaction"}</Button>
+          <DialogFooter className={isEditMode ? "sm:justify-between" : "sm:justify-end"}>
+            {isEditMode && effectiveInitialData ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="text-destructive hover:text-destructive sm:mr-auto"
+                onClick={() => openDeleteModal(effectiveInitialData)}
+              >
+                <Trash2 className="size-4" />
+                Delete
+              </Button>
+            ) : null}
+            <div className="flex flex-col-reverse gap-2 sm:flex-row">
+              <Button type="button" variant="outline" onClick={closeModal}>
+                Cancel
+              </Button>
+              <Button type="submit">{isEditMode ? "Save changes" : "Save transaction"}</Button>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>

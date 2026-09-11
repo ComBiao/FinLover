@@ -11,7 +11,6 @@ import {
   Trash2,
 } from "lucide-react";
 
-import { DeleteTransactionDialog } from "@/components/DeleteTransactionDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -46,23 +45,23 @@ function formatAmount(amount: number, type: Transaction["type"]) {
 type TransactionTableProps = {
   transactions: Transaction[];
   onEdit?: (transaction: Transaction) => void;
-  onDelete: (transaction: Transaction) => void;
+  onDeleteRequest: (transaction: Transaction) => void;
   className?: string;
 };
 
 /**
  * Detailed row-per-transaction table with Category/Wallet badges and
- * Edit/Delete actions. Which row is pending deletion is kept as local state
- * (it's ephemeral UI state scoped to this table, not shared elsewhere) —
- * confirming actually removes it via the caller-supplied `onDelete`.
+ * Edit/Delete actions. Picking "Delete" just reports the row up via
+ * `onDeleteRequest` — the confirmation dialog and the actual removal live at
+ * the page level (via the shared `useTransactionModal` store) so the Edit
+ * modal can trigger the same delete flow too.
  */
 export function TransactionTable({
   transactions,
   onEdit,
-  onDelete,
+  onDeleteRequest,
   className,
 }: TransactionTableProps) {
-  const [pendingDelete, setPendingDelete] = useState<Transaction | null>(null);
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
 
   if (transactions.length === 0) {
@@ -165,7 +164,7 @@ export function TransactionTable({
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       variant="destructive"
-                      onClick={() => setPendingDelete(transaction)}
+                      onClick={() => onDeleteRequest(transaction)}
                     >
                       <Trash2 className="size-4" />
                       Delete
@@ -311,7 +310,7 @@ export function TransactionTable({
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           variant="destructive"
-                          onClick={() => setPendingDelete(transaction)}
+                          onClick={() => onDeleteRequest(transaction)}
                         >
                           <Trash2 className="size-4" />
                           Delete
@@ -325,17 +324,6 @@ export function TransactionTable({
           })}
         </TableBody>
       </Table>
-
-      <DeleteTransactionDialog
-        open={pendingDelete !== null}
-        onOpenChange={(open) => {
-          if (!open) setPendingDelete(null);
-        }}
-        transactionTitle={pendingDelete?.title}
-        onConfirm={() => {
-          if (pendingDelete) onDelete(pendingDelete);
-        }}
-      />
     </div>
   );
 }
