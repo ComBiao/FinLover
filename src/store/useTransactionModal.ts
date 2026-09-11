@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-import type { TransactionType } from "@/components/CategorySelect";
+import type { TransactionType } from "@/types/category";
 
 type TransactionModalState = {
   isOpen: boolean;
