@@ -11,12 +11,12 @@ import {
   Menu,
   Receipt,
   Settings,
-  User,
   X,
   type LucideIcon,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { UserMenu } from "@/components/UserMenu";
 
 type NavItem = {
   label: string;
@@ -31,10 +31,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Reports", href: "/reports", icon: BarChart3 },
 ];
 
-const BOTTOM_ITEMS: NavItem[] = [
-  { label: "Settings", href: "/settings", icon: Settings },
-  { label: "Profile", href: "/profile", icon: User },
-];
+const BOTTOM_ITEMS: NavItem[] = [{ label: "Settings", href: "/settings", icon: Settings }];
 
 /**
  * App navigation rail. Collapsed to icons by default, expands to show
@@ -111,12 +108,7 @@ export function Sidebar() {
           mobileOpen ? "max-md:w-64" : "max-md:-translate-x-full"
         )}
       >
-        <Link
-          href="/dashboard"
-          title="Dashboard"
-          className="flex h-16 shrink-0 items-center gap-2.5 px-4"
-          onClick={() => setMobileOpen(false)}
-        >
+        <div className="flex h-16 shrink-0 items-center gap-2.5 px-4">
           <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary">
             <CreditCard className="size-4 text-primary-foreground" />
           </div>
@@ -128,7 +120,7 @@ export function Sidebar() {
           >
             Finlover
           </span>
-        </Link>
+        </div>
 
         <div className="mt-2 flex flex-1 flex-col gap-1 overflow-y-auto overflow-x-hidden">
           {NAV_ITEMS.map(renderItem)}
@@ -136,6 +128,7 @@ export function Sidebar() {
 
         <div className="mb-3 flex flex-col gap-1 border-t border-border pt-3">
           {BOTTOM_ITEMS.map(renderItem)}
+          <UserMenu mobileOpen={mobileOpen} onNavigate={() => setMobileOpen(false)} />
         </div>
       </nav>
     </>
