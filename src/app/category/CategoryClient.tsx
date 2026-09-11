@@ -1,6 +1,6 @@
 "use client";
-
 import { useState } from "react";
+import { useCategories } from "@/hooks/useCategories";
 import { z } from "zod";
 import { Plus, Utensils, Car, Home, ShoppingCart, Zap, HeartPulse, Film, MoreHorizontal, Wallet, Banknote, Gift, Award, PieChart, Star, Smile, Check, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -74,8 +74,7 @@ const categorySchema = z.object({
 
 export function CategoryClient() {
   const [type, setType] = useState<"expense" | "income">("expense");
-  const [expenses, setExpenses] = useState(initialExpenses);
-  const [incomes, setIncomes] = useState(initialIncomes);
+  const { expenses, incomes, deleteCategory, editCategory, addCategory } = useCategories(initialExpenses, initialIncomes);
 
   // Modal State
   const [isOpen, setIsOpen] = useState(false);
@@ -96,11 +95,7 @@ export function CategoryClient() {
 
   const confirmDelete = () => {
     if (categoryToDelete === null) return;
-    if (type === "expense") {
-      setExpenses(expenses.filter(cat => cat.id !== categoryToDelete));
-    } else {
-      setIncomes(incomes.filter(cat => cat.id !== categoryToDelete));
-    }
+    deleteCategory(type, categoryToDelete);
     setCategoryToDelete(null);
     setCategoryToEdit(null);
   };
@@ -121,10 +116,8 @@ export function CategoryClient() {
       return;
     }
 
-    if (type === "expense") {
-      setExpenses(expenses.map(cat => cat.id === categoryToEdit ? { ...cat, name: trimmedName, iconName: editIcon, color: editColor } : cat));
-    } else {
-      setIncomes(incomes.map(cat => cat.id === categoryToEdit ? { ...cat, name: trimmedName, iconName: editIcon, color: editColor } : cat));
+    if (categoryToEdit !== null) {
+      editCategory(type, categoryToEdit, { name: trimmedName, iconName: editIcon, color: editColor });
     }
 
     setCategoryToEdit(null);
@@ -147,11 +140,7 @@ export function CategoryClient() {
       color: newColor,
     };
 
-    if (type === "expense") {
-      setExpenses([...expenses, newCat]);
-    } else {
-      setIncomes([...incomes, newCat]);
-    }
+    addCategory(type, newCat);
 
     setIsOpen(false);
     setNewName("");
@@ -403,19 +392,23 @@ export function CategoryClient() {
           return (
             <Card
               key={cat.id}
+              role="button"
+              tabIndex={0}
               onClick={() => openEditModal(cat)}
-              className="relative flex flex-col items-center justify-center p-6 gap-4 border-border/50 hover:border-primary/50 cursor-pointer transition-all hover:shadow-sm group bg-card"
-            >
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
                   openEditModal(cat);
-                }}
-                className="absolute top-2 right-2 p-1.5 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground opacity-0 group-hover:opacity-100 transition-all"
+                }
+              }}
+              className="relative flex flex-col items-center justify-center p-6 gap-4 border-border/50 hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer transition-all hover:shadow-sm group bg-card"
+            >
+              <div
+                className="absolute top-2 right-2 p-1.5 rounded-full text-muted-foreground group-hover:bg-muted group-hover:text-foreground opacity-0 group-hover:opacity-100 transition-all"
                 title="Edit Category"
               >
                 <Pencil className="size-4" />
-              </button>
+              </div>
 
               <div className={cn("size-14 rounded-full flex items-center justify-center transition-transform group-hover:scale-110", cat.color)}>
                 <IconComponent className="size-7" />
