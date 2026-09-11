@@ -25,7 +25,7 @@ import type { Transaction } from "@/types/transaction";
 
 const addTransactionFormSchema = z.object({
   type: z.enum(["income", "expense"]),
-  title: z.string().min(1, "Title is required"),
+  title: z.string().trim().min(1, "Title is required"),
   amount: z.string().superRefine((value, ctx) => {
     if (!value.trim()) {
       ctx.addIssue({ code: "custom", message: "Amount is required" });
