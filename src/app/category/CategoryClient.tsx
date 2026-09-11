@@ -114,23 +114,25 @@ export function CategoryClient() {
   };
 
   const handleEdit = () => {
-    const result = categorySchema.safeParse({ name: editName });
+    const trimmedName = editName.trim();
+    const result = categorySchema.safeParse({ name: trimmedName });
     if (!result.success) {
       setEditErrors(result.error.flatten().fieldErrors);
       return;
     }
 
     if (type === "expense") {
-      setExpenses(expenses.map(cat => cat.id === categoryToEdit ? { ...cat, name: editName, iconName: editIcon, color: editColor } : cat));
+      setExpenses(expenses.map(cat => cat.id === categoryToEdit ? { ...cat, name: trimmedName, iconName: editIcon, color: editColor } : cat));
     } else {
-      setIncomes(incomes.map(cat => cat.id === categoryToEdit ? { ...cat, name: editName, iconName: editIcon, color: editColor } : cat));
+      setIncomes(incomes.map(cat => cat.id === categoryToEdit ? { ...cat, name: trimmedName, iconName: editIcon, color: editColor } : cat));
     }
 
     setCategoryToEdit(null);
   };
 
   const handleCreate = () => {
-    const result = categorySchema.safeParse({ name: newName });
+    const trimmedName = newName.trim();
+    const result = categorySchema.safeParse({ name: trimmedName });
     if (!result.success) {
       setErrors(result.error.flatten().fieldErrors);
       return;
@@ -140,7 +142,7 @@ export function CategoryClient() {
 
     const newCat = {
       id: Date.now(),
-      name: newName,
+      name: trimmedName,
       iconName: newIcon,
       color: newColor,
     };
