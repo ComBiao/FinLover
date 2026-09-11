@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 
 import { AddTransactionModal } from "@/components/AddTransactionModal";
@@ -20,11 +20,13 @@ import { SummaryCards } from "./_components/SummaryCards";
  * transaction with edit/delete actions per row.
  */
 export default function TransactionsPage() {
-  const transactions = MOCK_TRANSACTIONS;
+  const [transactions, setTransactions] = useState<Transaction[]>(MOCK_TRANSACTIONS);
   const filters = useTransactionFilters((state) => state.filters);
   const setFilters = useTransactionFilters((state) => state.setFilters);
   const resetFilters = useTransactionFilters((state) => state.resetFilters);
   const openModal = useTransactionModal((state) => state.openModal);
+  const openEditModal = useTransactionModal((state) => state.openEditModal);
+  const editingTransaction = useTransactionModal((state) => state.editingTransaction);
 
   const filteredTransactions = useMemo(
     () => filterTransactions(transactions, filters),
@@ -38,6 +40,18 @@ export default function TransactionsPage() {
    */
   function handleDelete(transaction: Transaction) {
     console.log("Delete requested for transaction", transaction.id);
+  }
+
+  function handleAddTransaction(newTransaction: Transaction) {
+    setTransactions((prev) => [newTransaction, ...prev]);
+  }
+
+  function handleEditTransaction(updatedTransaction: Transaction) {
+    setTransactions((prev) =>
+      prev.map((transaction) =>
+        transaction.id === updatedTransaction.id ? updatedTransaction : transaction
+      )
+    );
   }
 
   return (
@@ -68,10 +82,18 @@ export default function TransactionsPage() {
           </span>
         </div>
 
-        <TransactionTable transactions={filteredTransactions} onDelete={handleDelete} />
+        <TransactionTable
+          transactions={filteredTransactions}
+          onEdit={openEditModal}
+          onDelete={handleDelete}
+        />
       </div>
 
-      <AddTransactionModal />
+      <AddTransactionModal
+        initialData={editingTransaction}
+        onAdd={handleAddTransaction}
+        onEdit={handleEditTransaction}
+      />
     </main>
   );
 }

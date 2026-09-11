@@ -16,7 +16,18 @@ function categoryTone(category: Category) {
   return resolveChipTone(category.color, CATEGORY_STYLES, category.id);
 }
 
-const UNCATEGORIZED_VALUE = "uncategorized";
+/**
+ * Reported to `onValueChange` when the "Uncategorized" option is picked —
+ * distinct from `undefined` (which `allowAll`'s "All categories" reports) so
+ * callers filtering a list can tell "no filter" apart from "only
+ * uncategorized rows". Deliberately shaped unlike a real `Category.id`
+ * (those are plain slugs, e.g. "food-drink", "salary") so it's effectively
+ * impossible for a real id to collide with it; `CategorySelector` also
+ * checks a value against the actual category list before ever treating it
+ * as this sentinel, so even a coincidental collision would still resolve to
+ * the real category.
+ */
+export const UNCATEGORIZED_VALUE = "__uncategorized__";
 
 type CategorySelectorProps = {
   id?: string;
@@ -36,14 +47,20 @@ type CategorySelectorProps = {
 
 /**
  * Dropdown for picking a category, optionally filtered by transaction type
- * (income/expense). Pass `allowAll` to add a sentinel "all" option for
- * filter UIs, or `allowUncategorized` to add a distinct "Uncategorized"
- * option for forms that record a transaction with no category — both are
- * reported back to `onValueChange` as `undefined`, but use separate
- * sentinel values so the two use cases never collide with each other.
- * Real option values are encoded with a prefix so a category whose `id`
- * happens to be "all" or "uncategorized" can never collide with either
- * sentinel value.
+ * (income/expense). Pass `allowAll` to add an "All categories" option for
+ * filter UIs (reported back to `onValueChange` as `undefined`, meaning "no
+ * filter"), or `allowUncategorized` to add a distinct "Uncategorized" option
+ * — for a form recording a transaction with no category, or for a filter
+ * that should show only uncategorized rows (reported back as the exported
+ * `UNCATEGORIZED_VALUE` sentinel, distinct from `undefined` so it never
+ * collides with "no filter" when both options are shown together). Real
+ * option values are encoded with a prefix internally so a category whose
+ * `id` happens to be "all" can never collide with the `allowAll` sentinel;
+ * for `allowUncategorized`, a `value` is only ever treated as the sentinel
+ * when it doesn't match any actual category's `id`, so a real category
+ * always takes priority even in the (practically impossible, since
+ * `UNCATEGORIZED_VALUE` isn't shaped like a real slug) case where its id
+ * collides with the sentinel's value.
  */
 export function CategorySelector({
   id,
@@ -61,13 +78,26 @@ export function CategorySelector({
   uncategorizedLabel = "Uncategorized",
 }: CategorySelectorProps) {
   const options = type ? categories.filter((category) => category.type === type) : categories;
-  const selectValue = value
-    ? encodeOptionValue(value)
-    : allowAll
+  const uncategorizedBadge = (
+    <Badge variant="outline" className="gap-1 border-border bg-muted text-muted-foreground">
+      {uncategorizedLabel}
+    </Badge>
+  );
+  // A real category always wins over the sentinel, even if its id somehow
+  // matches `UNCATEGORIZED_VALUE` — checked against the full `categories`
+  // list (not the type-filtered `options`) so switching the type switcher
+  // never changes how an already-selected value is classified.
+  const isRealCategoryId = value ? categories.some((category) => category.id === value) : false;
+
+  const selectValue = !value
+    ? allowAll
       ? ALL_VALUE
       : allowUncategorized
         ? UNCATEGORIZED_VALUE
-        : "";
+        : ""
+    : !isRealCategoryId && value === UNCATEGORIZED_VALUE
+      ? UNCATEGORIZED_VALUE
+      : encodeOptionValue(value);
 
   return (
     <Select
@@ -80,7 +110,7 @@ export function CategorySelector({
           return;
         }
         if (allowUncategorized && newValue === UNCATEGORIZED_VALUE) {
-          onValueChange?.(undefined);
+          onValueChange?.(UNCATEGORIZED_VALUE);
           return;
         }
         onValueChange?.(decodeOptionValue(newValue));
@@ -92,7 +122,7 @@ export function CategorySelector({
           {(selectedValue: string) => {
             if (allowAll && selectedValue === ALL_VALUE) return allLabel;
             if (allowUncategorized && selectedValue === UNCATEGORIZED_VALUE) {
-              return uncategorizedLabel;
+              return uncategorizedBadge;
             }
             const selectedId = decodeOptionValue(selectedValue);
             const selected = options.find((option) => option.id === selectedId);
@@ -115,11 +145,7 @@ export function CategorySelector({
       <SelectContent>
         {allowAll ? <SelectItem value={ALL_VALUE}>{allLabel}</SelectItem> : null}
         {allowUncategorized ? (
-          <SelectItem value={UNCATEGORIZED_VALUE}>
-            <Badge variant="outline" className="gap-1 border-border bg-muted text-muted-foreground">
-              {uncategorizedLabel}
-            </Badge>
-          </SelectItem>
+          <SelectItem value={UNCATEGORIZED_VALUE}>{uncategorizedBadge}</SelectItem>
         ) : null}
         {options.map((option) => {
           const Icon = option.icon;
