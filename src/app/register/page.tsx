@@ -8,6 +8,7 @@ import { GoogleButton } from "@/components/GoogleButton";
 import { IconInput } from "@/components/IconInput";
 import { Logo } from "@/components/Logo";
 import { PasswordInput } from "@/components/PasswordInput";
+import { PrivacyPolicyDialog } from "@/components/PrivacyPolicyDialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -194,24 +195,23 @@ export default function RegisterPage() {
                 checked={dataPrivacyConsent}
                 onCheckedChange={handleDataPrivacyConsentChange}
                 aria-invalid={Boolean(errors.dataPrivacyConsent)}
+                aria-labelledby="register-privacy-consent-label"
                 aria-describedby={
                   errors.dataPrivacyConsent ? "register-privacy-consent-error" : undefined
                 }
                 className="mt-1"
               />
-              <Label
-                htmlFor="register-privacy-consent"
+              {/* Not a <Label htmlFor> — PrivacyPolicyDialog renders its own
+                  <button>, and nesting a second interactive control inside a
+                  label for the checkbox creates ambiguous click/activation
+                  behavior. The checkbox is named via aria-labelledby instead. */}
+              <span
+                id="register-privacy-consent-label"
                 className="block text-sm leading-relaxed font-normal text-foreground/85"
               >
-                I agree to the{" "}
-                <Link
-                  href="#"
-                  className="whitespace-nowrap font-semibold text-accent hover:underline"
-                >
-                  Privacy Policy
-                </Link>{" "}
-                and consent to my data being collected.
-              </Label>
+                I agree to the <PrivacyPolicyDialog /> and consent to my data being
+                collected.
+              </span>
             </div>
             {errors.dataPrivacyConsent ? (
               <p

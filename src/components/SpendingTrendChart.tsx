@@ -23,7 +23,7 @@ export function SpendingTrendChart() {
           aria-label="Spending trend line chart from March to August, trending upward overall"
         >
           <polyline
-            points="0,90 65,70 130,80 195,50 260,60 325,25 390,40 460,15"
+            points="0,90 92,70 184,80 276,50 368,25 460,15"
             fill="none"
             stroke="var(--accent)"
             strokeWidth="3"
