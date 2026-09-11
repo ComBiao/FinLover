@@ -45,6 +45,10 @@ jobs:
           fi
 
       - run: npm run build
+        env:
+          MONGODB_URI: mongodb://localhost:27017/ci-placeholder
+          JWT_SECRET: ci-placeholder-secret
+          BCRYPT_SALT_ROUNDS: 10
 
   secret-scan:
     runs-on: ubuntu-latest

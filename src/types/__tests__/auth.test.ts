@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { loginSchema, registerSchema } from "@/types/auth";
+import { loginSchema, registerFormSchema } from "@/types/auth";
 
 const validRegisterInput = {
   name: "Jane Doe",
@@ -10,14 +10,14 @@ const validRegisterInput = {
   dataPrivacyConsent: true,
 };
 
-describe("registerSchema", () => {
+describe("registerFormSchema", () => {
   it("accepts valid input", () => {
-    const result = registerSchema.safeParse(validRegisterInput);
+    const result = registerFormSchema.safeParse(validRegisterInput);
     expect(result.success).toBe(true);
   });
 
   it("trims leading/trailing whitespace from name and email", () => {
-    const result = registerSchema.safeParse({
+    const result = registerFormSchema.safeParse({
       ...validRegisterInput,
       name: "  Jane Doe  ",
       email: "  jane@example.com  ",
@@ -31,7 +31,7 @@ describe("registerSchema", () => {
   });
 
   it("rejects a password missing an uppercase letter", () => {
-    const result = registerSchema.safeParse({
+    const result = registerFormSchema.safeParse({
       ...validRegisterInput,
       password: "password1",
       confirmPassword: "password1",
@@ -45,7 +45,7 @@ describe("registerSchema", () => {
   });
 
   it("rejects a password missing a lowercase letter", () => {
-    const result = registerSchema.safeParse({
+    const result = registerFormSchema.safeParse({
       ...validRegisterInput,
       password: "PASSWORD1",
       confirmPassword: "PASSWORD1",
@@ -59,7 +59,7 @@ describe("registerSchema", () => {
   });
 
   it("rejects a password missing a number", () => {
-    const result = registerSchema.safeParse({
+    const result = registerFormSchema.safeParse({
       ...validRegisterInput,
       password: "Password",
       confirmPassword: "Password",
@@ -75,7 +75,7 @@ describe("registerSchema", () => {
   it("rejects a password longer than 72 bytes (bcrypt limit)", () => {
     const longPassword = `Aa1${"a".repeat(70)}`; // 73 bytes total
 
-    const result = registerSchema.safeParse({
+    const result = registerFormSchema.safeParse({
       ...validRegisterInput,
       password: longPassword,
       confirmPassword: longPassword,
@@ -92,7 +92,7 @@ describe("registerSchema", () => {
     const emojiPassword = `Aa1${"😀".repeat(20)}`; // 43 UTF-16 code units, but 83 UTF-8 bytes
     expect(emojiPassword.length).toBeLessThan(72);
 
-    const result = registerSchema.safeParse({
+    const result = registerFormSchema.safeParse({
       ...validRegisterInput,
       password: emojiPassword,
       confirmPassword: emojiPassword,
@@ -106,7 +106,7 @@ describe("registerSchema", () => {
   });
 
   it("rejects when confirmPassword does not match password", () => {
-    const result = registerSchema.safeParse({
+    const result = registerFormSchema.safeParse({
       ...validRegisterInput,
       confirmPassword: "Different1",
     });
@@ -119,7 +119,7 @@ describe("registerSchema", () => {
   });
 
   it("rejects when dataPrivacyConsent is false", () => {
-    const result = registerSchema.safeParse({
+    const result = registerFormSchema.safeParse({
       ...validRegisterInput,
       dataPrivacyConsent: false,
     });
@@ -132,7 +132,7 @@ describe("registerSchema", () => {
   });
 
   it("returns an error for every field at once on an empty submission", () => {
-    const result = registerSchema.safeParse({
+    const result = registerFormSchema.safeParse({
       name: "",
       email: "",
       password: "",
@@ -150,7 +150,7 @@ describe("registerSchema", () => {
   });
 
   it("returns both a mismatched-password error and a consent error when both are invalid", () => {
-    const result = registerSchema.safeParse({
+    const result = registerFormSchema.safeParse({
       ...validRegisterInput,
       confirmPassword: "Different1",
       dataPrivacyConsent: false,
