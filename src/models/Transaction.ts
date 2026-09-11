@@ -1,5 +1,6 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import mongooseLeanGetters from 'mongoose-lean-getters';
+import Category from './Category';
 
 // Side-effect import: ensure the Wallet schema is registered before any
 // hook calls mongoose.model('Wallet'). Prevents MissingSchemaError when
@@ -45,11 +46,12 @@ const RecurrenceSchema = new Schema<IRecurrence>(
 export interface ITransaction extends Document {
   userId: mongoose.Types.ObjectId;
   walletId: mongoose.Types.ObjectId;
-  categoryId?: mongoose.Types.ObjectId | null;
-  type: 'income' | 'expense'; 
+  categoryId: mongoose.Types.ObjectId | null;
+  type: 'income' | 'expense';
   amount: number;
   date: Date;
   notes?: string;
+  note?: string;
   recurrence: IRecurrence;
   createdAt: Date;
   updatedAt: Date;
@@ -70,52 +72,103 @@ function toDelta(type: string, amount: number): number {
 const TransactionSchema: Schema = new Schema({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   walletId: { type: Schema.Types.ObjectId, ref: 'Wallet', required: true },
-  categoryId: { 
-    type: Schema.Types.ObjectId, 
-    ref: 'Category', 
+  categoryId: {
+    type: Schema.Types.ObjectId,
+    ref: 'Category',
     default: null,
     validate: {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       validator: async function(this: any, value: mongoose.Types.ObjectId | null) {
         if (!value) return true;
-        const Category = mongoose.model('Category');
         const category = await Category.findById(value);
         if (!category) return false;
-        
+
         // Mongoose 'this' might be the document (save) or query (update)
         let txType = this.type;
-        
+
         if (this.getUpdate) {
           const update = this.getUpdate();
           txType = update.$set?.type || update.type;
-          
+
           if (!txType) {
             const existing = await this.model.findOne(this.getQuery());
             if (existing) txType = existing.type;
           }
         }
-        
+
+        if (typeof txType === 'string') txType = txType.toLowerCase();
         if (txType && category.type !== txType) return false;
         return true;
       },
       message: 'Referenced category does not exist or type mismatch'
     }
   },
-  type: { type: String, enum: ['income', 'expense'], required: true },
+  type: {
+    type: String,
+    enum: ['income', 'expense'],
+    required: true,
+    // The transaction API accepts title-case values; persist the model's
+    // canonical lowercase representation used by Category and balance hooks.
+    set: (value: unknown) => typeof value === 'string' ? value.toLowerCase() : value,
+  },
   amount: { type: Number, required: true, min: [0.01, 'Amount must be at least 0.01'] },
   date: { type: Date, required: true },
-  notes: { type: String, maxlength: 255 },
+  notes: { type: String, maxlength: 255, alias: 'note' },
   recurrence: { type: RecurrenceSchema, default: () => ({ isRecurring: false }) },
-}, { 
+}, {
   timestamps: true,
   toJSON: { getters: true },
-  toObject: { getters: true }
+  toObject: { getters: true },
 });
 
-TransactionSchema.index({ userId: 1 });
+// Compound indexes:
+// - list/sum transactions for a user, newest first
+// - list/sum transactions for a specific wallet, newest first (wallet history, balance calc)
+TransactionSchema.index({ userId: 1, date: -1 });
+TransactionSchema.index({ walletId: 1, date: -1 });
 TransactionSchema.index({ walletId: 1, userId: 1 });
 TransactionSchema.index({ categoryId: 1 });
 TransactionSchema.index({ 'recurrence.parentId': 1 });
+
+TransactionSchema.pre('save', async function (this: ITransaction) {
+  // Only re-validate category/wallet ownership when relevant fields actually changed,
+  // to avoid unnecessary DB round-trips on every save (e.g. editing just `note`).
+  const needsCategoryCheck =
+    this.isModified('userId') ||
+    this.isModified('categoryId') ||
+    this.isModified('type');
+  const needsWalletCheck =
+    this.isModified('userId') || this.isModified('walletId');
+
+  if (needsWalletCheck) {
+    // Use this.$model to avoid MissingSchemaError if Wallet hasn't been
+    // imported/compiled elsewhere yet, and to prevent cross-file registration
+    // order issues.
+    const Wallet = this.$model('Wallet');
+    const wallet = await Wallet.findOne({ _id: this.walletId, userId: this.userId }).lean();
+
+    if (!wallet) {
+      throw new Error(`Wallet with id '${this.walletId}' does not exist or does not belong to this user.`);
+    }
+  }
+
+  if (needsCategoryCheck) {
+    if (!this.categoryId) return;
+
+    const category = await Category.findOne({ _id: this.categoryId, userId: this.userId }).lean() as { type?: string } | null;
+
+    if (!category) {
+      throw new Error(`Category with id '${this.categoryId}' does not exist.`);
+    }
+
+    if (category.type !== this.type) {
+      throw new Error(
+        `Transaction type '${this.type}' does not match category type '${category.type}'. ` +
+        'A transaction must belong to a category of the same type.'
+      );
+    }
+  }
+});
 
 TransactionSchema.plugin(mongooseLeanGetters);
 
@@ -155,7 +208,7 @@ TransactionSchema.pre('save', async function (this: any) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 TransactionSchema.post('save', async function (this: any, doc: ITransaction) {
   const Wallet = mongoose.model('Wallet');
-  
+
   if (this._wasNew) {
     await Wallet.findByIdAndUpdate(doc.walletId, {
       $inc: { balance: toDelta(doc.type, doc.amount) },

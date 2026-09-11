@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 
-import { savingsGoal } from "./mock-data";
+import { savingsGoal } from "@/lib/mock-data";
 
 /**
  * Displays progress toward the user's active savings goal.
