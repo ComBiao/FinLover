@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown } from "lucide-react";
+import { toast } from "sonner";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -21,7 +22,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { userName } from "@/components/mock-data";
+import { userName } from "@/lib/mock-data";
 
 type UserMenuProps = {
   /** Forces the name label visible even without hover — the sidebar's hover-to-expand only applies on desktop, so mobile needs this to show the label when the rail is toggled open. */
@@ -45,12 +46,13 @@ export function UserMenu({ mobileOpen = false, onNavigate }: UserMenuProps) {
   }
 
   /**
-   * TODO: clear the session/JWT via src/lib/auth.ts and POST
-   * /api/auth/logout once that route exists — for now this just closes
-   * the confirmation dialog and redirects.
+   * TODO: clear the session/JWT via src/lib/auth.ts and call
+   * POST /api/auth/logout — for now this just closes the confirmation
+   * dialog, shows a toast, and redirects.
    */
   function handleConfirmLogout() {
     setLogoutDialogOpen(false);
+    toast.success("Logged out");
     onNavigate?.();
     router.push("/login");
   }
