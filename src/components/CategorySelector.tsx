@@ -16,6 +16,8 @@ function categoryTone(category: Category) {
   return resolveChipTone(category.color, CATEGORY_STYLES, category.id);
 }
 
+const UNCATEGORIZED_VALUE = "uncategorized";
+
 type CategorySelectorProps = {
   id?: string;
   name?: string;
@@ -28,14 +30,20 @@ type CategorySelectorProps = {
   className?: string;
   allowAll?: boolean;
   allLabel?: string;
+  allowUncategorized?: boolean;
+  uncategorizedLabel?: string;
 };
 
 /**
  * Dropdown for picking a category, optionally filtered by transaction type
  * (income/expense). Pass `allowAll` to add a sentinel "all" option for
- * filter UIs, which is reported back to `onValueChange` as `undefined`.
+ * filter UIs, or `allowUncategorized` to add a distinct "Uncategorized"
+ * option for forms that record a transaction with no category — both are
+ * reported back to `onValueChange` as `undefined`, but use separate
+ * sentinel values so the two use cases never collide with each other.
  * Real option values are encoded with a prefix so a category whose `id`
- * happens to be "all" can never collide with the sentinel value.
+ * happens to be "all" or "uncategorized" can never collide with either
+ * sentinel value.
  */
 export function CategorySelector({
   id,
@@ -49,9 +57,17 @@ export function CategorySelector({
   className,
   allowAll = false,
   allLabel = "All categories",
+  allowUncategorized = false,
+  uncategorizedLabel = "Uncategorized",
 }: CategorySelectorProps) {
   const options = type ? categories.filter((category) => category.type === type) : categories;
-  const selectValue = value ? encodeOptionValue(value) : allowAll ? ALL_VALUE : "";
+  const selectValue = value
+    ? encodeOptionValue(value)
+    : allowAll
+      ? ALL_VALUE
+      : allowUncategorized
+        ? UNCATEGORIZED_VALUE
+        : "";
 
   return (
     <Select
@@ -63,6 +79,10 @@ export function CategorySelector({
           onValueChange?.(undefined);
           return;
         }
+        if (allowUncategorized && newValue === UNCATEGORIZED_VALUE) {
+          onValueChange?.(undefined);
+          return;
+        }
         onValueChange?.(decodeOptionValue(newValue));
       }}
       disabled={disabled}
@@ -71,6 +91,9 @@ export function CategorySelector({
         <SelectValue placeholder={placeholder}>
           {(selectedValue: string) => {
             if (allowAll && selectedValue === ALL_VALUE) return allLabel;
+            if (allowUncategorized && selectedValue === UNCATEGORIZED_VALUE) {
+              return uncategorizedLabel;
+            }
             const selectedId = decodeOptionValue(selectedValue);
             const selected = options.find((option) => option.id === selectedId);
             if (!selected) return placeholder;
@@ -91,6 +114,13 @@ export function CategorySelector({
       </SelectTrigger>
       <SelectContent>
         {allowAll ? <SelectItem value={ALL_VALUE}>{allLabel}</SelectItem> : null}
+        {allowUncategorized ? (
+          <SelectItem value={UNCATEGORIZED_VALUE}>
+            <Badge variant="outline" className="gap-1 border-border bg-muted text-muted-foreground">
+              {uncategorizedLabel}
+            </Badge>
+          </SelectItem>
+        ) : null}
         {options.map((option) => {
           const Icon = option.icon;
           const tone = categoryTone(option);

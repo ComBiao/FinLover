@@ -102,7 +102,20 @@ export function DateRangePicker({
   const activePreset = getActivePreset(value);
 
   function handlePresetClick(preset: Exclude<DateRangePreset, "custom">) {
-    onValueChange?.(getPresetRange(preset));
+    const range = getPresetRange(preset);
+    if (value && isSameRange(value, range)) {
+      onValueChange?.(undefined);
+      return;
+    }
+    onValueChange?.(range);
+  }
+
+  function handleCalendarSelect(range?: DateRange) {
+    if (value?.from && value?.to && range?.from && range?.to && isSameRange(value, range)) {
+      onValueChange?.(undefined);
+      return;
+    }
+    onValueChange?.(range);
   }
 
   return (
@@ -138,7 +151,7 @@ export function DateRangePicker({
           <Calendar
             mode="range"
             selected={{ from: value?.from, to: value?.to }}
-            onSelect={(range) => onValueChange?.(range)}
+            onSelect={handleCalendarSelect}
             defaultMonth={value?.from}
             numberOfMonths={2}
             disabled={disabled}
