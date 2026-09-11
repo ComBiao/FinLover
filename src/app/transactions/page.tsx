@@ -2,8 +2,10 @@
 
 import { useMemo, useState } from "react";
 import { Plus } from "lucide-react";
+import { toast } from "sonner";
 
 import { AddTransactionModal } from "@/components/AddTransactionModal";
+import { DeleteTransactionDialog } from "@/components/DeleteTransactionDialog";
 import { TransactionFilterBar } from "@/components/TransactionFilterBar";
 import { TransactionTable } from "@/components/TransactionTable";
 import { Button } from "@/components/ui/button";
@@ -27,6 +29,9 @@ export default function TransactionsPage() {
   const openModal = useTransactionModal((state) => state.openModal);
   const openEditModal = useTransactionModal((state) => state.openEditModal);
   const editingTransaction = useTransactionModal((state) => state.editingTransaction);
+  const openDeleteModal = useTransactionModal((state) => state.openDeleteModal);
+  const closeDeleteModal = useTransactionModal((state) => state.closeDeleteModal);
+  const deletingTransaction = useTransactionModal((state) => state.deletingTransaction);
 
   const filteredTransactions = useMemo(
     () => filterTransactions(transactions, filters),
@@ -34,12 +39,11 @@ export default function TransactionsPage() {
   );
 
   /**
-   * Deleting isn't wired up yet — the row action and confirm dialog are UI
-   * only for now, so nothing is actually removed from the list.
    * TODO: call DELETE /api/transactions/:id once the endpoint exists.
    */
-  function handleDelete(transaction: Transaction) {
-    console.log("Delete requested for transaction", transaction.id);
+  function handleDeleteTransaction(id: string) {
+    setTransactions((prev) => prev.filter((transaction) => transaction.id !== id));
+    toast.success("Transaction deleted successfully");
   }
 
   function handleAddTransaction(newTransaction: Transaction) {
@@ -85,7 +89,7 @@ export default function TransactionsPage() {
         <TransactionTable
           transactions={filteredTransactions}
           onEdit={openEditModal}
-          onDelete={handleDelete}
+          onDeleteRequest={openDeleteModal}
         />
       </div>
 
@@ -93,6 +97,17 @@ export default function TransactionsPage() {
         initialData={editingTransaction}
         onAdd={handleAddTransaction}
         onEdit={handleEditTransaction}
+      />
+
+      <DeleteTransactionDialog
+        open={deletingTransaction !== null}
+        onOpenChange={(open) => {
+          if (!open) closeDeleteModal();
+        }}
+        transactionTitle={deletingTransaction?.title}
+        onConfirm={() => {
+          if (deletingTransaction) handleDeleteTransaction(deletingTransaction.id);
+        }}
       />
     </main>
   );
