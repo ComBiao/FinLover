@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 
-import { balance, income, spending } from "@/lib/mock-data";
+import { balance, income, spending } from "@/mocks/mock-data";
 
 /**
  * Displays three summary cards showing total balance, income, and spending this month.

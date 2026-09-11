@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 
-import { transactions } from "@/lib/mock-data";
+import { transactions } from "@/mocks/mock-data";
 
 /**
  * Displays a list of recent transactions with icons, categories, dates, and amounts.

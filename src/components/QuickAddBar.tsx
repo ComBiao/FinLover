@@ -3,7 +3,7 @@
 import * as React from "react";
 import { CalendarDays, Plus, Tag, X } from "lucide-react";
 
-import { MOCK_CATEGORIES, type TransactionType } from "@/components/CategorySelect";
+import { MOCK_CATEGORIES } from "@/mocks/mockCategories";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn, todayISODate } from "@/lib/utils";
+import type { TransactionType } from "@/types/category";
 import { transactionSchema } from "@/types/transaction";
 
 type FieldErrors = Partial<Record<"amount", string>>;

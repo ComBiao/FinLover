@@ -5,7 +5,7 @@ import { RecentTransactions } from "@/components/RecentTransactions";
 import { SavingsGoal } from "@/components/SavingsGoal";
 import { SpendingTrendChart } from "@/components/SpendingTrendChart";
 import { SummaryCards } from "@/components/SummaryCards";
-import { userName } from "@/lib/mock-data";
+import { userName } from "@/mocks/mock-data";
 
 /**
  * Main dashboard page displaying financial overview, spending trends, and recent transactions.
