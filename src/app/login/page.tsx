@@ -1,0 +1,190 @@
+"use client";
+
+import Link from "next/link";
+import { Mail } from "lucide-react";
+
+import { AuthCard } from "@/components/AuthCard";
+import { GoogleButton } from "@/components/GoogleButton";
+import { IconInput } from "@/components/IconInput";
+import { Logo } from "@/components/Logo";
+import { PasswordInput } from "@/components/PasswordInput";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { useLoginForm } from "@/hooks/useLoginForm";
+import { cn } from "@/lib/utils";
+
+// Style the pill wrapper only — the nested shadcn Input already paints its own
+// aria-invalid border/ring, which would otherwise double up with the wrapper's.
+// Uses focus-within (not focus-visible): this wrapper is a plain div that
+// never itself receives focus, but focus-within reacts when the nested
+// input inside it does.
+const ERROR_INPUT_CLASS =
+  "border-destructive focus-within:ring-3 focus-within:ring-destructive/20 [&_[data-slot=input]]:border-0 [&_[data-slot=input]]:shadow-none [&_[data-slot=input]]:ring-0";
+
+/**
+ * Login page with email/password form and Google OAuth option.
+ */
+export default function LoginPage() {
+  const { errors, isSubmitting, submitNotice, handleFieldChange, handleSubmit } = useLoginForm();
+
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-background px-4 py-10 sm:px-6">
+      <AuthCard
+        gradient="a"
+        illustration={
+          <>
+            <Logo />
+
+            <div aria-hidden="true" className="relative self-start">
+              <div className="w-[250px] rounded-2xl bg-card p-5 shadow-lg">
+                <div className="flex items-start justify-between">
+                  <div className="h-6 w-[34px] rounded-md bg-chart-1" />
+                  <div className="flex">
+                    <span className="-mr-1.5 size-4 rounded-full bg-chart-3" />
+                    <span className="size-4 rounded-full bg-chart-2" />
+                  </div>
+                </div>
+                <div className="mt-4 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+                  Total balance
+                </div>
+                <div className="mt-0.5 text-2xl font-extrabold text-foreground">
+                  ฿48,290.00
+                </div>
+              </div>
+              <div className="absolute -right-6 top-[calc(100%-18px)] w-[150px] rounded-xl bg-card p-4 shadow-lg">
+                <div className="text-[11.5px] text-muted-foreground">
+                  Savings goal
+                </div>
+                <div className="my-1 text-sm font-bold text-success">
+                  +12.4%
+                </div>
+                <svg width="118" height="30" viewBox="0 0 118 30">
+                  <polyline
+                    points="0,24 20,20 40,22 58,12 78,15 98,5 118,8"
+                    fill="none"
+                    stroke="var(--primary)"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-2xl leading-tight font-extrabold text-foreground">
+                Your money,
+                <br />
+                made lovable.
+              </p>
+              <p className="mt-2.5 max-w-65 text-sm leading-relaxed text-foreground/70">
+                Track spending, grow savings, and hit your goals — all in one
+                calm, pastel-colored place.
+              </p>
+            </div>
+          </>
+        }
+      >
+        <div className="text-xs font-bold tracking-wider text-accent uppercase">
+          Welcome back
+        </div>
+        <h1 className="mt-2 text-3xl font-extrabold text-foreground">
+          Log in to Finlover
+        </h1>
+        <p className="mt-1.5 text-sm text-muted-foreground">
+          Pick up right where you left off with your budget.
+        </p>
+
+        <form className="mt-6 flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="login-email">Email</Label>
+            <IconInput
+              id="login-email"
+              name="email"
+              type="email"
+              icon={Mail}
+              placeholder="you@example.com"
+              autoComplete="email"
+              onChange={handleFieldChange("email")}
+              aria-invalid={Boolean(errors.email)}
+              aria-describedby={errors.email ? "login-email-error" : undefined}
+              className={cn(errors.email && ERROR_INPUT_CLASS)}
+            />
+            {errors.email ? (
+              <p id="login-email-error" role="alert" className="text-xs text-destructive">
+                {errors.email}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-baseline justify-between">
+              <Label htmlFor="login-password">Password</Label>
+              <Link
+                href="#"
+                className="text-sm font-semibold text-accent hover:underline"
+              >
+                Forgot password?
+              </Link>
+            </div>
+            <PasswordInput
+              id="login-password"
+              name="password"
+              placeholder="••••••••"
+              autoComplete="current-password"
+              onChange={handleFieldChange("password")}
+              aria-invalid={Boolean(errors.password)}
+              aria-describedby={errors.password ? "login-password-error" : undefined}
+              className={cn(errors.password && ERROR_INPUT_CLASS)}
+            />
+            {errors.password ? (
+              <p id="login-password-error" role="alert" className="text-xs text-destructive">
+                {errors.password}
+              </p>
+            ) : null}
+          </div>
+
+          <Button
+            type="submit"
+            className="mt-2 h-12 rounded-lg text-base"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Logging in..." : "Log in"}
+          </Button>
+
+          {submitNotice ? (
+            <p
+              role="status"
+              aria-live="polite"
+              className="text-center text-sm text-muted-foreground"
+            >
+              {submitNotice}
+            </p>
+          ) : null}
+        </form>
+
+        <div className="my-6 flex items-center gap-3">
+          <Separator className="flex-1" />
+          <span className="text-xs text-muted-foreground">
+            or continue with
+          </span>
+          <Separator className="flex-1" />
+        </div>
+
+        {/* TODO: wire to a real Google OAuth flow */}
+        <GoogleButton />
+
+        <p className="mt-6 text-center text-sm text-muted-foreground">
+          Don&apos;t have an account?{" "}
+          <Link
+            href="/register"
+            className="font-bold text-primary hover:underline"
+          >
+            Sign up
+          </Link>
+        </p>
+      </AuthCard>
+    </main>
+  );
+}

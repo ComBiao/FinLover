@@ -15,6 +15,11 @@ const utf8ByteLength = (value: string) => new TextEncoder().encode(value).length
  * `dataPrivacyConsent` is a `literal(true)` rather than a boolean: a missing
  * field and an explicit `false` must both be rejected, never read as "no
  * opinion". The route additionally gates on consent before any DB access.
+ *
+ * Deliberately has no `name` field — the User model doesn't persist one yet.
+ * The register *form* validates a richer client-side-only shape (name,
+ * confirmPassword, password complexity); see `registerFieldsSchema` /
+ * `registerFormSchema` below.
  */
 export const registerSchema = z
   .object({
@@ -36,10 +41,52 @@ export const registerSchema = z
     error: "Passwords do not match",
     path: ["confirmPassword"],
   });
+
 export type RegisterInput = z.infer<typeof registerSchema>;
 
 /**
- * Request body accepted by `POST /api/auth/login`.
+ * Fields the register *form* collects and validates per-field, client-side
+ * only. `name` isn't part of `registerSchema` above (the User model doesn't
+ * persist it yet) — this is UI validation ahead of that field existing
+ * server-side.
+ */
+export const registerFieldsSchema = z.object({
+  name: z.string().trim().min(2, "Full name must be at least 2 characters"),
+  email: z
+    .string()
+    .trim()
+    .min(1, "Email is required")
+    .email("Enter a valid email address"),
+  password: z
+    .string()
+    .min(PASSWORD_MIN_LENGTH, `Password must be at least ${PASSWORD_MIN_LENGTH} characters`)
+    .refine(
+      (v) => utf8ByteLength(v) <= PASSWORD_MAX_BYTES,
+      `Password must be at most ${PASSWORD_MAX_BYTES} bytes`
+    )
+    .regex(/[A-Z]/, "Include at least one uppercase letter")
+    .regex(/[a-z]/, "Include at least one lowercase letter")
+    .regex(/[0-9]/, "Include at least one number"),
+  confirmPassword: z.string().min(1, "Please confirm your password"),
+  dataPrivacyConsent: z.boolean().refine((value) => value === true, {
+    message: "You must agree to the privacy policy to continue",
+  }),
+});
+
+/** Whole-form submit validation for the register form, including cross-field checks. */
+export const registerFormSchema = registerFieldsSchema.refine(
+  (data) => data.password === data.confirmPassword,
+  {
+    error: "Passwords do not match",
+    path: ["confirmPassword"],
+  }
+);
+
+export type RegisterFormInput = z.infer<typeof registerFormSchema>;
+
+/**
+ * Request body accepted by `POST /api/auth/login`, and what the login form
+ * validates client-side.
  *
  * Looser than `registerSchema` on password *length policy* — login doesn't
  * re-enforce the 8-character minimum, since that was already applied at
@@ -62,8 +109,11 @@ export type RegisterInput = z.infer<typeof registerSchema>;
  */
 export const loginSchema = z.object({
   email: z
-    .email({ error: "Email must be a valid email address" })
-    .max(254, { error: "Email is too long" }),
+    .string()
+    .trim()
+    .min(1, "Email is required")
+    .email("Enter a valid email address")
+    .max(254, "Email is too long"),
   password: z
     .string({ error: "Password is required" })
     .min(1, { error: "Password is required" })

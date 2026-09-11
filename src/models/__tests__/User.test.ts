@@ -22,6 +22,9 @@ beforeEach(async () => {
   await User.deleteMany({});
 });
 
+/**
+ * Helper to create a test user with default values and optional overrides.
+ */
 async function makeUser(overrides: Partial<{ email: string; passwordHash: string; dataPrivacyConsent: boolean }> = {}) {
   return User.create({
     email: 'user@example.com',
