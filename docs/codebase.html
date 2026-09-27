@@ -1,310 +1,223 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8" />
-<title>FinLover — Codebase Guide</title>
-<style>
-  :root {
-    --bg: #ffffff;
-    --fg: #1a1a1a;
-    --muted: #57606a;
-    --border: #e2e5e9;
-    --surface: #f6f8fa;
-    --accent: #2563eb;
-    --accent-soft: #eff4ff;
-    --code-fg: #b3261e;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #0f1115;
-      --fg: #e6e8eb;
-      --muted: #9aa4b2;
-      --border: #2a2f38;
-      --surface: #171a20;
-      --accent: #6ea8fe;
-      --accent-soft: #16223d;
-      --code-fg: #ff8a80;
-    }
-  }
-  * { box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
-  body {
-    font-family: -apple-system, "Segoe UI", Arial, sans-serif;
-    line-height: 1.65;
-    color: var(--fg);
-    background: var(--bg);
-    margin: 0;
-  }
-  .layout {
-    display: flex;
-    align-items: flex-start;
-  }
-  main {
-    flex: 1;
-    min-width: 0;
-    max-width: 760px;
-    padding: 2.5rem 1.5rem 6rem 2.5rem;
-    margin: 0 auto;
-  }
-  h1 {
-    font-size: 1.9rem;
-    margin-bottom: 0.4rem;
-  }
-  h2 {
-    font-size: 1.3rem;
-    margin-top: 2.75rem;
-    padding-bottom: 0.4rem;
-    border-bottom: 2px solid var(--border);
-    scroll-margin-top: 4.5rem;
-  }
-  h3 { font-size: 1.05rem; margin-top: 1.5rem; color: var(--fg); }
-  p { color: var(--fg); }
-  body > p:first-of-type { color: var(--muted); }
-  pre {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    padding: 0.9rem 1rem;
-    overflow-x: auto;
-    border-radius: 8px;
-    font-size: 0.88rem;
-    line-height: 1.5;
-  }
-  code {
-    background: var(--surface);
-    color: var(--code-fg);
-    padding: 0.15rem 0.4rem;
-    border-radius: 4px;
-    font-size: 0.88em;
-  }
-  pre code { background: none; color: inherit; padding: 0; }
-  table { border-collapse: collapse; width: 100%; margin: 1rem 0 1.5rem; font-size: 0.92rem; }
-  th, td { border: 1px solid var(--border); padding: 0.55rem 0.7rem; text-align: left; }
-  th { background: var(--surface); font-weight: 600; }
-  tr:nth-child(even) td { background: color-mix(in srgb, var(--surface) 45%, transparent); }
-  a { color: var(--accent); text-decoration: none; }
-  a:hover { text-decoration: underline; }
-  ul, ol { padding-left: 1.4rem; }
-  li { margin: 0.3rem 0; }
-  nav {
-    position: sticky;
-    top: 0;
-    height: 100vh;
-    overflow-y: auto;
-    flex: 0 0 220px;
-    background: var(--surface);
-    border-right: 1px solid var(--border);
-    padding: 2rem 1.25rem;
-    font-size: 0.88rem;
-  }
-  nav .nav-title {
-    font-weight: 700;
-    font-size: 0.95rem;
-    margin-bottom: 1rem;
-    color: var(--fg);
-  }
-  nav a {
-    display: block;
-    color: var(--muted);
-    font-weight: 500;
-    padding: 0.4rem 0.6rem;
-    margin: 0.1rem 0;
-    border-radius: 6px;
-  }
-  nav a:hover {
-    color: var(--fg);
-    background: var(--accent-soft);
-    text-decoration: none;
-  }
-  nav a.active {
-    color: var(--accent);
-    background: var(--accent-soft);
-  }
-  @media (max-width: 720px) {
-    .layout { flex-direction: column; }
-    nav {
-      position: static;
-      height: auto;
-      width: 100%;
-      flex: none;
-      border-right: none;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.25rem 0.75rem;
-      padding: 1rem 1.25rem;
-    }
-    nav .nav-title { width: 100%; margin-bottom: 0.4rem; }
-    nav a { padding: 0.25rem 0.4rem; }
-    main { padding: 1.5rem 1.25rem 4rem; max-width: 100%; }
-  }
-</style>
-</head>
-<body>
-<div class="layout">
-<nav>
-<div class="nav-title">FinLover Docs</div>
-<a href="#quickstart">1. Quickstart</a>
-<a href="#stack">2. Tech stack</a>
-<a href="#folders">3. Folders</a>
-<a href="#filego">4. Where does my file go</a>
-<a href="#rules">5. Hard rules</a>
-<a href="#conventions">6. Conventions</a>
-<a href="#workflow">7. Workflow</a>
-<a href="#ci">8. CI checks</a>
-<a href="#commands">9. Commands</a>
-</nav>
-<main>
-<h1>FinLover — Codebase Guide</h1>
-<p>Expense tracker web app. Single-root repo, npm only (no monorepo/workspaces). Everything you need is in this one page — jump around with the sidebar. Database schema diagram lives separately: <a href="ERD.md">ERD.md</a> (auto-generated, don't hand-edit).</p>
-
-<h2 id="quickstart">1. Quickstart</h2>
-<pre>git clone https://github.com/ComBiao/FinLover.git
-cd FinLover
-npm install
-cp .env.example .env.local</pre>
-<p>Fill <code>.env.local</code> with <code>MONGODB_URI</code>, <code>JWT_SECRET</code>, <code>BCRYPT_SALT_ROUNDS</code>.</p>
-<pre>npm run dev     # start dev server → http://localhost:3000
-npm test        # run unit tests</pre>
-
-<h2 id="stack">2. Tech stack</h2>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>FinLover Codebase Guide</title><style>body{max-width:1080px;margin:40px auto;padding:0 24px;font:16px/1.65 system-ui;color:#17212b}pre{overflow:auto;background:#f3f5f7;padding:16px}code{font-size:.9em}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccd4dc;padding:8px;text-align:left}a{color:#165dc8}</style></head><body><h1>FinLover — Codebase Guide</h1>
+<p>FinLover is one Next.js application and deployment unit with frontend features and a modular, layered server. Use npm at the repository root, one package.json and one package-lock.json. <a href="ERD.md">Database diagram</a>, <a href="api/README.md">API guide</a>, <a href="frontend-backend-refactor-plan.md">implementation plan</a>.</p>
+<h2>1. Quickstart</h2>
+<p>Use Node.js 24 (package minimum 22.12), npm, and a MongoDB replica set. Docker Compose is optional when a managed replica set is already available.</p>
+<pre><code class="language-bash">npm ci
+cp .env.example .env.local
+# Fill JWT_SECRET; set MONGODB_URI if using an external replica set.
+npm run infra:up
+npm run dev
+</code></pre>
+<p>App and API share <code>http://localhost:3000</code>; Swagger is <code>/api/docs</code>. <code>infra:up</code> starts only MongoDB. <code>infra:down</code> stops the dev container without removing its named data volume. There are no application Dockerfiles or frontend/backend proxy servers.</p>
+<h2>2. Stack and layout</h2>
 <table>
-<tr><th>Package</th><th>What it does</th></tr>
-<tr><td>Next.js (App Router)</td><td>React framework, pages + backend API routes in one project</td></tr>
-<tr><td>TypeScript</td><td>typed JavaScript, catches bugs before runtime</td></tr>
-<tr><td>Tailwind CSS</td><td>utility-class styling</td></tr>
-<tr><td>shadcn/ui</td><td>prebuilt accessible base components, copied into <code>src/components/ui</code></td></tr>
-<tr><td>lucide-react</td><td>icon set</td></tr>
-<tr><td>zod</td><td>runtime schema validation, also derives a TS type from the schema</td></tr>
-<tr><td>zustand</td><td>client/UI state management (modals, filters, selections)</td></tr>
-<tr><td>@tanstack/react-query</td><td>server data fetching/caching, handles loading/error/refetch</td></tr>
-<tr><td>MongoDB + Mongoose</td><td>database + schema/ODM layer</td></tr>
-<tr><td>bcrypt</td><td>password hashing</td></tr>
-<tr><td>jsonwebtoken (JWT)</td><td>login/session tokens</td></tr>
-<tr><td>vitest + @testing-library/react</td><td>unit/component tests, run via <code>npm test</code></td></tr>
-</table>
-
-<h2 id="folders">3. Folder structure</h2>
-<pre>
-/
-├── .github/
-│   ├── workflows/ci.yml             CI: commit-msg lint, build, secret scan
-│   └── pull_request_template.md
-├── .husky/                          pre-commit (lint + type-check), commit-msg (message format)
-├── scripts/
-│   ├── check-commit-msg.js          shared regex validator (local hook + CI)
-│   └── generate-erd.ts              regenerates docs/ERD.md from src/models
-├── public/
-├── src/
-│   ├── app/                         PAGES + ROUTES only. Folder name = URL path. No business logic here.
-│   │   ├── layout.tsx               root layout (wraps every page — nav, fonts, etc)
-│   │   ├── page.tsx                 → /
-│   │   ├── login/page.tsx           → /login
-│   │   ├── dashboard/page.tsx       → /dashboard
-│   │   ├── expenses/
-│   │   │   ├── page.tsx             → /expenses (list)
-│   │   │   └── [id]/page.tsx        → /expenses/:id (dynamic, one item)
-│   │   └── api/                     BACKEND endpoints. route.ts, not page.tsx.
-│   │       ├── auth/route.ts        → POST /api/auth
-│   │       └── expenses/route.ts    → GET/POST /api/expenses
-│   ├── components/
-│   │   ├── ui/                      shadcn/ui base components ONLY. Never hand-edit — regenerate with `npx shadcn add`.
-│   │   └── [Name].tsx               shared custom components used on 2+ pages
-│   ├── lib/                         cross-cutting helpers, no UI
-│   │   ├── db.ts                    mongoose connection singleton
-│   │   ├── auth.ts                  jwt sign/verify, bcrypt hash/compare
-│   │   └── utils.ts                 generic helpers (cn, formatCurrency, ...)
-│   ├── models/                      mongoose schemas, one file per collection
-│   ├── types/                       shared TS types/interfaces + zod schemas
-│   ├── hooks/                       custom React hooks
-│   └── store/                       zustand stores — client/UI state only, never server data
-├── vitest.config.ts / vitest.setup.ts   test runner config
+<thead>
+<tr>
+<th>Area</th>
+<th>Responsibility</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>UI</td>
+<td>Next.js App Router, React, Tailwind, shadcn/ui, lucide-react</td>
+</tr>
+<tr>
+<td>UI state</td>
+<td>Zustand for modals/filters; TanStack Query for real API mutations/server data</td>
+</tr>
+<tr>
+<td>Server</td>
+<td>Next.js Node Route Handlers, Zod, Mongoose/MongoDB, bcrypt/JWT</td>
+</tr>
+<tr>
+<td>Contracts</td>
+<td>Browser-safe Zod schemas/types in shared source; no separate package build</td>
+</tr>
+<tr>
+<td>Tests</td>
+<td>Vitest node by default; UI tests explicitly use jsdom</td>
+</tr>
+<tr>
+<td>Tooling</td>
+<td>TypeScript strict, ESLint, Husky, GitHub Actions, OpenAPI/Swagger</td>
+</tr>
+</tbody></table>
+<pre><code class="language-text">FinLover/
+├── package.json / package-lock.json
+├── next.config.ts / tsconfig.json / eslint.config.mjs / vitest.config.ts
+├── components.json / postcss.config.mjs / .env.example
+├── public/ / .github/ / .husky/
+├── infra-dev/
+│   ├── compose.yml                # local MongoDB replica set
+│   └── scripts/                   # commit check, ERD/OpenAPI/docs generators
 ├── docs/
-│   ├── codebase.md                  this file (also codebase.html, browser-friendly mirror)
-│   └── ERD.md                       database schema diagram (auto-generated)
-├── .env.example
-├── AGENT.md / CLAUDE.md             brief conventions for AI coding agents
-└── package.json
-</pre>
-
-<h2 id="filego">4. Where does my file go?</h2>
+└── src/
+    ├── app/                       # page/layout composition and thin API entries
+    ├── features/                  # auth, categories, transactions, dashboard UI
+    ├── components/                # shared UI, ui/ = shadcn base components
+    ├── lib/ / types/ / mocks/      # browser-safe helpers, UI types, demo data
+    ├── shared/contracts/          # shared HTTP schemas/types, source imports
+    ├── server/
+    │   ├── composition/           # constructor injection and public handlers
+    │   ├── modules/               # auth/users/categories/transactions/wallets
+    │   ├── shared/                # auth, http guards/adapters, ports, config, docs
+    │   ├── db/                    # connection, models, UnitOfWork, migrations
+    │   │   └── legacy-cascades/    # existing internal persistence/cascade entry points
+    │   └── __tests__/             # HTTP integration/contract tests
+    └── test/setup.ts
+</code></pre>
+<h2>3. Where code belongs</h2>
 <table>
-<tr><th>I'm building...</th><th>Goes in</th><th>Naming</th></tr>
-<tr><td>New page (e.g. /budget)</td><td><code>src/app/budget/page.tsx</code></td><td>folder = URL, lowercase-kebab</td></tr>
-<tr><td>New backend endpoint</td><td><code>src/app/api/budget/route.ts</code></td><td>folder = URL</td></tr>
-<tr><td>Component used on 2+ pages</td><td><code>src/components/BudgetCard.tsx</code></td><td>PascalCase</td></tr>
-<tr><td>Component used on 1 page only</td><td>colocate next to that page</td><td>PascalCase</td></tr>
-<tr><td>shadcn base component</td><td><code>src/components/ui/</code> via <code>npx shadcn add</code></td><td>don't hand-write</td></tr>
-<tr><td>Database schema</td><td><code>src/models/Budget.ts</code></td><td>PascalCase, singular</td></tr>
-<tr><td>Shared TS type</td><td><code>src/types/budget.ts</code></td><td>camelCase file</td></tr>
-<tr><td>zod validation schema</td><td><code>src/types/budget.ts</code>, colocated</td><td><code>xSchema</code></td></tr>
-<tr><td>Reusable non-UI logic</td><td><code>src/lib/</code></td><td>camelCase</td></tr>
-<tr><td>Custom hook</td><td><code>src/hooks/useBudget.ts</code></td><td><code>use</code> prefix</td></tr>
-<tr><td>Client/UI state (zustand)</td><td><code>src/store/budgetStore.ts</code></td><td><code>useXStore</code></td></tr>
-<tr><td>Fetching server data</td><td><code>useQuery</code>/<code>useMutation</code> wrapped in <code>src/hooks/</code></td><td><code>use</code> prefix</td></tr>
-<tr><td>A test</td><td><code>src/**/__tests__/x.test.ts(x)</code></td><td>same name + <code>.test</code></td></tr>
-</table>
-<p>Rule of thumb: <code>app/</code> only holds pages/routes — no business logic, no reusable component definitions beyond the route handler itself.</p>
-
-<h2 id="rules">5. Two hard rules</h2>
-<ul>
-<li>Base UI components MUST be shadcn/ui — never hand-write a button/dialog/input that already has a shadcn version.</li>
-<li>Icons MUST be from <code>lucide-react</code>, unless a task explicitly says otherwise.</li>
-</ul>
-
-<h2 id="conventions">6. Conventions</h2>
-<h3>Commit message</h3>
-<p><code>tag: message</code> (case-insensitive, space after colon optional), e.g. <code>init: initialize repo</code>.</p>
-<p>Allowed tags: <code>init, feat, fix, chore, docs, refactor, test, style, perf, ci, build, revert</code>.</p>
-<p>Enforced by <code>.husky/commit-msg</code> locally and the <code>commit-lint</code> CI job.</p>
-
-<h3>Branch name</h3>
-<p><code>tag/issue-id-slug</code>, e.g. <code>feat/1-initialize-project</code>. Same tag set as commit messages. Convention only, not enforced by CI.</p>
-
-<h3>Pull requests</h3>
-<p>Use the template: <code>### Issue ID</code>, <code>### Description</code>, <code>### Image</code>.</p>
-
-<h2 id="workflow">7. Workflow</h2>
-<ol>
-<li><code>git checkout -b feat/2-add-login</code></li>
-<li>Code + commit with correct tag</li>
-<li><code>git push origin feat/2-add-login</code></li>
-<li>Open PR on GitHub — fill the template (Issue ID / Description / Image)</li>
-<li>Wait for CI green (commit-lint, build, secret-scan)</li>
-<li>Merge</li>
-</ol>
-<p>Direct push to <code>main</code> is blocked — always go through a branch + PR.</p>
-
-<h2 id="ci">8. CI checks</h2>
+<thead>
+<tr>
+<th>Work</th>
+<th>Location</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Page or layout</td>
+<td><code>src/app/&lt;path&gt;/page.tsx</code> / <code>layout.tsx</code></td>
+</tr>
+<tr>
+<td>Feature UI/hooks/store</td>
+<td><code>src/features/&lt;feature&gt;/</code></td>
+</tr>
+<tr>
+<td>Shared controls</td>
+<td><code>src/components/</code>; shadcn in <code>src/components/ui/</code></td>
+</tr>
+<tr>
+<td>Shared HTTP schema/type</td>
+<td><code>src/shared/contracts/</code></td>
+</tr>
+<tr>
+<td>Client-only types/mocks</td>
+<td>frontend feature or <code>src/types/</code>, <code>src/mocks/</code></td>
+</tr>
+<tr>
+<td>HTTP method entry</td>
+<td><code>src/app/api/**/route.ts</code></td>
+</tr>
+<tr>
+<td>Transport/DTO mapping</td>
+<td>module controllers and <code>src/server/shared/http/</code> adapters</td>
+</tr>
+<tr>
+<td>Business use case</td>
+<td>module services with <code>execute()</code></td>
+</tr>
+<tr>
+<td>Query/write</td>
+<td>module repositories</td>
+</tr>
+<tr>
+<td>Cross-module contract</td>
+<td><code>src/server/shared/ports/</code>; wire implementations in composition</td>
+</tr>
+<tr>
+<td>Persistence/transaction context</td>
+<td><code>src/server/db/</code></td>
+</tr>
+<tr>
+<td>Test</td>
+<td>nearby <code>__tests__/*.test.ts(x)</code> or server API integration suite</td>
+</tr>
+</tbody></table>
+<p>Requests flow through auth/CSRF guards, controller.handle, service.execute, repository and MongoDB. Controllers do not query models; services do not know Next.js/HTTP. API versions share business services and auth policy; only input/output contracts differ. Cross-module dependencies are passed through ports. Repositories/composition/production DB entry use <code>server-only</code>; ESLint prohibits frontend/shared-contract imports of server code.</p>
+<p>Transaction services alone own category/wallet ownership, compatibility and balance deltas. Create/update/delete and balance changes share a UnitOfWork. Raw model writes no longer adjust balances; use services for application writes. Category deletion clears references without changing balances. System-category guards and user/wallet persistence cascades remain for internal compatibility and propagate caller sessions. Migrations are operational source and never run during installation/build/startup.</p>
+<h2>4. UI rules and integration status</h2>
+<p>Use shadcn/ui base controls and lucide-react icons. Add shadcn components from root using <code>npx shadcn add &lt;name&gt;</code>. Validate external data with Zod. Keep client-only form validation separate from persisted HTTP schemas. Zustand holds UI state; TanStack Query handles actual API mutations through the root QueryClientProvider.</p>
+<p>Login/register/logout now use <code>/api/v1/auth/*</code>. Registration sends matching passwords and consent; the existing User schema does not persist the form&#39;s name. Successful login redirects to dashboard; logout clears the cookie and query cache before redirecting. Errors remain visible rather than reporting fake success.</p>
+<p>Category/transaction/dashboard screens and displayed profile details remain mock/demo data. List/wallet/report/current-user APIs and full UI integration are not implemented by this refactor. Existing browser routes remain <code>/</code>, <code>/login</code>, <code>/register</code>, <code>/dashboard</code>, <code>/category</code>, <code>/transactions</code>.</p>
+<h2>5. Auth and CSRF</h2>
+<p>Both legacy and v1 protected APIs use the same resolver and principal. Browser auth uses HttpOnly <code>session_token</code>, seven-day lifetime, Path=/, SameSite=Lax, Secure in production and no Domain attribute. The browser never reads or stores JWTs in localStorage.</p>
+<p>An explicit Authorization header takes precedence and must be a valid Bearer token; it cannot fall back to cookies when invalid. Bearer remains available for compatibility/non-browser clients. Services receive a validated user ID, never cookies or tokens.</p>
+<p>Unsafe cookie requests require an exact trusted Origin. Login/register/logout require Origin even without a session cookie. Missing, null, malformed or foreign Origin returns 403; body-bearing requests on those flows must have application/json or return 415. Verified Bearer requests to protected APIs do not require Origin. GET/HEAD must not mutate data. No exemption is based merely on the presence of an unverified header.</p>
+<p>Logout clears the browser cookie but does not revoke a stateless JWT already issued. Legacy response envelopes/statuses remain except the explicitly added common auth/Origin/media-type policy. v1 validation is 400; legacy transaction validation is 422 and malformed JSON remains 500. Legacy transaction DELETE is empty 204; v1 is 200 with data:null.</p>
+<h2>6. Environment and Vercel</h2>
 <table>
-<tr><th>Job</th><th>What it does</th></tr>
-<tr><td>commit-lint (PR only)</td><td>validates every commit message in the PR</td></tr>
-<tr><td>build</td><td>npm ci, lint, typegen, type-check, ERD sync check, build</td></tr>
-<tr><td>secret-scan</td><td>gitleaks scan for committed secrets</td></tr>
-</table>
-
-<h2 id="commands">9. All commands</h2>
-<pre>npm install
-cp .env.example .env.local   # fill in MONGODB_URI, JWT_SECRET, BCRYPT_SALT_ROUNDS
-npm run dev                  # start dev server
-npm test                     # run unit tests (vitest)
-npm run lint                 # eslint
-npm run type-check           # tsc --noEmit
-npm run build                # production build
-npm run generate-erd         # regenerate docs/ERD.md after changing a model</pre>
-</main>
-</div>
-<script>
-  const links = document.querySelectorAll('nav a[href^="#"]');
-  const sections = [...links].map(a => document.getElementById(a.hash.slice(1))).filter(Boolean);
-  const setActive = () => {
-    let current = sections[0];
-    for (const s of sections) {
-      if (s.getBoundingClientRect().top - 80 <= 0) current = s;
-    }
-    links.forEach(a => a.classList.toggle('active', a.hash.slice(1) === current.id));
-  };
-  document.addEventListener('scroll', setActive, { passive: true });
-  setActive();
-</script>
-</body>
-</html>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>MONGODB_URI</td>
+<td>Replica set connection string; local compose sample uses directConnection=true for Docker hostname discovery</td>
+</tr>
+<tr>
+<td>JWT_SECRET</td>
+<td>Server-only signing/verification secret</td>
+</tr>
+<tr>
+<td>BCRYPT_SALT_ROUNDS</td>
+<td>Existing 4–31 validation/fallback, default 10</td>
+</tr>
+<tr>
+<td>PUBLIC_ORIGINS</td>
+<td>Exact comma-separated local/production origins</td>
+</tr>
+<tr>
+<td>PREVIEW_ORIGINS</td>
+<td>Optional explicit preview aliases; production origins are not inherited in preview</td>
+</tr>
+<tr>
+<td>VERCEL_ENV / VERCEL_URL / VERCEL_BRANCH_URL</td>
+<td>Platform-owned metadata used for exact preview deployment/branch origins</td>
+</tr>
+</tbody></table>
+<p>Never trust request Host/X-Forwarded-Host as an origin allowlist. No wildcard *.vercel.app. System deployment URLs are hostnames and become HTTPS origins. Verify aliases and deployment protection on a real preview before release.</p>
+<p>Deploy the repository root as one native Next.js Vercel project with npm ci and npm run build. Browser API calls are relative and need no BACKEND_URL/rewrite. Use external managed MongoDB such as Atlas, with separate preview/prod credentials and data. Decide Atlas IP allowlisting/egress using the actual Vercel plan before production. A single app does not remove that network requirement.</p>
+<p>Database connections are cached per warm instance, not globally across deployments. Atomicity depends on MongoDB transactions, never process-local locks. Existing Google fonts require network access during builds. Swagger assets must be included in deployed function output and verified on preview. No Vercel deployment has been performed by this change.</p>
+<h2>7. Conventions and CI</h2>
+<p>Commit: <code>tag: message</code>, case-insensitive, optional space after colon. Tags: init, feat, fix, chore, docs, refactor, test, style, perf, ci, build, revert. Branch: <code>tag/issue-id-slug</code> (convention). PR headings: <code>### Issue ID</code>, <code>### Description</code>, <code>### Image</code>. Commit/push/deployment are separate actions and require task authorization.</p>
+<p>Husky commit-msg calls <code>infra-dev/scripts/check-commit-msg.js</code>; pre-commit runs lint/type-check. CI uses Node.js 24, npm ci, API/docs checks, lint, typegen/type-check, tests, ERD sync and one app build. Commit lint and gitleaks remain. MongoDB test binary version is pinned to 8.2.6 in CI; first test run may download it.</p>
+<h2>8. Commands (repository root)</h2>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>npm ci</td>
+<td>Install using the single lockfile</td>
+</tr>
+<tr>
+<td>npm run dev</td>
+<td>Run the Next.js app on port 3000</td>
+</tr>
+<tr>
+<td>npm run build / npm start</td>
+<td>Build / run local production server</td>
+</tr>
+<tr>
+<td>npm run lint / npm run type-check</td>
+<td>ESLint / Next typegen and TypeScript</td>
+</tr>
+<tr>
+<td>npm test</td>
+<td>UI, service, model and HTTP integration tests</td>
+</tr>
+<tr>
+<td>npm run api:generate / api:validate / api:check</td>
+<td>Generate or validate/check OpenAPI drift and request examples/handler coverage</td>
+</tr>
+<tr>
+<td>npm run docs:generate / docs:check</td>
+<td>Generate or verify the codebase HTML mirror</td>
+</tr>
+<tr>
+<td>npm run generate-erd</td>
+<td>Regenerate root docs/ERD.md from models</td>
+</tr>
+<tr>
+<td>npm run infra:up / infra:down</td>
+<td>Start dev MongoDB / stop dev compose</td>
+</tr>
+</tbody></table>
+<p>Generators work without DB/secrets and resolve paths relative to their files. Never hand-edit generated ERD/HTML/OpenAPI artifacts. Update README, codebase, API docs, manifests, CI and agent instructions together when paths/commands change. See <a href="refactor-validation.md">validation report</a> for actual checks and remaining deployment limits.</p>
+<p>Production builds explicitly use <code>next build --webpack</code>; this environment rejected Turbopack worker port creation (EPERM). Development still uses <code>next dev</code>.</p>
+</body></html>

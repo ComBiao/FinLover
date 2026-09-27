@@ -1,10 +1,10 @@
-import { AddTransactionModal } from "@/components/AddTransactionModal";
-import { CategoryBreakdown } from "@/components/CategoryBreakdown";
-import { QuickAddBar } from "@/components/QuickAddBar";
-import { RecentTransactions } from "@/components/RecentTransactions";
-import { SavingsGoal } from "@/components/SavingsGoal";
-import { SpendingTrendChart } from "@/components/SpendingTrendChart";
-import { SummaryCards } from "@/components/SummaryCards";
+import { AddTransactionModal } from "@/features/transactions/components/AddTransactionModal";
+import { CategoryBreakdown } from "@/features/dashboard/components/CategoryBreakdown";
+import { QuickAddBar } from "@/features/transactions/components/QuickAddBar";
+import { RecentTransactions } from "@/features/dashboard/components/RecentTransactions";
+import { SavingsGoal } from "@/features/dashboard/components/SavingsGoal";
+import { SpendingTrendChart } from "@/features/dashboard/components/SpendingTrendChart";
+import { SummaryCards } from "@/features/dashboard/components/SummaryCards";
 import { userName } from "@/mocks/mock-data";
 
 /**

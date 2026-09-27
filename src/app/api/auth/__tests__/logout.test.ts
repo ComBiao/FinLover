@@ -9,7 +9,7 @@ vi.mock("next/headers", () => ({ cookies: vi.fn() }));
 
 import { cookies } from "next/headers";
 import { POST } from "@/app/api/auth/logout/route";
-import { SESSION_COOKIE_NAME } from "@/lib/session";
+import { SESSION_COOKIE_NAME } from "@/server/shared/auth/session";
 
 type Store = {
   get: ReturnType<typeof vi.fn>;
@@ -41,7 +41,7 @@ describe("POST /api/auth/logout", () => {
   it("AC1 — clears the session cookie and returns 200 { success: true }", async () => {
     const store = mockCookieStore("a.valid.looking.token");
 
-    const res = await POST();
+    const res = await POST(new Request("http://localhost/api/auth/logout", { method: "POST", headers: { origin: "http://localhost" } }));
 
     expect(res.status).toBe(200);
     await expect(res.json()).resolves.toEqual({ success: true });
@@ -51,7 +51,7 @@ describe("POST /api/auth/logout", () => {
   it("AC2 — idempotent: still succeeds when no session cookie is present", async () => {
     const store = mockCookieStore(undefined);
 
-    const res = await POST();
+    const res = await POST(new Request("http://localhost/api/auth/logout", { method: "POST", headers: { origin: "http://localhost" } }));
 
     expect(res.status).toBe(200);
     expect(res.status).not.toBe(401);
@@ -64,14 +64,14 @@ describe("POST /api/auth/logout", () => {
   it("AC4 — needs no request body or credentials to call", async () => {
     mockCookieStore(undefined);
 
-    // POST takes no argument at all — no body is read, nothing is validated.
-    await expect(POST()).resolves.toBeDefined();
+    // A trusted Origin is required even though no body or credentials are required.
+    await expect(POST(new Request("http://localhost/api/auth/logout", { method: "POST", headers: { origin: "http://localhost" } }))).resolves.toBeDefined();
   });
 
   it("only deletes the session cookie — never writes a new one", async () => {
     const store = mockCookieStore("a.valid.looking.token");
 
-    await POST();
+    await POST(new Request("http://localhost/api/auth/logout", { method: "POST", headers: { origin: "http://localhost" } }));
 
     expect(store.delete).toHaveBeenCalledWith(SESSION_COOKIE_NAME);
     // Logout must not issue a replacement token (e.g. a blank cookie via
