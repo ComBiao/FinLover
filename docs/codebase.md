@@ -1,148 +1,136 @@
 # FinLover — Codebase Guide
 
-Expense tracker web app. Single-root repo, npm only (no monorepo/workspaces). Everything you need is in this one file — jump around with the headings below. Database schema diagram lives separately: [`ERD.md`](ERD.md) (auto-generated, don't hand-edit).
+FinLover is one Next.js application and deployment unit with frontend features and a modular, layered server. Use npm at the repository root, one package.json and one package-lock.json. [Database diagram](ERD.md), [API guide](api/README.md), [implementation plan](frontend-backend-refactor-plan.md).
 
 ## 1. Quickstart
 
+Use Node.js 24 (package minimum 22.12), npm, and a MongoDB replica set. Docker Compose is optional when a managed replica set is already available.
+
 ```bash
-git clone https://github.com/ComBiao/FinLover.git
-cd FinLover
-npm install
+npm ci
 cp .env.example .env.local
-```
-Fill `.env.local` with `MONGODB_URI`, `JWT_SECRET`, `BCRYPT_SALT_ROUNDS`.
-
-```bash
-npm run dev     # start dev server → http://localhost:3000
-npm test        # run unit tests
+# Fill JWT_SECRET; set MONGODB_URI if using an external replica set.
+npm run infra:up
+npm run dev
 ```
 
-## 2. Tech stack
+App and API share `http://localhost:3000`; Swagger is `/api/docs`. `infra:up` starts only MongoDB. `infra:down` stops the dev container without removing its named data volume. There are no application Dockerfiles or frontend/backend proxy servers.
 
-| Package | What it does |
-|---|---|
-| Next.js (App Router) | React framework, pages + backend API routes in one project |
-| TypeScript | typed JavaScript, catches bugs before runtime |
-| Tailwind CSS | utility-class styling |
-| shadcn/ui | prebuilt accessible base components, copied into `src/components/ui` |
-| lucide-react | icon set |
-| zod | runtime schema validation (API input, form input), also derives a TS type from the schema |
-| zustand | client/UI state management (modals, filters, selections) — small store, no boilerplate |
-| @tanstack/react-query | server data fetching/caching (`/api/*` calls) — handles loading/error/refetch |
-| MongoDB + Mongoose | database + schema/ODM layer |
-| bcrypt | password hashing |
-| jsonwebtoken (JWT) | login/session tokens |
-| vitest + @testing-library/react | unit/component tests, run via `npm test` |
+## 2. Stack and layout
 
-## 3. Folder structure
+| Area | Responsibility |
+| --- | --- |
+| UI | Next.js App Router, React, Tailwind, shadcn/ui, lucide-react |
+| UI state | Zustand for modals/filters; TanStack Query for real API mutations/server data |
+| Server | Next.js Node Route Handlers, Zod, Mongoose/MongoDB, bcrypt/JWT |
+| Contracts | Browser-safe Zod schemas/types in shared source; no separate package build |
+| Tests | Vitest node by default; UI tests explicitly use jsdom |
+| Tooling | TypeScript strict, ESLint, Husky, GitHub Actions, OpenAPI/Swagger |
 
-```
-/
-├── .github/
-│   ├── workflows/ci.yml             CI: commit-msg lint, build, secret scan
-│   └── pull_request_template.md
-├── .husky/                          pre-commit (lint + type-check), commit-msg (message format)
-├── scripts/
-│   ├── check-commit-msg.js          shared regex validator (local hook + CI)
-│   └── generate-erd.ts              regenerates docs/ERD.md from src/models
-├── public/
-├── src/
-│   ├── app/                         PAGES + ROUTES only. Folder name = URL path. No business logic here.
-│   │   ├── layout.tsx               root layout (wraps every page — nav, fonts, etc)
-│   │   ├── page.tsx                 → /
-│   │   ├── login/page.tsx           → /login
-│   │   ├── dashboard/page.tsx       → /dashboard
-│   │   ├── expenses/
-│   │   │   ├── page.tsx             → /expenses (list)
-│   │   │   └── [id]/page.tsx        → /expenses/:id (dynamic, one item)
-│   │   └── api/                     BACKEND endpoints. route.ts, not page.tsx.
-│   │       ├── auth/route.ts        → POST /api/auth
-│   │       └── expenses/route.ts    → GET/POST /api/expenses
-│   ├── components/
-│   │   ├── ui/                      shadcn/ui base components ONLY. Never hand-edit — regenerate with `npx shadcn add`.
-│   │   └── [Name].tsx               shared custom components used on 2+ pages (Navbar, ExpenseCard...)
-│   ├── lib/                         cross-cutting helpers, no UI
-│   │   ├── db.ts                    mongoose connection singleton
-│   │   ├── auth.ts                  jwt sign/verify, bcrypt hash/compare
-│   │   └── utils.ts                 generic helpers (cn, formatCurrency, ...)
-│   ├── models/                      mongoose schemas, one file per collection (User.ts, Wallet.ts, Category.ts, Transaction.ts)
-│   ├── types/                       shared TS interfaces/types + zod schemas
-│   ├── hooks/                       custom React hooks (useAuth, useExpenses...)
-│   └── store/                       zustand stores — client/UI state only, never server data
-├── vitest.config.ts / vitest.setup.ts   test runner config
+```text
+FinLover/
+├── package.json / package-lock.json
+├── next.config.ts / tsconfig.json / eslint.config.mjs / vitest.config.ts
+├── components.json / postcss.config.mjs / .env.example
+├── public/ / .github/ / .husky/
+├── infra-dev/
+│   ├── compose.yml                # local MongoDB replica set
+│   └── scripts/                   # commit check, ERD/OpenAPI/docs generators
 ├── docs/
-│   ├── codebase.md                  this file (also codebase.html, browser-friendly mirror)
-│   └── ERD.md                       database schema diagram (auto-generated)
-├── .env.example
-├── AGENT.md / CLAUDE.md             brief conventions for AI coding agents (point back here for detail)
-└── package.json
+└── src/
+    ├── app/                       # page/layout composition and thin API entries
+    ├── features/                  # auth, categories, transactions, dashboard UI
+    ├── components/                # shared UI, ui/ = shadcn base components
+    ├── lib/ / types/ / mocks/      # browser-safe helpers, UI types, demo data
+    ├── shared/contracts/          # shared HTTP schemas/types, source imports
+    ├── server/
+    │   ├── composition/           # constructor injection and public handlers
+    │   ├── modules/               # auth/users/categories/transactions/wallets
+    │   ├── shared/                # auth, http guards/adapters, ports, config, docs
+    │   ├── db/                    # connection, models, UnitOfWork, migrations
+    │   │   └── legacy-cascades/    # existing internal persistence/cascade entry points
+    │   └── __tests__/             # HTTP integration/contract tests
+    └── test/setup.ts
 ```
 
-## 4. Where does my file go?
+## 3. Where code belongs
 
-| I'm building... | Goes in | Naming |
-|---|---|---|
-| A new page/screen (e.g. `/budget`) | `src/app/budget/page.tsx` | folder = URL path, lowercase-kebab |
-| A new backend endpoint (e.g. `/api/budget`) | `src/app/api/budget/route.ts` | folder = URL path |
-| A component used on 2+ pages | `src/components/BudgetCard.tsx` | PascalCase |
-| A component used on only 1 page | colocate next to that page, e.g. `src/app/budget/BudgetChart.tsx` | PascalCase |
-| A shadcn base component (button, dialog...) | `src/components/ui/` via `npx shadcn add <name>` — don't write by hand | lowercase, shadcn default |
-| A database schema | `src/models/Budget.ts` | PascalCase, singular |
-| A shared TS type/interface | `src/types/budget.ts` | camelCase file, PascalCase type |
-| A zod validation schema | `src/types/budget.ts`, colocated with the type it derives | camelCase, `xSchema` |
-| Reusable logic (not UI, not route) | `src/lib/` (e.g. `lib/date.ts`) | camelCase |
-| A custom hook | `src/hooks/useBudget.ts` | camelCase, `use` prefix |
-| Client/UI state (modal open, filters...) | `src/store/budgetStore.ts` (zustand) | camelCase, `useXStore` |
-| Fetching server data (`/api/*`) | `useQuery`/`useMutation` (react-query), wrapped in a `src/hooks/` hook | camelCase, `use` prefix |
-| A test | `src/**/__tests__/x.test.ts(x)`, next to the code it tests | same name + `.test` |
+| Work | Location |
+| --- | --- |
+| Page or layout | `src/app/<path>/page.tsx` / `layout.tsx` |
+| Feature UI/hooks/store | `src/features/<feature>/` |
+| Shared controls | `src/components/`; shadcn in `src/components/ui/` |
+| Shared HTTP schema/type | `src/shared/contracts/` |
+| Client-only types/mocks | frontend feature or `src/types/`, `src/mocks/` |
+| HTTP method entry | `src/app/api/**/route.ts` |
+| Transport/DTO mapping | module controllers and `src/server/shared/http/` adapters |
+| Business use case | module services with `execute()` |
+| Query/write | module repositories |
+| Cross-module contract | `src/server/shared/ports/`; wire implementations in composition |
+| Persistence/transaction context | `src/server/db/` |
+| Test | nearby `__tests__/*.test.ts(x)` or server API integration suite |
 
-Rule of thumb: `app/` only holds pages/routes — no business logic, no reusable component definitions beyond the route handler itself.
+Requests flow through auth/CSRF guards, controller.handle, service.execute, repository and MongoDB. Controllers do not query models; services do not know Next.js/HTTP. API versions share business services and auth policy; only input/output contracts differ. Cross-module dependencies are passed through ports. Repositories/composition/production DB entry use `server-only`; ESLint prohibits frontend/shared-contract imports of server code.
 
-## 5. Two hard rules
-- Base UI components MUST be shadcn/ui — never hand-write a button/dialog/input that already has a shadcn version.
-- Icons MUST be from `lucide-react`, unless a task explicitly says otherwise.
+Transaction services own balance deltas and validate references. Repositories recheck wallet/category ownership and type compatibility immediately before create/update. Each model write needs a repository-issued, single-use capability bound to an active transaction session; save, query mutations, insertMany and bulkWrite otherwise reject. Create/update/delete and balance changes share a UnitOfWork. Use services for application writes. Raw collection access bypasses middleware and is reserved for migrations, explicit test fixtures and internal cascades that delete the owning wallet(s). Category deletion clears references without changing balances. System-category guards and user/wallet persistence cascades remain for internal compatibility and propagate caller sessions. Migrations are operational source and never run during installation/build/startup.
 
-## 6. Conventions
+## 4. UI rules and integration status
 
-### Commit message
-`tag: message` (case-insensitive, space after colon optional), e.g. `init: initialize repo`.
-Allowed tags: `init, feat, fix, chore, docs, refactor, test, style, perf, ci, build, revert`.
-Enforced by `.husky/commit-msg` locally and the `commit-lint` CI job.
+Use shadcn/ui base controls and lucide-react icons. Add shadcn components from root using `npx shadcn add <name>`. Validate external data with Zod. Keep client-only form validation separate from persisted HTTP schemas. Zustand holds UI state; TanStack Query handles actual API mutations through the root QueryClientProvider.
 
-### Branch name
-`tag/issue-id-slug`, e.g. `feat/1-initialize-project`.
-Same tag set as commit messages. Convention only, not enforced by CI.
+Login/register/logout now use `/api/v1/auth/*`. Registration sends matching passwords and consent; the existing User schema does not persist the form's name. Successful login redirects to dashboard; logout clears the cookie and query cache before redirecting. Errors remain visible rather than reporting fake success.
 
-### Pull requests
-Use the template: `### Issue ID`, `### Description`, `### Image`.
+Category/transaction/dashboard screens and displayed profile details remain mock/demo data. List/wallet/report/current-user APIs and full UI integration are not implemented by this refactor. Existing browser routes remain `/`, `/login`, `/register`, `/dashboard`, `/category`, `/transactions`.
 
-## 7. Workflow
-1. `git checkout -b feat/2-add-login`
-2. Code + commit with correct tag
-3. `git push origin feat/2-add-login`
-4. Open PR on GitHub — fill the template (Issue ID / Description / Image)
-5. Wait for CI green (commit-lint, build, secret-scan)
-6. Merge
+## 5. Auth and CSRF
 
-Direct push to `main` is blocked — always go through a branch + PR.
+Both legacy and v1 protected APIs use the same resolver and principal. Browser auth uses HttpOnly `session_token`, seven-day lifetime, Path=/, SameSite=Lax, Secure in production and no Domain attribute. The browser never reads or stores JWTs in localStorage.
 
-## 8. CI checks (`.github/workflows/ci.yml`)
+An explicit Authorization header takes precedence and must be a valid Bearer token; it cannot fall back to cookies when invalid. Bearer remains available for compatibility/non-browser clients. Services receive a validated user ID, never cookies or tokens.
 
-| Job | What it does |
-|---|---|
-| `commit-lint` (PR only) | validates every commit message in the PR against the pattern above |
-| `build` | `npm ci` → `npm run lint` → `next typegen` → `npm run type-check` → verifies `docs/ERD.md` is in sync with `src/models` → `npm run build` |
-| `secret-scan` | gitleaks, catches committed secrets (`.env`, `JWT_SECRET`, `MONGODB_URI`, etc) |
+Unsafe cookie requests require an exact trusted Origin. Login/register/logout require Origin even without a session cookie. Missing, null, malformed or foreign Origin returns 403; body-bearing requests on those flows must have application/json or return 415. Verified Bearer requests to protected APIs do not require Origin. GET/HEAD must not mutate data. No exemption is based merely on the presence of an unverified header.
 
-## 9. All commands
+Logout clears the browser cookie but does not revoke a stateless JWT already issued. Legacy response envelopes/statuses remain except the explicitly added common auth/Origin/media-type policy. v1 validation is 400; legacy transaction validation is 422 and malformed JSON remains 500. Legacy transaction DELETE is empty 204; v1 is 200 with data:null.
 
-```bash
-npm install
-cp .env.example .env.local   # fill in MONGODB_URI, JWT_SECRET, BCRYPT_SALT_ROUNDS
-npm run dev                  # start dev server
-npm test                     # run unit tests (vitest)
-npm run lint                 # eslint
-npm run type-check           # tsc --noEmit
-npm run build                # production build
-npm run generate-erd         # regenerate docs/ERD.md after changing a model
-```
+## 6. Environment and Vercel
+
+| Variable | Purpose |
+| --- | --- |
+| MONGODB_URI | Replica set connection string; local compose sample uses directConnection=true for Docker hostname discovery |
+| JWT_SECRET | Server-only signing/verification secret |
+| BCRYPT_SALT_ROUNDS | Existing 4–31 validation/fallback, default 10 |
+| PUBLIC_ORIGINS | Exact comma-separated local/production origins |
+| PREVIEW_ORIGINS | Optional explicit preview aliases; production origins are not inherited in preview |
+| VERCEL_ENV / VERCEL_URL / VERCEL_BRANCH_URL | Platform-owned metadata used for exact preview deployment/branch origins |
+
+Never trust request Host/X-Forwarded-Host as an origin allowlist. No wildcard *.vercel.app. System deployment URLs are hostnames and become HTTPS origins. Verify aliases and deployment protection on a real preview before release.
+
+Deploy the repository root as one native Next.js Vercel project with npm ci and npm run build. Browser API calls are relative and need no BACKEND_URL/rewrite. Use external managed MongoDB such as Atlas, with separate preview/prod credentials and data. Decide Atlas IP allowlisting/egress using the actual Vercel plan before production. A single app does not remove that network requirement.
+
+Database connections are cached per warm instance, not globally across deployments. Atomicity depends on MongoDB transactions, never process-local locks. Existing Google fonts require network access during builds. Swagger assets must be included in deployed function output and verified on preview. No Vercel deployment has been performed by this change.
+
+## 7. Conventions and CI
+
+Commit: `tag: message`, case-insensitive, optional space after colon. Tags: init, feat, fix, chore, docs, refactor, test, style, perf, ci, build, revert. Branch: `tag/issue-id-slug` (convention). PR headings: `### Issue ID`, `### Description`, `### Image`. Commit/push/deployment are separate actions and require task authorization.
+
+Husky commit-msg calls `infra-dev/scripts/check-commit-msg.js`; pre-commit runs lint/type-check. CI uses Node.js 24, npm ci, API/docs checks, lint, typegen/type-check, tests, ERD sync and one app build. Commit lint and gitleaks remain. MongoDB test binary version is pinned to 8.2.6 in CI; first test run may download it.
+
+## 8. Commands (repository root)
+
+| Command | Purpose |
+| --- | --- |
+| npm ci | Install using the single lockfile |
+| npm run dev | Run the Next.js app on port 3000 |
+| npm run build / npm start | Build / run local production server |
+| npm run lint / npm run type-check | ESLint / Next typegen and TypeScript |
+| npm test | UI, service, model and HTTP integration tests |
+| npm run api:generate / api:validate / api:check | Generate or validate/check OpenAPI drift and request examples/handler coverage |
+| npm run docs:generate / docs:check | Generate or verify the codebase HTML mirror |
+| npm run generate-erd | Regenerate root docs/ERD.md from models |
+| npm run infra:up / infra:down | Start dev MongoDB / stop dev compose |
+
+Generators work without DB/secrets and resolve paths relative to their files. Never hand-edit generated ERD/HTML/OpenAPI artifacts. Update README, codebase, API docs, manifests, CI and agent instructions together when paths/commands change. See [validation report](refactor-validation.md) for actual checks and remaining deployment limits.
+
+Production builds explicitly use `next build --webpack`; this environment rejected Turbopack worker port creation (EPERM). Development still uses `next dev`.
+
+HTTP errors share one mapper and first-issue Zod field mapping. Unknown failures return `INTERNAL_ERROR`; server diagnostics include request ID, error type, numeric driver code and stack frames, excluding error messages and attached private payloads. Legacy transaction validation remains 422; malformed JSON is 400 in both versions. Category create/update reuse the shared Zod schemas. The v1 transaction response is mapped only in `versioned-handlers.ts`; the transaction DTO exposes only the legacy representation. Category HTTP and compatibility callers share one delete service instance.

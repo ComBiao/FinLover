@@ -1,30 +1,30 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { hashPassword } from "@/lib/auth";
+import { hashPassword } from "@/server/shared/auth/crypto";
 
 // connectDB, setSessionCookie, and the User model all touch things a unit
 // test shouldn't (a real database, a real Next.js request context) — mock
 // each so this test exercises the route's own logic in isolation.
-vi.mock("@/lib/db", () => ({
+vi.mock("@/server/db/index", () => ({
   connectDB: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock("@/lib/session", () => ({
+vi.mock("@/server/shared/auth/session", () => ({
   setSessionCookie: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock("@/models/User", () => ({
+vi.mock("@/server/db/models/User", () => ({
   default: { findOne: vi.fn() },
 }));
 
 import { POST } from "../login/route";
-import User from "@/models/User";
-import { setSessionCookie } from "@/lib/session";
+import User from "@/server/db/models/User";
+import { setSessionCookie } from "@/server/shared/auth/session";
 
 function loginRequest(body: unknown) {
   return new Request("http://localhost/api/auth/login", {
     method: "POST",
     body: typeof body === "string" ? body : JSON.stringify(body),
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", origin: "http://localhost" },
   });
 }
 

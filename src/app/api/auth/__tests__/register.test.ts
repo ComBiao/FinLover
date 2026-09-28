@@ -15,11 +15,11 @@ import bcrypt from "bcrypt";
 // The route talks to the default mongoose connection, which these tests point
 // at an in-memory server themselves — so `connectDB` (which throws at import
 // without MONGODB_URI) is replaced with a spy we can also assert on.
-vi.mock("@/lib/db", () => ({ connectDB: vi.fn(async () => undefined) }));
+vi.mock("@/server/db/index", () => ({ connectDB: vi.fn(async () => undefined) }));
 
 import { POST } from "@/app/api/auth/register/route";
-import { connectDB } from "@/lib/db";
-import User from "@/models/User";
+import { connectDB } from "@/server/db/index";
+import User from "@/server/db/models/User";
 
 const VALID_BODY = {
   email: "user@example.com",
@@ -33,7 +33,7 @@ let mongoServer: MongoMemoryServer;
 function request(rawBody: string) {
   return new Request("http://localhost/api/auth/register", {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", origin: "http://localhost" },
     body: rawBody,
   });
 }

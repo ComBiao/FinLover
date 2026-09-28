@@ -18,23 +18,28 @@ jobs:
       - name: Check commit messages
         run: |
           git log --no-merges --format=%s origin/${{ github.base_ref }}..HEAD | while IFS= read -r msg; do
-            node scripts/check-commit-msg.js "$msg"
+            node infra-dev/scripts/check-commit-msg.js "$msg"
           done
 
   build:
     runs-on: ubuntu-latest
+    env:
+      MONGOMS_VERSION: 8.2.6
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
 
       - run: npm ci
+      - run: npm run api:check
+      - run: npm run docs:check
       - run: npm run lint
-      - run: npx next typegen
+      - run: npm run typegen
       - run: npm run type-check
+      - run: npm test
       
       - name: Verify ERD is up to date
         run: |

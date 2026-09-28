@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { postApi } from "@/lib/api/client";
 import { useRouter } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import { toast } from "sonner";
@@ -38,6 +40,8 @@ type UserMenuProps = {
  */
 export function UserMenu({ mobileOpen = false, onNavigate }: UserMenuProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const logout = useMutation({ mutationFn: () => postApi('/api/v1/auth/logout') });
   const [logoutDialogOpen, setLogoutDialogOpen] = React.useState(false);
 
   function handleProfileClick() {
@@ -45,16 +49,16 @@ export function UserMenu({ mobileOpen = false, onNavigate }: UserMenuProps) {
     router.push("/profile");
   }
 
-  /**
-   * TODO: clear the session/JWT via src/lib/auth.ts and call
-   * POST /api/auth/logout — for now this just closes the confirmation
-   * dialog, shows a toast, and redirects.
-   */
-  function handleConfirmLogout() {
-    setLogoutDialogOpen(false);
-    toast.success("Logged out");
-    onNavigate?.();
-    router.push("/login");
+  async function handleConfirmLogout() {
+    try {
+      await logout.mutateAsync();
+      queryClient.clear();
+      setLogoutDialogOpen(false);
+      toast.success('Logged out');
+      onNavigate?.();
+      router.replace('/login');
+      router.refresh();
+    } catch { toast.error('Unable to log out. Please try again.'); }
   }
 
   return (
@@ -94,7 +98,7 @@ export function UserMenu({ mobileOpen = false, onNavigate }: UserMenuProps) {
             <Button type="button" variant="outline" onClick={() => setLogoutDialogOpen(false)}>
               Cancel
             </Button>
-            <Button type="button" variant="destructive" onClick={handleConfirmLogout}>
+            <Button type="button" variant="destructive" disabled={logout.isPending} onClick={handleConfirmLogout}>
               Log out
             </Button>
           </DialogFooter>

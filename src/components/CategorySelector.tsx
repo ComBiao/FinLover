@@ -1,3 +1,4 @@
+import { UNCATEGORIZED_VALUE } from "@/features/transactions/constants";
 import { CATEGORY_STYLES, resolveChipTone } from "@/components/chipColor";
 import { ALL_VALUE, decodeOptionValue, encodeOptionValue } from "@/components/optionValue";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +28,7 @@ function categoryTone(category: Category) {
  * as this sentinel, so even a coincidental collision would still resolve to
  * the real category.
  */
-export const UNCATEGORIZED_VALUE = "__uncategorized__";
+export { UNCATEGORIZED_VALUE } from "@/features/transactions/constants";
 
 type CategorySelectorProps = {
   id?: string;
