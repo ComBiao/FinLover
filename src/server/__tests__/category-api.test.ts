@@ -1,3 +1,4 @@
+import { seedTransaction } from '@/test/transaction-fixture';
 // @vitest-environment node
 /**
  * Integration tests for the Category API endpoints.
@@ -518,14 +519,14 @@ describe('DELETE /api/categories/[id]', () => {
     const walletId = (await Wallet.create({ userId: MOCK_USER_ID, name: 'Fixture wallet' }))._id;
 
     // Create a transaction linked to this category.
-    await Transaction.create({
+    await seedTransaction(new Transaction({
       userId: MOCK_USER_ID,
       walletId,
       categoryId: cat._id,
       type: 'expense',
       amount: 42,
       date: new Date(),
-    });
+    }));
 
     const req = createRequest('DELETE', `/api/categories/${cat._id}`);
     const res = await DELETE(req, { params: Promise.resolve({ id: cat._id.toString() }) });
@@ -540,10 +541,10 @@ describe('DELETE /api/categories/[id]', () => {
 
   it('rolls back deletion when the cascade update fails', async () => {
     const cat = await seedCategory();
-    const tx = await Transaction.create({
+    const tx = await seedTransaction(new Transaction({
       userId: MOCK_USER_ID, walletId: (await Wallet.create({ userId: MOCK_USER_ID, name: 'Fixture wallet' }))._id,
       categoryId: cat._id, type: 'expense', amount: 42, date: new Date(),
-    });
+    }));
     const update = vi.spyOn(Transaction, 'updateMany').mockImplementationOnce(() => {
       throw new Error('Injected cascade failure');
     });
@@ -565,14 +566,14 @@ describe('DELETE /api/categories/[id]', () => {
 
   it('rolls back the category and transaction references when commit fails', async () => {
     const cat = await seedCategory();
-    const tx = await Transaction.create({
+    const tx = await seedTransaction(new Transaction({
       userId: MOCK_USER_ID,
       walletId: (await Wallet.create({ userId: MOCK_USER_ID, name: 'Fixture wallet' }))._id,
       categoryId: cat._id,
       type: 'expense',
       amount: 42,
       date: new Date(),
-    });
+    }));
     const session = await mongoose.startSession();
     const start = vi.spyOn(mongoose, 'startSession').mockResolvedValueOnce(session);
     const commit = vi.spyOn(session, 'commitTransaction').mockImplementationOnce(async () => {

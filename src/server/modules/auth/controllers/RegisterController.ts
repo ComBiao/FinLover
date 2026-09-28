@@ -1,38 +1,10 @@
+import { apiErrorResponse, errorResponse, validationFields } from '@/server/shared/http/errors';
 import type { RegisterService } from "../services/RegisterService";
 import { NextResponse } from "next/server";
-import mongoose from "mongoose";
 import { connectDB } from "@/server/db/index";
 
 
 import { registerSchema, type PublicUser } from "@/shared/contracts";
-
-type ErrorCode =
-  | "INVALID_JSON"
-  | "CONSENT_REQUIRED"
-  | "VALIDATION_ERROR"
-  | "EMAIL_ALREADY_EXISTS"
-  | "INTERNAL_ERROR";
-
-function errorResponse(
-  status: number,
-  code: ErrorCode,
-  message: string,
-  fields?: Record<string, string>
-) {
-  return NextResponse.json(
-    { error: fields ? { code, message, fields } : { code, message } },
-    { status }
-  );
-}
-
-/** Mongo signals a unique-index violation with code 11000. */
-function isDuplicateKeyError(err: unknown): boolean {
-  return (
-    typeof err === "object" &&
-    err !== null &&
-    (err as { code?: unknown }).code === 11000
-  );
-}
 
 /**
  * POST /api/auth/register
@@ -68,12 +40,7 @@ export class RegisterController {
 
   const parsed = registerSchema.safeParse(body);
   if (!parsed.success) {
-    const fields: Record<string, string> = {};
-    for (const issue of parsed.error.issues) {
-      const key = issue.path.join(".") || "root";
-      fields[key] ??= issue.message;
-    }
-
+    const fields = validationFields(parsed.error);
     return errorResponse(
       400,
       "VALIDATION_ERROR",
@@ -99,33 +66,10 @@ export class RegisterController {
 
     return NextResponse.json({ user: publicUser }, { status: 201 });
   } catch (err) {
-    // The unique index is the single source of truth for email uniqueness —
-    // a read-then-write pre-check would still race with a concurrent signup.
-    if (isDuplicateKeyError(err)) {
-      return errorResponse(
-        409,
-        "EMAIL_ALREADY_EXISTS",
-        "An account with this email already exists",
-        { email: "An account with this email already exists" }
-      );
-    }
-
-    if (err instanceof mongoose.Error.ValidationError) {
-      const fields: Record<string, string> = {};
-      for (const [key, issue] of Object.entries(err.errors)) {
-        fields[key] = issue.message;
-      }
-
-      return errorResponse(
-        400,
-        "VALIDATION_ERROR",
-        "One or more fields are invalid",
-        fields
-      );
-    }
-
-    console.error("POST /api/auth/register failed:");
-    return errorResponse(500, "INTERNAL_ERROR", "Failed to create account");
+    return apiErrorResponse(err, { duplicate: {
+      code: 'EMAIL_ALREADY_EXISTS', message: 'An account with this email already exists',
+      fields: { email: 'An account with this email already exists' },
+    } });
   }
 }
 

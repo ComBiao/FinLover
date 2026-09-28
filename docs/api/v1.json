@@ -327,7 +327,7 @@
             }
           },
           "500": {
-            "description": "Internal error (legacy transaction malformed JSON also returns 500)",
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -680,7 +680,7 @@
             }
           },
           "500": {
-            "description": "Internal error (legacy transaction malformed JSON also returns 500)",
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -882,7 +882,7 @@
             }
           },
           "500": {
-            "description": "Internal error (legacy transaction malformed JSON also returns 500)",
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -1324,7 +1324,7 @@
             }
           },
           "500": {
-            "description": "Internal error (legacy transaction malformed JSON also returns 500)",
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -1826,7 +1826,7 @@
             }
           },
           "500": {
-            "description": "Internal error (legacy transaction malformed JSON also returns 500)",
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -2239,7 +2239,7 @@
             }
           },
           "500": {
-            "description": "Internal error (legacy transaction malformed JSON also returns 500)",
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -2711,7 +2711,7 @@
             }
           },
           "500": {
-            "description": "Internal error (legacy transaction malformed JSON also returns 500)",
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -3188,7 +3188,7 @@
             }
           },
           "500": {
-            "description": "Internal error (legacy transaction malformed JSON also returns 500)",
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -3557,7 +3557,7 @@
             }
           },
           "500": {
-            "description": "Internal error (legacy transaction malformed JSON also returns 500)",
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {

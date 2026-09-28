@@ -1,6 +1,7 @@
-import { logged } from './logging';
+import { logError, logged } from './logging';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { validationFields } from './errors';
 import { secure, type Handler, type RouteContext, type Policy } from './policy';
 type Options = Policy & { schema?: z.ZodType; input?: (value: Record<string, unknown>) => unknown; output?: (value: Record<string, unknown>) => unknown };
 /** Version mapping only: auth/CSRF policies and principal are shared with legacy. */
@@ -10,7 +11,7 @@ export function versioned(handler: Handler, options: Options = {}) {
     let raw: unknown;
     try { raw = await request.json(); } catch { return NextResponse.json({ error: { code: 'INVALID_JSON', message: 'Request body must be valid JSON' } }, { status: 400 }); }
     const parsed = options.schema.safeParse(raw);
-    if (!parsed.success) return NextResponse.json({ error: { code: 'VALIDATION_ERROR', message: 'One or more fields are invalid', fields: Object.fromEntries(parsed.error.issues.map(issue => [issue.path.join('.') || 'root', issue.message])) } }, { status: 400 });
+    if (!parsed.success) return NextResponse.json({ error: { code: 'VALIDATION_ERROR', message: 'One or more fields are invalid', fields: validationFields(parsed.error) } }, { status: 400 });
     const headers = new Headers(request.headers); headers.delete('content-length'); headers.set('content-type', 'application/json');
     const body = JSON.stringify(options.input ? options.input(parsed.data as Record<string, unknown>) : parsed.data);
     return handler(new Request(request.url, { method: request.method, headers, body }), context);
@@ -28,6 +29,6 @@ export function versioned(handler: Handler, options: Options = {}) {
       }
       const value = payload?.data ?? payload;
       return NextResponse.json({ status: true, data: options.output && value ? options.output(value) : value }, { status: response.status === 204 ? 200 : response.status, headers });
-    } catch { return NextResponse.json({ status: false, error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }, timestamp: new Date().toISOString(), path }, { status: 500 }); }
+    } catch (error) { logError(error); return NextResponse.json({ status: false, error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }, timestamp: new Date().toISOString(), path }, { status: 500 }); }
   });
 }

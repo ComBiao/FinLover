@@ -1,3 +1,4 @@
+import { seedTransaction } from '@/test/transaction-fixture';
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 import mongoose from 'mongoose';
@@ -32,7 +33,7 @@ afterAll(async () => { await mongoose.disconnect(); await mongo?.stop(); });
 beforeEach(async () => {
   vi.clearAllMocks();
   vi.stubEnv('PUBLIC_ORIGINS', 'http://localhost:3000');
-  await Promise.all([Wallet.deleteMany({}), Category.deleteMany({}), Transaction.deleteMany({}), User.deleteMany({})]);
+  await Promise.all([Wallet.deleteMany({}), Category.deleteMany({}), Transaction.collection.deleteMany({}), User.deleteMany({})]);
   wallet = String((await Wallet.create({ userId: user, name: 'Main' }))._id);
 });
 function request(method: string, path: string, body?: unknown, headers: Record<string, string> = { authorization: `Bearer ${token}` }) {
@@ -78,6 +79,10 @@ describe.each(['legacy', 'v1'] as const)('%s API contracts', version => {
     const body = version === 'v1' ? { walletId: wallet, categoryId: id, type: 'expense', amount: 42, date: '2026-09-01' } : { wallet_id: wallet, category_id: id, type: 'Expense', amount: 42, date: '2026-09-01' };
     const createdResponse = await t.create(request('POST', txPath, body), context()); expect(createdResponse.status).toBe(201);
     const tx = await contract(version, txPath, 'post', createdResponse);
+    if (version === 'v1') {
+      expect(tx.data).toEqual({ id: expect.any(String), walletId: wallet, categoryId: id, type: 'expense', amount: 42, date: '2026-09-01' });
+      expect(tx.data).not.toHaveProperty('wallet_id');
+    }
     await contract(version, `${txPath}/{id}`, 'put', await t.update(request('PUT', `${txPath}/${tx.data.id}`, { ...body, amount: 50 }), context(tx.data.id)));
     expect((await Wallet.findById(wallet))!.balance).toBe(-50);
     await contract(version, `${catPath}/{id}`, 'delete', await c.remove(request('DELETE', `${catPath}/${id}`), context(id)));
@@ -94,8 +99,8 @@ describe.each(['legacy', 'v1'] as const)('%s API contracts', version => {
     }
     const badId = await t.remove(request('DELETE', `${base}/bad`), context('bad')); expect(badId.status).toBe(version === 'v1' ? 400 : 422); await contract(version, `${base}/{id}`, 'delete', badId);
     const malformed = new NextRequest(`http://localhost:3000${base}`, { method: 'POST', headers: { authorization: `Bearer ${token}` }, body: '{' });
-    const badJson = await t.create(malformed, context()); expect(badJson.status).toBe(version === 'v1' ? 400 : 500); await contract(version, base, 'post', badJson);
-    const foreign = await Transaction.create({ userId: user, walletId: wallet, type: 'expense', amount: 1, date: new Date() });
+    const badJson = await t.create(malformed, context()); expect(badJson.status).toBe(400); await contract(version, base, 'post', badJson);
+    const foreign = await seedTransaction(new Transaction({ userId: user, walletId: wallet, type: 'expense', amount: 1, date: new Date() }));
     const denied = await t.remove(request('DELETE', `${base}/${foreign._id}`, undefined, { authorization: `Bearer ${otherToken}` }), context(String(foreign._id))); expect(denied.status).toBe(404); await contract(version, `${base}/{id}`, 'delete', denied);
   });
 });

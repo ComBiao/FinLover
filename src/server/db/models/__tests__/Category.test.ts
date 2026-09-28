@@ -1,3 +1,4 @@
+import { seedTransaction } from '@/test/transaction-fixture';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Category & Transaction Model Tests
@@ -258,7 +259,7 @@ describe('EPIC 3 — Category Management', () => {
 
     it('US3-4 guard — cascade hook does NOT run when system guard blocks deletion', async () => {
       const systemCat = await makeCategory({ name: 'Travel', isSystem: true }).save();
-      const tx = await makeTransaction({ categoryId: systemCat._id }).save();
+      const tx = await seedTransaction(makeTransaction({ categoryId: systemCat._id }));
 
       try {
         await Category.findOneAndDelete({ _id: systemCat._id });
@@ -443,8 +444,8 @@ describe('EPIC 3 — Category Management', () => {
       const cat = await makeCategory({ name: 'Coffee', type: 'expense', isSystem: false }).save();
 
       // Create two transactions linked to this category
-      const tx1 = await makeTransaction({ categoryId: cat._id }).save();
-      const tx2 = await makeTransaction({ categoryId: cat._id }).save();
+      const tx1 = await seedTransaction(makeTransaction({ categoryId: cat._id }));
+      const tx2 = await seedTransaction(makeTransaction({ categoryId: cat._id }));
 
       // Delete through the service so reference cleanup shares the transaction.
       await deleteCategoryAndCascade(cat._id, userId);
@@ -460,7 +461,7 @@ describe('EPIC 3 — Category Management', () => {
       const catA = await makeCategory({ name: 'Coffee', type: 'expense' }).save();
       const catB = await makeCategory({ name: 'Food',   type: 'expense' }).save();
 
-      const txLinkedToB = await makeTransaction({ categoryId: catB._id }).save();
+      const txLinkedToB = await seedTransaction(makeTransaction({ categoryId: catB._id }));
 
       // Delete only catA
       await deleteCategoryAndCascade(catA._id, userId);

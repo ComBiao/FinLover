@@ -1,3 +1,4 @@
+import { seedTransaction } from '@/test/transaction-fixture';
 import mongoose from 'mongoose';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { MongoMemoryReplSet } from 'mongodb-memory-server';
@@ -32,14 +33,14 @@ describe('Transaction categoryId validation bug', () => {
     const expenseCat = await Category.create({ userId: user._id, name: 'Food', type: 'expense', icon: 'food' });
 
     // Create an income transaction
-    const tx = await Transaction.create({
+    const tx = await seedTransaction(new Transaction({
       userId: user._id,
       walletId: wallet._id,
       categoryId: incomeCat._id,
       type: 'income',
       amount: 100,
       date: new Date()
-    });
+    }));
 
     // Try to update the transaction's category to an expense category
     let err: Error | null = null;

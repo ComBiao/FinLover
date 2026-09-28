@@ -1,5 +1,6 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import mongooseLeanGetters from 'mongoose-lean-getters';
+import { assertTransactionWrite } from '../transaction-write-guard';
 
 
 // ---------------------------------------------------------------------------
@@ -68,7 +69,7 @@ const TransactionSchema: Schema = new Schema({
     enum: ['income', 'expense'],
     required: true,
     // The transaction API accepts title-case values; persist the model's
-    // canonical lowercase representation used by Category and balance hooks.
+    // canonical lowercase representation used by Category and transaction services.
     set: (value: unknown) => typeof value === 'string' ? value.toLowerCase() : value,
   },
   amount: { type: Number, required: true, min: [0.01, 'Amount must be at least 0.01'] },
@@ -90,7 +91,17 @@ TransactionSchema.index({ walletId: 1, userId: 1 });
 TransactionSchema.index({ categoryId: 1 });
 TransactionSchema.index({ 'recurrence.parentId': 1 });
 
-// Writes that affect balances must go through transaction services and UnitOfWork.
+// No balance hooks: reject unsupported writes instead of silently drifting balances.
+TransactionSchema.pre('save', function () { assertTransactionWrite(this, this.$session()); });
+TransactionSchema.pre(['updateOne', 'updateMany', 'findOneAndUpdate', 'replaceOne', 'findOneAndReplace', 'deleteOne', 'deleteMany', 'findOneAndDelete'], function () {
+  assertTransactionWrite(this, this.getOptions().session);
+});
+TransactionSchema.pre('deleteOne', { document: true, query: false }, function () {
+  assertTransactionWrite(this, this.$session());
+});
+// Repositories deliberately do not expose bulk writes, which bypass document checks.
+TransactionSchema.pre('insertMany', function () { assertTransactionWrite(this); });
+TransactionSchema.pre('bulkWrite', function () { assertTransactionWrite(this); });
 TransactionSchema.plugin(mongooseLeanGetters);
 
 export default (mongoose.models.Transaction as mongoose.Model<ITransaction>) || mongoose.model<ITransaction>('Transaction', TransactionSchema);

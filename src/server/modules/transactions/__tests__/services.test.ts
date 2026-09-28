@@ -2,6 +2,7 @@ import { beforeAll, afterAll, beforeEach, describe, it, expect, vi } from 'vites
 import mongoose from 'mongoose';
 import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import Wallet from '@/server/db/models/Wallet';
+import User from '@/server/db/models/User';
 import Category from '@/server/db/models/Category';
 import Transaction from '@/server/db/models/Transaction';
 import { MongoUnitOfWork } from '@/server/db/unit-of-work';
@@ -32,7 +33,7 @@ beforeAll(async () => {
 afterAll(async () => { await mongoose.disconnect(); await mongo?.stop(); });
 beforeEach(async () => {
   vi.restoreAllMocks();
-  await Promise.all([Wallet.deleteMany({}), Transaction.deleteMany({}), Category.deleteMany({})]);
+  await Promise.all([Wallet.deleteMany({}), Transaction.collection.deleteMany({}), Category.deleteMany({}), User.deleteMany({})]);
   const wallet = await Wallet.create({ userId: user, name: 'Main' });
   input = { walletId: String(wallet._id), categoryId: null, type: 'expense', amount: 200, date: new Date('2026-08-25') };
 });
@@ -119,11 +120,79 @@ describe('transaction services: migrated balance and reference rules', () => {
     const stored = await Transaction.findById(tx.id);
     expect(await balance()).toBe(-40 - stored!.amount);
   });
-  it('does not run implicit balance hooks on persistence operations', async () => {
-    const doc = await Transaction.create({ ...input, userId: user });
-    await Transaction.updateOne({ _id: doc._id }, { $set: { amount: 300 } });
-    await Transaction.findOneAndUpdate({ _id: doc._id }, { $set: { amount: 400 } });
-    await Transaction.deleteOne({ _id: doc._id });
-    expect(await balance()).toBe(0);
+  it('rejects model writes even with a live UnitOfWork session', async () => {
+    const tx = await create.execute(user, input);
+    await uow.run(async context => {
+      const session = context.session as mongoose.ClientSession;
+      const doc = (await Transaction.findById(tx.id).session(session))!;
+      const writes = [
+        () => new Transaction({ ...input, userId: user }).save({ session }),
+        () => Transaction.create([{ ...input, userId: user }], { session }),
+        () => { doc.amount = 400; return doc.save({ session, validateBeforeSave: false }); },
+        () => doc.deleteOne({ session }),
+        () => Transaction.updateOne({ _id: tx.id }, { amount: 400 }, { session }),
+        () => Transaction.updateMany({}, { amount: 400 }, { session }),
+        () => Transaction.findOneAndUpdate({ _id: tx.id }, { amount: 400 }, { session }),
+        () => Transaction.replaceOne({ _id: tx.id }, { ...input, userId: user }, { session }),
+        () => Transaction.findOneAndReplace({ _id: tx.id }, { ...input, userId: user }, { session }),
+        () => Transaction.deleteOne({ _id: tx.id }, { session }),
+        () => Transaction.deleteMany({}, { session }),
+        () => Transaction.findOneAndDelete({ _id: tx.id }, { session }),
+        () => Transaction.insertMany([{ ...input, userId: user }], { session }),
+        () => Transaction.bulkWrite([{ deleteMany: { filter: {} } }], { session }),
+      ];
+      for (const write of writes) await expect(write()).rejects.toThrow('TransactionRepository');
+    });
+    expect((await Transaction.findById(tx.id))!.amount).toBe(200);
+    expect(await Transaction.countDocuments()).toBe(1);
+    expect(await balance()).toBe(-200);
   });
+  it('rejects raw saves without a session and repository writes without an active transaction', async () => {
+    await expect(Transaction.create({ ...input, userId: user })).rejects.toThrow('TransactionRepository');
+    await expect(repo.create(user, input, { session: undefined })).rejects.toThrow('active UnitOfWork');
+    expect(await Transaction.countDocuments()).toBe(0);
+  });
+  it.each(['foreign-wallet', 'missing-category', 'foreign-category', 'wrong-type'])('repository rechecks %s on create and update', async variant => {
+    const tx = await create.execute(user, input);
+    const invalid = { ...input };
+    if (variant === 'foreign-wallet') {
+      invalid.walletId = String((await Wallet.create({ userId: other, name: 'Other' }))._id);
+    } else if (variant === 'missing-category') {
+      invalid.categoryId = new mongoose.Types.ObjectId().toString();
+    } else {
+      invalid.categoryId = String((await Category.create({ userId: variant === 'foreign-category' ? other : user, name: variant, type: variant === 'wrong-type' ? 'income' : 'expense' }))._id);
+    }
+    for (const write of [() => uow.run(c => repo.create(user, invalid, c)), () => uow.run(c => repo.update(tx.id, user, invalid, c))]) {
+      await expect(write()).rejects.toMatchObject({ code: variant === 'foreign-wallet' ? 'NOT_FOUND' : 'VALIDATION_ERROR' });
+    }
+    expect(await Transaction.countDocuments()).toBe(1);
+    expect((await Transaction.findById(tx.id))!.categoryId).toBeNull();
+    expect(await balance()).toBe(-200);
+  });
+  it('persists note/date edits without changing balance', async () => {
+    const tx = await create.execute(user, input);
+    const updated = await update.execute(tx.id, user, { ...input, note: 'edited', date: new Date('2026-09-01') });
+    expect(updated.note).toBe('edited');
+    expect(updated.date.toISOString()).toBe('2026-09-01T00:00:00.000Z');
+    expect(await balance()).toBe(-200);
+  });
+  it.each(['wallet', 'user'])('internal %s cascade propagates sessions and rolls back', async owner => {
+    await User.create({ _id: user, email: `${owner}@example.com`, passwordHash: 'fixture', dataPrivacyConsent: true });
+    const tx = await create.execute(user, input);
+    const destroy = (session: mongoose.ClientSession) => owner === 'wallet'
+      ? Wallet.findOneAndDelete({ _id: input.walletId }, { session }).exec()
+      : User.findOneAndDelete({ _id: user }, { session }).exec();
+    await expect(uow.run(async context => {
+      const session = context.session as mongoose.ClientSession;
+      await destroy(session);
+      expect(await Transaction.findById(tx.id).session(session)).toBeNull();
+      throw new Error('rollback cascade');
+    })).rejects.toThrow('rollback cascade');
+    expect(await Transaction.findById(tx.id)).not.toBeNull();
+    expect(await balance()).toBe(-200);
+    await uow.run<unknown>(context => destroy(context.session as mongoose.ClientSession));
+    expect(await Transaction.findById(tx.id)).toBeNull();
+    expect(await Wallet.findById(input.walletId)).toBeNull();
+  });
+
 });

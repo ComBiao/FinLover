@@ -29,3 +29,5 @@ Build downloads the existing Google Fonts. Production cookies require HTTPS. Bot
 See the [codebase guide](docs/codebase.md) ([HTML](docs/codebase.html)), [API guide](docs/api/README.md), [ERD](docs/ERD.md), [implementation plan](docs/frontend-backend-refactor-plan.md) and [validation report](docs/refactor-validation.md).
 
 Production builds explicitly use `next build --webpack`; this environment rejected Turbopack worker port creation (EPERM). Development still uses `next dev`.
+
+Transaction writes must use application services: repositories enforce reference checks and model write guards require an active transaction. See [codebase rules](docs/codebase.md) and [validation evidence](docs/refactor-validation.md).

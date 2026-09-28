@@ -1,3 +1,4 @@
+import { apiErrorResponse, errorResponse, validationFields } from '@/server/shared/http/errors';
 import type { LoginService } from "../services/LoginService";
 import { NextResponse } from "next/server";
 import { loginSchema } from "@/shared/contracts";
@@ -5,24 +6,6 @@ import { signToken } from "@/server/shared/auth/crypto";
 import { setSessionCookie } from "@/server/shared/auth/session";
 import { connectDB } from "@/server/db/index";
 
-
-type ErrorCode =
-  | "INVALID_JSON"
-  | "VALIDATION_ERROR"
-  | "INVALID_CREDENTIALS"
-  | "INTERNAL_ERROR";
-
-function errorResponse(
-  status: number,
-  code: ErrorCode,
-  message: string,
-  fields?: Record<string, string>
-) {
-  return NextResponse.json(
-    { error: fields ? { code, message, fields } : { code, message } },
-    { status }
-  );
-}
 
 /**
  * POST /api/auth/login
@@ -42,11 +25,7 @@ export class LoginController {
 
   const parsed = loginSchema.safeParse(body);
   if (!parsed.success) {
-    const fields: Record<string, string> = {};
-    for (const issue of parsed.error.issues) {
-      const key = issue.path.join(".") || "root";
-      fields[key] ??= issue.message;
-    }
+    const fields = validationFields(parsed.error);
     return errorResponse(
       400,
       "VALIDATION_ERROR",
@@ -76,9 +55,8 @@ export class LoginController {
     return NextResponse.json({
       user: { id: user._id.toString(), email: user.email },
     });
-  } catch {
-    console.error("POST /api/auth/login failed:");
-    return errorResponse(500, "INTERNAL_ERROR", "Failed to log in");
+  } catch (error) {
+    return apiErrorResponse(error);
   }
 }
 }

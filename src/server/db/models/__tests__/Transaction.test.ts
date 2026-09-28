@@ -1,3 +1,4 @@
+import { seedTransaction } from '@/test/transaction-fixture';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Category & Transaction Model Tests
@@ -49,7 +50,6 @@ beforeEach(async () => {
 // Shared test-data factories
 // ---------------------------------------------------------------------------
 const userId  = new mongoose.Types.ObjectId();
-const userId2 = new mongoose.Types.ObjectId();
 const walletId = new mongoose.Types.ObjectId();
 
 function makeCategory(overrides: Record<string, unknown> = {}) {
@@ -90,12 +90,12 @@ describe('EPIC 2 — Transaction Management', () => {
     it('AC1 — saves a valid expense transaction with all fields', async () => {
       const cat = await makeCategory({ name: 'Food', type: 'expense' }).save();
 
-      const tx = await makeTransaction({
+      const tx = await seedTransaction(makeTransaction({
         amount: 500.00,
         date: new Date('2026-08-25'),
         type: 'expense',
         categoryId: cat._id,
-      }).save();
+      }));
 
       expect(tx._id).toBeDefined();
       expect(tx.amount).toBe(500);
@@ -108,12 +108,12 @@ describe('EPIC 2 — Transaction Management', () => {
      * → categoryId defaults to null ("Not Chosen").
      */
     it('AC2 — saves a transaction without category (categoryId defaults to null)', async () => {
-      const tx = await makeTransaction({ categoryId: undefined }).save();
+      const tx = await seedTransaction(makeTransaction({ categoryId: undefined }));
       expect(tx.categoryId).toBeNull();
     });
 
     it('AC2 — saves a valid income transaction', async () => {
-      const tx = await makeTransaction({ type: 'income', amount: 3000 }).save();
+      const tx = await seedTransaction(makeTransaction({ type: 'income', amount: 3000 }));
       expect(tx.type).toBe('income');
     });
 
@@ -123,7 +123,7 @@ describe('EPIC 2 — Transaction Management', () => {
     it('AC3 — rejects a negative amount', async () => {
       let err: mongoose.Error.ValidationError | null = null;
       try {
-        await makeTransaction({ amount: -500 }).save();
+        await seedTransaction(makeTransaction({ amount: -500 }));
       } catch (e: any) {
         err = e;
       }
@@ -135,7 +135,7 @@ describe('EPIC 2 — Transaction Management', () => {
     it('AC3 — rejects amount = 0', async () => {
       let err: mongoose.Error.ValidationError | null = null;
       try {
-        await makeTransaction({ amount: 0 }).save();
+        await seedTransaction(makeTransaction({ amount: 0 }));
       } catch (e: any) {
         err = e;
       }
@@ -147,7 +147,7 @@ describe('EPIC 2 — Transaction Management', () => {
     it('AC3 — rejects amount < 0.01 (e.g. 0.009)', async () => {
       let err: mongoose.Error.ValidationError | null = null;
       try {
-        await makeTransaction({ amount: 0.009 }).save();
+        await seedTransaction(makeTransaction({ amount: 0.009 }));
       } catch (e: any) {
         err = e;
       }
@@ -159,7 +159,7 @@ describe('EPIC 2 — Transaction Management', () => {
     it('AC3 — rejects an empty/missing date field', async () => {
       let err: mongoose.Error.ValidationError | null = null;
       try {
-        await makeTransaction({ date: undefined }).save();
+        await seedTransaction(makeTransaction({ date: undefined }));
       } catch (e: any) {
         err = e;
       }
@@ -171,7 +171,7 @@ describe('EPIC 2 — Transaction Management', () => {
     it('AC3 — rejects missing required fields (userId, walletId, amount, date)', async () => {
       let err: mongoose.Error.ValidationError | null = null;
       try {
-        await new Transaction({ type: 'expense' }).save();
+        await seedTransaction(new Transaction({ type: 'expense' }));
       } catch (e: any) {
         err = e;
       }
@@ -186,7 +186,7 @@ describe('EPIC 2 — Transaction Management', () => {
     it('AC3 — rejects an invalid type value (not income/expense)', async () => {
       let err: mongoose.Error.ValidationError | null = null;
       try {
-        await makeTransaction({ type: 'transfer' }).save();
+        await seedTransaction(makeTransaction({ type: 'transfer' }));
       } catch (e: any) {
         err = e;
       }
@@ -196,19 +196,19 @@ describe('EPIC 2 — Transaction Management', () => {
     });
 
     it('boundary — accepts the minimum valid amount (0.01)', async () => {
-      const tx = await makeTransaction({ amount: 0.01 }).save();
+      const tx = await seedTransaction(makeTransaction({ amount: 0.01 }));
       expect(tx.amount).toBe(0.01);
     });
 
     it('timestamps — auto-generates createdAt and updatedAt', async () => {
-      const tx = await makeTransaction().save();
+      const tx = await seedTransaction(makeTransaction());
       expect(tx.createdAt).toBeInstanceOf(Date);
       expect(tx.updatedAt).toBeInstanceOf(Date);
     });
 
     it('ObjectIds — userId, walletId, categoryId are cast to ObjectId', async () => {
       const cat = await makeCategory({ name: 'Food', type: 'expense' }).save();
-      const tx = await makeTransaction({ categoryId: cat._id.toString() }).save();
+      const tx = await seedTransaction(makeTransaction({ categoryId: cat._id.toString() }));
 
       expect(tx.userId).toBeInstanceOf(mongoose.Types.ObjectId);
       expect(tx.walletId).toBeInstanceOf(mongoose.Types.ObjectId);
@@ -216,136 +216,11 @@ describe('EPIC 2 — Transaction Management', () => {
     });
   });
 
-  // =========================================================================
-  // US2-2 — Edit an existing transaction
-  // =========================================================================
-  describe('US2-2 — Edit a transaction', () => {
-    /**
-     * AC: Existing transaction amount "500.00" → update to "550.00" → allowed.
-     */
-    it('AC1 — allows updating the amount of an existing transaction', async () => {
-      const tx = await makeTransaction({ amount: 500 }).save();
-
-      const updated = await Transaction.findOneAndUpdate(
-        { _id: tx._id },
-        { $set: { amount: 550 } },
-        { new: true, runValidators: true }
-      );
-
-      expect(updated?.amount).toBe(550);
-    });
-
-    it('AC1 — allows updating the notes field', async () => {
-      const tx = await makeTransaction().save();
-
-      const updated = await Transaction.findOneAndUpdate(
-        { _id: tx._id },
-        { $set: { notes: 'Updated note' } },
-        { new: true, runValidators: true }
-      );
-
-      expect(updated?.notes).toBe('Updated note');
-    });
-
-    it('AC1 — allows updating the date field', async () => {
-      const tx = await makeTransaction().save();
-      const newDate = new Date('2026-09-01');
-
-      const updated = await Transaction.findOneAndUpdate(
-        { _id: tx._id },
-        { $set: { date: newDate } },
-        { new: true, runValidators: true }
-      );
-
-      expect(updated?.date.getTime()).toBe(newDate.getTime());
-    });
-
-    /**
-     * AC: Negative amount on edit → error, do not update.
-     */
-    it('AC2 — rejects updating amount to a negative value', async () => {
-      const tx = await makeTransaction({ amount: 500 }).save();
-
-      let err: any = null;
-      try {
-        await Transaction.findOneAndUpdate(
-          { _id: tx._id },
-          { $set: { amount: -500 } },
-          { runValidators: true }
-        );
-      } catch (e: any) {
-        err = e;
-      }
-
-      expect(err).toBeDefined();
-      // After failed update, original value should be intact
-      const original = await Transaction.findById(tx._id);
-      expect(original?.amount).toBe(500);
-    });
-
-    it('AC2 — rejects updating amount to zero', async () => {
-      const tx = await makeTransaction({ amount: 500 }).save();
-
-      let err: any = null;
-      try {
-        await Transaction.findOneAndUpdate(
-          { _id: tx._id },
-          { $set: { amount: 0 } },
-          { runValidators: true }
-        );
-      } catch (e: any) {
-        err = e;
-      }
-
-      expect(err).toBeDefined();
-    });
-  });
-
-  // =========================================================================
-  // US2-3 — Delete a transaction
-  // =========================================================================
-  describe('US2-3 — Delete a transaction', () => {
-    /**
-     * AC: Transaction with ID "TXN-1001" owned by user → delete → removed.
-     */
-    it('AC1 — successfully deletes an owned transaction', async () => {
-      const tx = await makeTransaction().save();
-
-      await Transaction.findOneAndDelete({ _id: tx._id, userId });
-
-      const found = await Transaction.findById(tx._id);
-      expect(found).toBeNull();
-    });
-
-    /**
-     * AC: Transaction NOT owned by user → cannot delete.
-     */
-    it('AC2 — does not delete a transaction belonging to a different user', async () => {
-      // Create a transaction owned by userId2
-      const otherTx = await makeTransaction({ userId: userId2 }).save();
-
-      // Attempt to delete using userId (the wrong owner)
-      const result = await Transaction.findOneAndDelete({ _id: otherTx._id, userId });
-
-      // findOneAndDelete returns null when filter doesn't match
-      expect(result).toBeNull();
-
-      // The transaction should still exist
-      const stillExists = await Transaction.findById(otherTx._id);
-      expect(stillExists).not.toBeNull();
-    });
-
-    it('deleting a non-existent transaction returns null gracefully', async () => {
-      const fakeId = new mongoose.Types.ObjectId();
-      const result = await Transaction.findOneAndDelete({ _id: fakeId, userId });
-      expect(result).toBeNull();
-    });
-  });
-
+  // Mutation/ownership/balance behavior is tested through transaction services.
   // =========================================================================
   // US2-4 — Select a category while adding/editing a transaction
   // =========================================================================
-  // Category ownership/type rules are covered in modules/v1/transactions/__tests__/services.test.ts.
+  // Category ownership/type rules are covered in modules/transactions/__tests__/services.test.ts.
 
   // =========================================================================
   // US2-5 — Schema gap: Recurring transaction fields
@@ -380,13 +255,13 @@ describe('EPIC 2 — Transaction Management', () => {
 
 
     it('AC1 — saves a valid recurring transaction with frequency and startDate', async () => {
-      const tx = await makeTransaction({
+      const tx = await seedTransaction(makeTransaction({
         recurrence: {
           isRecurring: true,
           frequency: 'monthly',
           startDate: new Date('2026-09-01'),
         },
-      }).save();
+      }));
 
       expect(tx.recurrence.isRecurring).toBe(true);
       expect(tx.recurrence.frequency).toBe('monthly');
@@ -394,9 +269,9 @@ describe('EPIC 2 — Transaction Management', () => {
     });
 
     it('AC1 — saves a valid Weekly recurring transaction', async () => {
-      const tx = await makeTransaction({
+      const tx = await seedTransaction(makeTransaction({
         recurrence: { isRecurring: true, frequency: 'weekly', startDate: new Date('2026-09-01') },
-      }).save();
+      }));
 
       expect(tx.recurrence.frequency).toBe('weekly');
     });
@@ -404,9 +279,9 @@ describe('EPIC 2 — Transaction Management', () => {
     it('AC2 — rejects a frequency value outside {Weekly, Monthly}', async () => {
       let err: mongoose.Error.ValidationError | null = null;
       try {
-        await makeTransaction({
+        await seedTransaction(makeTransaction({
           recurrence: { isRecurring: true, frequency: 'Daily', startDate: new Date('2026-09-01') },
-        }).save();
+        }));
       } catch (e: any) {
         err = e;
       }
@@ -417,9 +292,9 @@ describe('EPIC 2 — Transaction Management', () => {
     it('AC2 — rejects isRecurring:true without frequency', async () => {
       let err: any = null;
       try {
-        await makeTransaction({
+        await seedTransaction(makeTransaction({
           recurrence: { isRecurring: true, startDate: new Date('2026-09-01') },
-        }).save();
+        }));
       } catch (e: any) {
         err = e;
       }
@@ -431,9 +306,9 @@ describe('EPIC 2 — Transaction Management', () => {
     it('AC2 — rejects isRecurring:true without startDate', async () => {
       let err: any = null;
       try {
-        await makeTransaction({
+        await seedTransaction(makeTransaction({
           recurrence: { isRecurring: true, frequency: 'monthly' },
-        }).save();
+        }));
       } catch (e: any) {
         err = e;
       }
@@ -443,18 +318,18 @@ describe('EPIC 2 — Transaction Management', () => {
     });
 
     it('default — recurrence.isRecurring defaults to false when omitted', async () => {
-      const tx = await makeTransaction().save();
+      const tx = await seedTransaction(makeTransaction());
       expect(tx.recurrence.isRecurring).toBe(false);
     });
 
     it('parentId — links a child posting back to its parent rule', async () => {
-      const parentTx = await makeTransaction({
+      const parentTx = await seedTransaction(makeTransaction({
         recurrence: { isRecurring: true, frequency: 'monthly', startDate: new Date('2026-09-01') },
-      }).save();
+      }));
 
-      const childTx = await makeTransaction({
+      const childTx = await seedTransaction(makeTransaction({
         recurrence: { isRecurring: false, parentId: parentTx._id },
-      }).save();
+      }));
 
       expect(childTx.recurrence.parentId?.toString()).toBe(parentTx._id.toString());
     });

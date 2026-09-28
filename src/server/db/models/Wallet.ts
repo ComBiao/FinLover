@@ -34,7 +34,8 @@ WalletSchema.pre('findOneAndDelete', async function() {
   const Transaction = mongoose.model('Transaction');
   
   // Automatically delete all transactions linked to this wallet to prevent orphaned data
-  await Transaction.deleteMany({ walletId: walletId }, { session: this.getOptions().session ?? undefined });
+  // Internal cascade deletes the owning wallet(s) too, so no balance survives.
+  await Transaction.collection.deleteMany({ walletId: walletId }, { session: this.getOptions().session ?? undefined });
   
   // No next() needed here either!
 });

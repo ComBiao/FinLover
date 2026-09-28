@@ -10,12 +10,13 @@ import { createAuthRouter } from '../modules/auth/router';
 import { hashPassword, comparePassword } from '@/server/shared/auth/crypto';
 export const rawAuth = createAuthRouter(new UserRepository(), { hash: hashPassword, compare: comparePassword });
 import { createCategoryRouter } from '../modules/categories/router';
-export const rawCategories = createCategoryRouter(new TransactionRepository(), new MongoUnitOfWork());
+export const deleteCategoryService = new DeleteCategoryService(new CategoryRepository(), new TransactionRepository(), new MongoUnitOfWork());
+export const rawCategories = createCategoryRouter(deleteCategoryService);
 import { createTransactionRouter } from '../modules/transactions/router';
 import { WalletRepository } from '../modules/wallets/repositories/WalletRepository';
 export const rawTransactions = createTransactionRouter(new WalletRepository(), new CategoryRepository(), new MongoUnitOfWork());
 
-export const deleteCategoryService = new DeleteCategoryService(new CategoryRepository(), new TransactionRepository(), new MongoUnitOfWork());
+
 
 export const auth = {
   login: logged(secure(rawAuth.login, { browserAuth: true })),

@@ -50,7 +50,8 @@ UserSchema.pre('findOneAndDelete', async function() {
   // A session must execute writes sequentially.
   await Wallet.deleteMany({ userId }, { session: this.getOptions().session ?? undefined });
   await Category.deleteMany({ userId }, { session: this.getOptions().session ?? undefined });
-  await Transaction.deleteMany({ userId }, { session: this.getOptions().session ?? undefined });
+  // Internal cascade deletes the owning wallet(s) too, so no balance survives.
+  await Transaction.collection.deleteMany({ userId }, { session: this.getOptions().session ?? undefined });
   
   // Omitting next() to maintain strict TypeScript hot-reload safety
 });

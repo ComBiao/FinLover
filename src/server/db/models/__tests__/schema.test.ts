@@ -1,3 +1,4 @@
+import { seedTransaction } from '@/test/transaction-fixture';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
@@ -228,7 +229,7 @@ describe('Mongoose Schema Validations', () => {
         type: 'income',
         date: new Date(),
       });
-      const savedTransaction = await validTransaction.save();
+      const savedTransaction = await seedTransaction(validTransaction);
       
       expect(savedTransaction._id).toBeDefined();
       expect(savedTransaction.userId).toBeInstanceOf(mongoose.Types.ObjectId);
@@ -244,7 +245,7 @@ describe('Mongoose Schema Validations', () => {
         type: 'expense',
         date: new Date(),
       });
-      const savedTransaction = await noCategoryTransaction.save();
+      const savedTransaction = await seedTransaction(noCategoryTransaction);
       
       expect(savedTransaction._id).toBeDefined();
       expect(savedTransaction.categoryId).toBeNull(); 
@@ -258,7 +259,7 @@ describe('Mongoose Schema Validations', () => {
         type: 'expense',
         date: new Date(),
       });
-      const saved = await tx.save();
+      const saved = await seedTransaction(tx);
 
       expect(saved.createdAt).toBeInstanceOf(Date);
       expect(saved.updatedAt).toBeInstanceOf(Date);

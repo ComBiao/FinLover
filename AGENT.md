@@ -12,7 +12,7 @@ One modular Next.js application, one root package.json/lockfile, npm only, Node.
 - `src/app` composes pages/layouts and thin HTTP entries. Feature UI/hooks/stores live in `src/features`.
 - `src/server/modules`: controllers → services → repositories, constructor injection. Controllers do not query models; services do not import Next/HTTP or return HTTP statuses.
 - Cross-module ports live in `src/server/shared/ports`; implementations are wired in `src/server/composition`.
-- `src/server/db` owns models, connection, UnitOfWork and operational migrations. Transaction services alone own balances/reference checks; do not restore balance hooks or write application transactions directly through models.
+- `src/server/db` owns models, connection, UnitOfWork and operational migrations. Transaction services own balance changes; repositories recheck ownership/type references and authorize one model write in an active UnitOfWork. Model middleware rejects unapproved save/query/bulk writes. Do not restore balance hooks or write application transactions directly through models. Raw collection access is reserved for operational migrations, test fixtures and internal cascades that remove the owning wallet(s).
 - Existing system-category guards/user-wallet persistence cascades remain for internal compatibility with session propagation. Category cascade clears references without changing balances.
 - Production data-access/composition boundaries use server-only; frontend/contracts must not import server implementation. ESLint enforces the source boundary.
 - Config belongs at root; dev tooling in infra-dev; migrations remain source and never execute automatically.

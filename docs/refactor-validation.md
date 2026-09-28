@@ -33,3 +33,13 @@ Browser checks confirmed login redirects to dashboard and logout returns to logi
 - Category/transaction/dashboard data and profile display remain mocked; no list/report/wallet/current-user endpoints were added. This completes the architecture/auth integration scope, not all product functionality.
 - Logout clears the browser cookie but does not revoke an already issued stateless JWT. Full name remains a form-only field under the existing user contract.
 - No database migration, schema conversion, commit or push was performed.
+
+## Review fixes — 2026-09-28
+
+- Transaction model middleware now rejects save, query mutation, insertMany and bulkWrite unless a repository authorizes the individual operation in an active transaction. Balance ownership remains in application services; repositories independently recheck references on create/update.
+- Internal user/wallet cascades use explicitly scoped collection deletion because their owning wallets are removed too; rollback/session propagation is covered. Raw collection access remains a deliberate low-level escape for migrations and test fixtures, not an application API.
+- Category routes and the compatibility cascade share one delete service. Removed the unused wallet cascade and unused transaction DTO v1 method; exact v1 response mapping is covered by contract assertions.
+- HTTP error handling and Zod issue mapping are shared. Logs retain request ID, error type, numeric driver code and stack frames, excluding messages/private attached data. All unexpected errors use INTERNAL_ERROR. Malformed legacy transaction JSON now returns 400; OpenAPI is regenerated.
+- Category services and v1 routes validate with the same shared Zod schemas.
+
+Verification for these fixes: 20 test files / 296 tests passed using disposable local MongoDB replica sets; lint passed with the existing temp4.test.ts warning; type-check, production Webpack build, API drift checks, documentation checks and ERD generation passed. No production database, deployment, commit or push was involved. The earlier browser/HTTP smoke above was not repeated for this patch.
