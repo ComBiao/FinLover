@@ -3,7 +3,7 @@ import Wallet from '@/server/db/models/Wallet';
 import { sessionOf } from '@/server/db/unit-of-work';
 import type { TransactionContext } from '@/server/shared/ports/unit-of-work';
 import type { WalletAccess } from '@/server/shared/ports/transactions';
-import type { WalletInput, WalletRecord, WalletRepositoryPort } from '@/server/shared/ports/wallets';
+import type { WalletCreateInput, WalletRecord, WalletRepositoryPort, WalletUpdateInput } from '@/server/shared/ports/wallets';
 import { AppError } from '@/server/shared/kernel/AppError';
 
 function toRecord(doc: InstanceType<typeof Wallet>): WalletRecord {
@@ -34,8 +34,8 @@ export class WalletRepository implements WalletAccess, WalletRepositoryPort {
     const doc = await Wallet.findOne({ _id: id, userId }).session(sessionOf(context) ?? null);
     return doc ? toRecord(doc) : null;
   }
-  async create(userId: string, input: WalletInput) { return Wallet.create({ ...input, userId }); }
-  async update(id: string, userId: string, input: WalletInput) {
+  async create(userId: string, input: WalletCreateInput) { return Wallet.create({ ...input, userId }); }
+  async update(id: string, userId: string, input: WalletUpdateInput) {
     const doc = await Wallet.findOne({ _id: id, userId });
     if (!doc) return null;
     Object.assign(doc, input);
