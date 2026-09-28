@@ -14,7 +14,8 @@ export const deleteCategoryService = new DeleteCategoryService(new CategoryRepos
 export const rawCategories = createCategoryRouter(deleteCategoryService);
 import { createTransactionRouter } from '../modules/transactions/router';
 import { WalletRepository } from '../modules/wallets/repositories/WalletRepository';
-export const rawTransactions = createTransactionRouter(new WalletRepository(), new CategoryRepository(), new MongoUnitOfWork());
+export const walletRepository = new WalletRepository();
+export const rawTransactions = createTransactionRouter(walletRepository, new CategoryRepository(), new MongoUnitOfWork());
 
 
 

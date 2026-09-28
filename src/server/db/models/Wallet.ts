@@ -6,6 +6,10 @@ export interface IWallet extends Document {
   name: string;
   balance: number;
   isDefault: boolean;
+  color?: string;
+  isSaving: boolean;
+  goalAmount?: number;
+  hideBalance: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -14,8 +18,12 @@ const WalletSchema: Schema = new Schema({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   name: { type: String, required: true, trim: true },
   balance: { type: Number, required: true, default: 0 },
-  isDefault: { type: Boolean, default: false }
-}, { 
+  isDefault: { type: Boolean, default: false },
+  color: { type: String, trim: true },
+  isSaving: { type: Boolean, default: false },
+  goalAmount: { type: Number, min: 0 },
+  hideBalance: { type: Boolean, default: false }
+}, {
   timestamps: true,
   toJSON: { getters: true },
   toObject: { getters: true }
