@@ -22,6 +22,10 @@ erDiagram
     String name
     Number balance
     Boolean isDefault
+    String color
+    Boolean isSaving
+    Number goalAmount
+    Boolean hideBalance
     ObjectId _id
     Date createdAt
     Date updatedAt
