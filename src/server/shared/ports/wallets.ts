@@ -19,7 +19,7 @@ export interface WalletRecord {
 export interface WalletRepositoryPort {
   list(userId: string, context?: TransactionContext): Promise<WalletRecord[]>;
   findOwned(id: string, userId: string, context?: TransactionContext): Promise<WalletRecord | null>;
-  create(userId: string, input: WalletCreateInput): Promise<unknown>;
-  update(id: string, userId: string, input: WalletUpdateInput): Promise<unknown>;
+  create(userId: string, input: WalletCreateInput): Promise<WalletRecord>;
+  update(id: string, userId: string, input: WalletUpdateInput): Promise<WalletRecord | null>;
   delete(id: string, userId: string, context: TransactionContext): Promise<unknown>;
 }

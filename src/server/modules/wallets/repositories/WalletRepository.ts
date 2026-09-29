@@ -34,12 +34,12 @@ export class WalletRepository implements WalletAccess, WalletRepositoryPort {
     const doc = await Wallet.findOne({ _id: id, userId }).session(sessionOf(context) ?? null);
     return doc ? toRecord(doc) : null;
   }
-  async create(userId: string, input: WalletCreateInput) { return Wallet.create({ ...input, userId }); }
+  async create(userId: string, input: WalletCreateInput) { return toRecord(await Wallet.create({ ...input, userId })); }
   async update(id: string, userId: string, input: WalletUpdateInput) {
     const doc = await Wallet.findOne({ _id: id, userId });
     if (!doc) return null;
     Object.assign(doc, input);
-    return doc.save();
+    return toRecord(await doc.save());
   }
   async delete(id: string, userId: string, context: TransactionContext) {
     return Wallet.findOneAndDelete({ _id: id, userId }, { session: sessionOf(context) });
