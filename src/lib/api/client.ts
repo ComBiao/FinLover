@@ -11,7 +11,13 @@ export async function postApi<T>(path: string, body?: unknown): Promise<T> {
 
 export async function getApi<T>(path: string): Promise<T> {
   const response = await fetch(path, { credentials: 'same-origin' });
-  const payload = await response.json();
+  let payload: { status?: boolean; data?: unknown; error?: { message?: string; fields?: Record<string, string> } };
+  try {
+    payload = await response.json();
+  } catch (error) {
+    if (!response.ok) throw new ApiClientError('Request failed', response.status);
+    throw error;
+  }
   if (!response.ok || payload.status !== true) throw new ApiClientError(payload.error?.message ?? 'Request failed', response.status, payload.error?.fields);
   return payload.data as T;
 }
