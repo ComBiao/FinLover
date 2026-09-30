@@ -13,6 +13,7 @@ beforeAll(async () => {
   mongoServer = await MongoMemoryServer.create();
   const uri = mongoServer.getUri();
   await mongoose.connect(uri);
+  await Promise.all([Wallet.init(), Category.init(), Transaction.init()]);
 }, 60000);
 
 afterAll(async () => {

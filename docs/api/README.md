@@ -1,6 +1,6 @@
 # API guide
 
-Open `/api/docs` on the application origin (port 3000 locally). Both versions are implemented for the nine operations below. Specs are served at `/api/openapi/legacy.json` and `/api/openapi/v1.json`; committed artifacts are [legacy.json](legacy.json) and [v1.json](v1.json). Relative server `/` keeps requests on the current origin without doubling `/api`.
+Open `/api/docs` on the application origin (port 3000 locally). Both versions support the nine shared operations below; v1 also supports wallet endpoints. Specs are served at `/api/openapi/legacy.json` and `/api/openapi/v1.json`; committed artifacts are [legacy.json](legacy.json) and [v1.json](v1.json). Relative server `/` keeps requests on the current origin without doubling `/api`.
 
 | Method | Legacy | v1 |
 | --- | --- | --- |
@@ -11,8 +11,10 @@ Open `/api/docs` on the application origin (port 3000 locally). Both versions ar
 | PUT, DELETE | `/api/categories/{id}` | `/api/v1/categories/{id}` |
 | POST | `/api/transaction` | `/api/v1/transactions` |
 | PUT, DELETE | `/api/transaction/{id}` | `/api/v1/transactions/{id}` |
+| GET, POST | — | `/api/v1/wallets` |
+| GET, PUT | — | `/api/v1/wallets/{id}` |
 
-GET lists, wallet APIs, reports and current-user endpoints remain unimplemented. Existing UI mock screens do not call all of these APIs.
+Wallet edits accept only `name`, `color`, and `hideBalance`; wallet reads and edits are limited to the owner's records. Other GET lists, reports, and current-user endpoints remain unimplemented. Existing UI mock screens do not call all of these APIs.
 
 ## Authentication and examples
 

@@ -3,7 +3,7 @@
   "info": {
     "title": "FinLover legacy API",
     "version": "1.0.0",
-    "description": "Implemented operations only. GET lists, reports, wallets and current-user endpoints are not implemented. UI mock screens are not API integration."
+    "description": "Implemented operations only. Wallet endpoints, remaining GET lists, reports and current-user endpoints are not implemented. UI mock screens are not API integration."
   },
   "servers": [
     {
@@ -183,7 +183,7 @@
             }
           },
           "409": {
-            "description": "Duplicate email/category name",
+            "description": "Duplicate email or category name",
             "content": {
               "application/json": {
                 "schema": {
@@ -930,7 +930,7 @@
             }
           },
           "409": {
-            "description": "Duplicate email/category name",
+            "description": "Duplicate email or category name",
             "content": {
               "application/json": {
                 "schema": {
@@ -1337,7 +1337,7 @@
             }
           },
           "409": {
-            "description": "Duplicate email/category name",
+            "description": "Duplicate email or category name",
             "content": {
               "application/json": {
                 "schema": {
