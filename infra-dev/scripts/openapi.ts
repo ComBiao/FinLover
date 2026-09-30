@@ -3,7 +3,7 @@ import path from 'node:path';
 import Ajv from 'ajv/dist/2020';
 import addFormats from 'ajv-formats';
 import SwaggerParser from '@apidevtools/swagger-parser';
-import { buildSpec, operations } from '../../src/server/shared/docs/openapi';
+import { buildSpec, operationsFor } from '../../src/server/shared/docs/openapi';
 const dir = path.resolve(import.meta.dirname, '../../docs/api');
 const mode = process.argv[2] ?? 'check';
 async function main() {
@@ -25,7 +25,8 @@ for (const version of ['legacy', 'v1'] as const) {
     }
   }
   const entries = Object.values(spec.paths).flatMap(value => Object.values(value)) as { operationId: string }[];
-  if (entries.length !== operations.length || new Set(entries.map(value => value.operationId)).size !== operations.length) throw new Error('Operation coverage or duplicate operationId');
+  const expectedOperations = operationsFor(version);
+  if (entries.length !== expectedOperations.length || new Set(entries.map(value => value.operationId)).size !== expectedOperations.length) throw new Error('Operation coverage or duplicate operationId');
   if (mode === 'generate') await writeFile(file, text);
   else {
     const stored = await readFile(file, 'utf8');

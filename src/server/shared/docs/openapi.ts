@@ -19,15 +19,19 @@ export const operations = [
   { action: 'deleteCategory', method: 'delete', path: '/categories/{id}', status: 200, errors: [400, 401, 403, 404, 500], description: 'Delete an owned non-system category and clear category references atomically. Transactions and wallet balances remain unchanged.' },
   { action: 'createWallet', method: 'post', path: '/wallets', status: 201, errors: [400, 401, 409, 500], description: 'Create a wallet owned by the caller. Names are trimmed and must be unique per owner.' },
   { action: 'listWallets', method: 'get', path: '/wallets', status: 200, errors: [401, 500], description: 'List wallets owned by the caller.' },
+  { action: 'getWallet', method: 'get', path: '/wallets/{id}', status: 200, errors: [400, 401, 404, 500], description: 'Get an owned wallet by ID.' },
   { action: 'updateWallet', method: 'put', path: '/wallets/{id}', status: 200, errors: [400, 401, 404, 409, 500], description: 'Partially update an owned wallet name, color, or hideBalance. Balance, owner, and saving status are not editable here.' },
   { action: 'createTransaction', method: 'post', path: '/transaction', status: 201, errors: [400, 401, 404, 422, 500], description: 'Create an owned transaction and adjust wallet balance in one MongoDB transaction. Requires a replica set. Category must belong to the user and match the transaction type. Persisted minimum amount is 0.01.' },
   { action: 'updateTransaction', method: 'put', path: '/transaction/{id}', status: 200, errors: [400, 401, 404, 422, 500], description: 'Replace editable fields of an owned transaction; reverse old and apply new balance atomically. wallet cannot be changed by this API.' },
   { action: 'deleteTransaction', method: 'delete', path: '/transaction/{id}', status: 204, errors: [400, 401, 404, 422, 500], description: 'Delete an owned transaction and reverse its balance atomically. Legacy success has no body.' },
 ] as const;
+export function operationsFor(version: 'legacy' | 'v1') {
+  return operations.filter(operation => version === 'v1' || !operation.action.endsWith('Wallet') && operation.action !== 'listWallets');
+}
 export function buildSpec(version: 'legacy' | 'v1') {
   const v1 = version === 'v1';
   const paths: Record<string, Record<string, unknown>> = {};
-  for (const operation of operations.filter(operation => v1 || operation.action !== 'updateWallet')) {
+  for (const operation of operationsFor(version)) {
     const { action, method } = operation;
     const path = (v1 ? '/api/v1' : '/api') + (v1 ? operation.path.replace('/transaction', '/transactions') : operation.path);
     const input = action === 'register' ? registerSchema : action === 'login' ? loginSchema : action === 'createCategory' ? categoryInput : action === 'updateCategory' ? categoryUpdate : action === 'createWallet' ? walletInput : action === 'updateWallet' ? walletUpdate : action === 'createTransaction' ? (v1 ? transactionInput : legacyTransactionInput) : action === 'updateTransaction' ? (v1 ? transactionUpdate : legacyTransactionUpdate) : undefined;
