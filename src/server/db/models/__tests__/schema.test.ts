@@ -13,6 +13,8 @@ beforeAll(async () => {
   mongoServer = await MongoMemoryServer.create();
   const uri = mongoServer.getUri();
   await mongoose.connect(uri);
+  // Await index creation: unique indexes are database constraints, not Mongoose validators.
+  await Promise.all([Wallet.init(), Category.init(), Transaction.init()]);
 }, 60000);
 
 afterAll(async () => {
