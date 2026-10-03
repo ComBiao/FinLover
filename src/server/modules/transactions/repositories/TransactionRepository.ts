@@ -8,7 +8,10 @@ import { validateReferences } from '../services/rules';
 import { WalletRepository } from '../../wallets/repositories/WalletRepository';
 import { CategoryRepository } from '../../categories/repositories/CategoryRepository';
 function record(doc: ITransaction): TransactionRecord {
-  return { id: String(doc._id), userId: String(doc.userId), walletId: String(doc.walletId), categoryId: doc.categoryId ? String(doc.categoryId) : null, type: doc.type, amount: Number(doc.amount), date: doc.date, note: doc.note };
+  // `title` fallback (#108): documents saved before this field existed have
+  // none — surface a placeholder rather than `undefined` so every response
+  // satisfies `transactionResponse`'s required `title`.
+  return { id: String(doc._id), userId: String(doc.userId), walletId: String(doc.walletId), categoryId: doc.categoryId ? String(doc.categoryId) : null, type: doc.type, amount: Number(doc.amount), date: doc.date, title: doc.title ?? '(untitled)', note: doc.note };
 }
 export class TransactionRepository implements TransactionRepositoryPort {
   async clearCategory(categoryId: string, userId: string, context: TransactionContext) {

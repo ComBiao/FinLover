@@ -70,6 +70,7 @@ function makeTransaction(overrides: Record<string, unknown> = {}) {
     amount: 500,
     type: 'expense',
     date: new Date('2026-08-25'),
+    title: 'Test transaction',
     ...overrides,
   });
 }
