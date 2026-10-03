@@ -172,7 +172,19 @@ export function CategoryClient() {
           <p className="text-sm text-muted-foreground mt-1">Manage your income and expense category</p>
         </div>
 
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <Dialog
+          open={isOpen}
+          onOpenChange={(open) => {
+            // Block backdrop-click / Escape dismissal while a create is in
+            // flight (CodeRabbit): closing mid-request lets the user reopen
+            // the dialog, start a second entry, and then have the first
+            // request's `finally` wipe out what they just typed — or close
+            // a dialog they only just reopened. The Cancel button below is
+            // disabled the same way, for the same reason.
+            if (isCreating) return;
+            setIsOpen(open);
+          }}
+        >
           <DialogTrigger render={<Button className="shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground gap-2 rounded-xl" />}>
             <Plus className="size-4" />
             Add new category
@@ -254,7 +266,7 @@ export function CategoryClient() {
             </div>
 
             <DialogFooter>
-              <DialogClose render={<Button variant="outline" />}>
+              <DialogClose render={<Button variant="outline" disabled={isCreating} />}>
                 Cancel
               </DialogClose>
               <Button onClick={handleCreate} disabled={isCreating}>
