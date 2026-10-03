@@ -39,7 +39,7 @@ export function buildSpec(version: 'legacy' | 'v1') {
     const responses: Record<string, unknown> = { [status]: { description: 'Success', ...(status === 204 ? {} : { content: { 'application/json': { schema: success } } }) } };
     const errors = new Set<number>(operation.errors.map(value => v1 && value === 422 ? 400 : value));
     if (operation.method !== 'get') errors.add(403);
-    if (input) errors.add(415);
+    if (operation.method !== 'get') errors.add(415);
     if (v1) errors.add(500);
     for (const code of errors) responses[code] = { description: ({ 400: 'Invalid JSON, fields, ID, or missing consent', 401: 'Missing, invalid, or expired credentials', 403: 'Forbidden resource or untrusted/missing Origin for cookie writes', 404: 'Not found or not owned', 409: 'Duplicate email, category, or wallet name', 415: 'Body-bearing cookie/browser-auth mutation requires application/json', 422: 'Invalid transaction fields, ID, or category', 500: 'Internal server error' } as Record<number, string>)[code], content: { 'application/json': { schema: error } } };
     const id = '507f1f77bcf86cd799439011';
