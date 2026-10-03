@@ -1,4 +1,4 @@
-import { Plane, PiggyBank, Wallet as WalletIcon } from "lucide-react";
+import { Plane, PiggyBank, Wallet as WalletIcon, Coins } from "lucide-react";
 
 import type { Wallet } from "@/types/wallet";
 
@@ -24,5 +24,13 @@ export const MOCK_WALLETS: Wallet[] = [
     color: "#8B7CF6",
     isSaving: true,
     savingGoal: 30000,
+  },
+  {
+    id: "decimal-test",
+    name: "Test decimals",
+    type: "cash",
+    balance: 4480.49,
+    icon: Coins,
+    color: "#E85C7D",
   },
 ];

@@ -5,6 +5,32 @@ import type { Transaction } from "@/types/transaction";
 // src/mocks/mockCategories.ts so wallet balances, saving-goal progress and
 // category totals all agree with each other.
 export const MOCK_TRANSACTIONS: Transaction[] = [
+  // Decimal tests
+  {
+    id: "txn-dec-1",
+    title: "Tax refund (with decimal)",
+    amount: 99.99,
+    type: "income",
+    walletId: "decimal-test",
+    date: new Date(2026, 9, 3),
+  },
+  {
+    id: "txn-dec-2",
+    title: "Salary (with decimal)",
+    amount: 4500.50,
+    type: "income",
+    walletId: "decimal-test",
+    date: new Date(2026, 9, 3),
+  },
+  {
+    id: "txn-dec-3",
+    title: "Coffee (no decimal)",
+    amount: 120,
+    type: "expense",
+    categoryId: "food-drink",
+    walletId: "decimal-test",
+    date: new Date(2026, 9, 2),
+  },
   // October 2026
   {
     id: "txn-1",
