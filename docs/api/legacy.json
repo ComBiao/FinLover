@@ -3,7 +3,7 @@
   "info": {
     "title": "FinLover legacy API",
     "version": "1.0.0",
-    "description": "Implemented operations only. GET lists, reports, wallets and current-user endpoints are not implemented. UI mock screens are not API integration."
+    "description": "Implemented operations only. GET lists, reports, wallet reads and current-user endpoints are not implemented. UI mock screens are not API integration."
   },
   "servers": [
     {
