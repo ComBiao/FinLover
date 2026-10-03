@@ -72,7 +72,7 @@ FinLover/
 
 Requests flow through auth/CSRF guards, controller.handle, service.execute, repository and MongoDB. Controllers do not query models; services do not know Next.js/HTTP. API versions share business services and auth policy; only input/output contracts differ. Cross-module dependencies are passed through ports. Repositories/composition/production DB entry use `server-only`; ESLint prohibits frontend/shared-contract imports of server code.
 
-Transaction services own balance deltas and validate references. Repositories recheck wallet/category ownership and type compatibility immediately before create/update. Each model write needs a repository-issued, single-use capability bound to an active transaction session; save, query mutations, insertMany and bulkWrite otherwise reject. Create/update/delete and balance changes share a UnitOfWork. Use services for application writes. Raw collection access bypasses middleware and is reserved for migrations, explicit test fixtures and internal cascades that delete the owning wallet(s). Category deletion clears references without changing balances. System-category guards and user/wallet persistence cascades remain for internal compatibility and propagate caller sessions. Migrations are operational source and never run during installation/build/startup.
+Transaction services own balance deltas and validate references. Repositories recheck wallet/category ownership and type compatibility immediately before create/update. Each model write needs a repository-issued, single-use capability bound to an active transaction session; save, query mutations, insertMany and bulkWrite otherwise reject. Create/update/delete and balance changes share a UnitOfWork. Use services for application writes. Raw collection access bypasses middleware and is reserved for migrations, explicit test fixtures and internal cascades that delete the owning wallet(s). Category deletion clears references without changing balances. Wallet deletion removes the wallet's transactions through `TransactionRepository.removeByWallet` (guarded) and the wallet cascade in the same UnitOfWork. System-category guards and user/wallet persistence cascades remain for internal compatibility and propagate caller sessions. Migrations are operational source and never run during installation/build/startup.
 
 ## 4. UI rules and integration status
 
@@ -80,7 +80,7 @@ Use shadcn/ui base controls and lucide-react icons. Add shadcn components from r
 
 Login/register/logout now use `/api/v1/auth/*`. Registration sends matching passwords and consent; the existing User schema does not persist the form's name. Successful login redirects to dashboard; logout clears the cookie and query cache before redirecting. Errors remain visible rather than reporting fake success.
 
-Category/transaction/dashboard screens and displayed profile details remain mock/demo data. List/wallet/report/current-user APIs and full UI integration are not implemented by this refactor. Existing browser routes remain `/`, `/login`, `/register`, `/dashboard`, `/category`, `/transactions`.
+Category/transaction/dashboard screens and displayed profile details remain mock/demo data. List/report/current-user APIs and wallet APIs other than `DELETE /api/v1/wallets/{id}` (v1 only) and full UI integration are not implemented by this refactor. Existing browser routes remain `/`, `/login`, `/register`, `/dashboard`, `/category`, `/transactions`.
 
 ## 5. Auth and CSRF
 

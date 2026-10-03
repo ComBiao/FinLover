@@ -1,6 +1,6 @@
 # API guide
 
-Open `/api/docs` on the application origin (port 3000 locally). Both versions are implemented for the nine operations below. Specs are served at `/api/openapi/legacy.json` and `/api/openapi/v1.json`; committed artifacts are [legacy.json](legacy.json) and [v1.json](v1.json). Relative server `/` keeps requests on the current origin without doubling `/api`.
+Open `/api/docs` on the application origin (port 3000 locally). Legacy and v1 are implemented for the nine operations below; the delete-wallet operation is v1 only. Specs are served at `/api/openapi/legacy.json` and `/api/openapi/v1.json`; committed artifacts are [legacy.json](legacy.json) and [v1.json](v1.json). Relative server `/` keeps requests on the current origin without doubling `/api`.
 
 | Method | Legacy | v1 |
 | --- | --- | --- |
@@ -11,8 +11,9 @@ Open `/api/docs` on the application origin (port 3000 locally). Both versions ar
 | PUT, DELETE | `/api/categories/{id}` | `/api/v1/categories/{id}` |
 | POST | `/api/transaction` | `/api/v1/transactions` |
 | PUT, DELETE | `/api/transaction/{id}` | `/api/v1/transactions/{id}` |
+| DELETE | — | `/api/v1/wallets/{id}` |
 
-GET lists, wallet APIs, reports and current-user endpoints remain unimplemented. Existing UI mock screens do not call all of these APIs.
+GET lists, other wallet APIs (create, update, list, saving), reports and current-user endpoints remain unimplemented. Existing UI mock screens do not call all of these APIs.
 
 ## Authentication and examples
 
@@ -45,3 +46,5 @@ Shared schemas live in `src/shared/contracts/`; operation metadata lives in `src
 Swagger serves local assets under `/api/docs/assets/` and are included in the single application build. In development, Try it out can create/update/delete test data. In production all submit methods are disabled by the server-rendered configuration; API authentication still applies independently. Use a dedicated test database for manual exploration.
 
 Auth policy changes from the old legacy API: cookie support is now shared with v1; browser-auth and cookie mutations now return 403 for untrusted/missing Origin and 415 for non-JSON bodies. Cookie SameSite alone is not used as CSRF protection. No token is copied into a synthetic Authorization header.
+
+Delete wallet (v1 only): `DELETE /api/v1/wallets/{id}` returns `{ "status": true, "data": null }`. The wallet and all of its transactions are deleted in one UnitOfWork (MongoDB replica set required); if any step fails nothing is deleted. Other wallets' transactions are untouched, an invalid id returns 400, and a missing wallet or one owned by another user returns 404. Any owned wallet may be deleted, including the default or last wallet (no restriction is defined); deleted data cannot be recovered.
