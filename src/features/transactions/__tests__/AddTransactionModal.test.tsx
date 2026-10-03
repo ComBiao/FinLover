@@ -67,4 +67,29 @@ describe("AddTransactionModal — US3-1 async create (Add mode only)", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Wallet not found");
     expect(useTransactionModal.getState().isOpen).toBe(true);
   });
+
+  it("clears the stale submission error once the user edits a field", async () => {
+    const onAdd = vi.fn().mockRejectedValue(new ApiClientError("Wallet not found", 404));
+    useTransactionModal.setState({ isOpen: true, defaultType: "expense", editingTransaction: null });
+    render(<AddTransactionModal onAdd={onAdd} />);
+
+    await fillRequiredFields();
+    fireEvent.click(screen.getByText("Save transaction"));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Wallet not found");
+
+    fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Grab ride (retry)" } });
+
+    await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument());
+  });
+
+  it("shows an error instead of silently closing when onAdd isn't wired", async () => {
+    useTransactionModal.setState({ isOpen: true, defaultType: "expense", editingTransaction: null });
+    render(<AddTransactionModal />);
+
+    await fillRequiredFields();
+    fireEvent.click(screen.getByText("Save transaction"));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("isn't connected");
+    expect(useTransactionModal.getState().isOpen).toBe(true);
+  });
 });

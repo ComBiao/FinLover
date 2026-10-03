@@ -53,6 +53,11 @@ type AddTransactionModalProps = {
    * assigns it) when submitting in Add mode. Awaited: the modal stays open
    * and disabled until this resolves, and shows the rejection's message
    * instead of closing if it throws.
+   *
+   * Optional only because `src/app/dashboard/page.tsx` still renders this
+   * modal with no props at all (its own quick-add flow isn't wired —
+   * tracked separately, #95/US2-9) — `onSubmit` below checks for this and
+   * shows an error instead of silently closing as if the create succeeded.
    */
   onAdd?: (transaction: Omit<Transaction, "id">) => Promise<void>;
   /** Called with the updated transaction when submitting in Edit mode. */
@@ -114,6 +119,7 @@ export function AddTransactionModal({
     reset,
     setValue,
     setError,
+    clearErrors,
     formState: { errors, isSubmitting },
   } = useForm<AddTransactionFormValues>({
     resolver: zodResolver(addTransactionFormSchema),
@@ -121,6 +127,7 @@ export function AddTransactionModal({
   });
 
   const type = useWatch({ control, name: "type" });
+  const watchedValues = useWatch({ control });
 
   React.useEffect(() => {
     if (isOpen) {
@@ -128,6 +135,13 @@ export function AddTransactionModal({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
+
+  // `root` isn't tied to a field, so react-hook-form never clears it on its
+  // own — a rejected submit (e.g. "wallet not found") would otherwise keep
+  // showing after the user picks a different wallet and looks fixed.
+  React.useEffect(() => {
+    clearErrors("root");
+  }, [watchedValues, clearErrors]);
 
   function handleTypeChange(nextType: TransactionType) {
     setValue("type", nextType);
@@ -159,8 +173,13 @@ export function AddTransactionModal({
       return;
     }
 
+    if (!onAdd) {
+      setError("root", { message: "Can't save: this form isn't connected yet." });
+      return;
+    }
+
     try {
-      await onAdd?.(shared);
+      await onAdd(shared);
       closeModal();
     } catch (error) {
       setError("root", {
