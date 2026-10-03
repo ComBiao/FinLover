@@ -17,7 +17,7 @@ export class CreateWalletController {
       const wallet = await this.service.execute(context.principal!.userId, parsed.data);
       return NextResponse.json({ data: wallet }, { status: 201 });
     } catch (error) {
-      return apiErrorResponse(error, { duplicate: { code: 'CONFLICT', message: 'A wallet with this name already exists' } });
+      return apiErrorResponse(error, { duplicate: { code: 'CONFLICT', message: 'A wallet with this name already exists', fields: { name: 'A wallet with this name already exists' } } });
     }
   }
 }

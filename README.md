@@ -12,7 +12,7 @@ npm run dev
 
 `infra:up` starts a local MongoDB replica set with Docker Compose. An existing managed replica set such as Atlas can be used instead. Open [the app](http://localhost:3000) or [Swagger](http://localhost:3000/api/docs).
 
-Login, registration and logout call the API. Transaction/category/dashboard screens still use mock data; the displayed profile name remains demo data. Registration's name field is validated in the UI but is not persisted by the existing User schema. Complete server-data integration remains separate work.
+Login, registration and logout call the API. The v1 wallet API supports create/list, while transaction/category/dashboard and wallet screens still use mock data; the displayed profile name remains demo data. Wallet creation currently has no per-user limit. Registration's name field is validated in the UI but is not persisted by the existing User schema. Complete server-data integration remains separate work.
 
 ```bash
 npm run lint

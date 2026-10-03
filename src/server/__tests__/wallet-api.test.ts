@@ -52,6 +52,7 @@ describe('POST /api/v1/wallets', () => {
     expect(response.status).toBe(201);
     const payload = await response.json();
     expect(payload).toMatchObject({ status: true });
+    expect(payload.data).not.toHaveProperty('userId');
     expect(payload.data).toMatchObject({
       name: 'Holiday fund',
       balance: 0,
@@ -106,9 +107,11 @@ describe('POST /api/v1/wallets', () => {
     const list = await v1.listWallets(request('/api/v1/wallets', `Bearer ${token}`), context());
 
     expect(list.status).toBe(200);
-    expect((await list.json()).data).toContainEqual(
+    const listed = (await list.json()).data;
+    expect(listed).toContainEqual(
       expect.objectContaining({ id: created.data.id, name: 'Savings' }),
     );
+    expect(listed.every((wallet: Record<string, unknown>) => !('userId' in wallet))).toBe(true);
   });
 
   it('returns 409 for a duplicate name for the same user and creates nothing', async () => {
@@ -120,6 +123,7 @@ describe('POST /api/v1/wallets', () => {
     const payload = await response.json();
     expect(payload).toMatchObject({ status: false });
     expect(payload.error.code).toBe('CONFLICT');
+    expect(payload.error.fields).toEqual({ name: 'A wallet with this name already exists' });
     expect(await Wallet.countDocuments({ userId })).toBe(1);
   });
 
