@@ -38,7 +38,7 @@ export function TotalBalanceCard({
 }: TotalBalanceCardProps) {
   return (
     <Card className="rounded-2xl bg-gradient-pastel-a shadow-sm">
-      <CardContent className="flex h-full flex-col justify-between gap-3.5 py-1">
+      <CardContent className="flex h-full flex-col gap-3.5 py-1">
         {!hasWallets ? (
           <>
             <div className="text-base font-bold tracking-wide text-muted-foreground uppercase">
@@ -63,7 +63,7 @@ export function TotalBalanceCard({
             </div>
 
             {savingGoal ? (
-              <div className="flex flex-col gap-2.5 border-t border-foreground/10 pt-3.5">
+              <div className="mt-auto flex flex-col gap-2.5 border-t border-foreground/10 pt-3.5">
                 <div className="flex items-baseline justify-between gap-2">
                   <span className="text-sm font-bold text-foreground">Saving goal</span>
                   <span className="text-xs font-semibold text-foreground/70">
@@ -223,7 +223,7 @@ export function TopCategoriesCard({ monthLabel, topCategories }: TopCategoriesCa
           Top categories · {monthLabel.toUpperCase()}
         </span>
         {topCategories.length === 0 ? (
-          <div className="flex flex-col items-center gap-1 rounded-xl bg-muted px-5 py-6 text-center">
+          <div className="flex flex-1 flex-col items-center justify-center gap-1 rounded-xl bg-muted px-5 py-6 text-center">
             <span className="text-sm font-semibold text-foreground">No spending in {monthLabel}</span>
             <span className="text-sm text-muted-foreground">
               Your top categories will show up once you record an expense.

@@ -38,7 +38,11 @@ function formatDate(date: Date) {
 }
 
 function formatAmount(amount: number, type: Transaction["type"]) {
-  const formatted = `฿${amount.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+  const hasFraction = amount % 1 !== 0;
+  const formatted = `฿${amount.toLocaleString("en-US", {
+    minimumFractionDigits: hasFraction ? 2 : 0,
+    maximumFractionDigits: 2,
+  })}`;
   return type === "income" ? `+${formatted}` : `-${formatted}`;
 }
 
