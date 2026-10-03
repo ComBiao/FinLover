@@ -3656,7 +3656,27 @@
                 "required": [
                   "isSaving"
                 ],
-                "additionalProperties": false
+                "additionalProperties": false,
+                "if": {
+                  "properties": {
+                    "isSaving": {
+                      "const": true
+                    }
+                  },
+                  "required": [
+                    "isSaving"
+                  ]
+                },
+                "then": {
+                  "required": [
+                    "goalAmount"
+                  ],
+                  "properties": {
+                    "goalAmount": {
+                      "exclusiveMinimum": 0
+                    }
+                  }
+                }
               },
               "example": {
                 "isSaving": true,

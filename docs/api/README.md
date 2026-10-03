@@ -11,7 +11,7 @@ Open `/api/docs` on the application origin (port 3000 locally). Legacy and v1 ar
 | PUT, DELETE | `/api/categories/{id}` | `/api/v1/categories/{id}` |
 | POST | `/api/transaction` | `/api/v1/transactions` |
 | PUT, DELETE | `/api/transaction/{id}` | `/api/v1/transactions/{id}` |
-| PATCH | — | `/api/v1/wallets/{id}/saving` |
+| PATCH | Not available | `/api/v1/wallets/{id}/saving` |
 
 GET lists, other wallet APIs, reports and current-user endpoints remain unimplemented. Existing UI mock screens do not call all of these APIs.
 

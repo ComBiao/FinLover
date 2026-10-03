@@ -4,6 +4,10 @@ const schema = (value: z.ZodType): Record<string, unknown> => {
   const result = z.toJSONSchema(value, { unrepresentable: 'any' });
   delete result.$schema; return result;
 };
+/** z.toJSONSchema drops refinements; restate the saving rule (goalAmount > 0 when isSaving is true) so the spec matches the handler. */
+const requestSchema = (action: string, input: z.ZodType) => action === 'updateWalletSaving'
+  ? { ...schema(input), if: { properties: { isSaving: { const: true } }, required: ['isSaving'] }, then: { required: ['goalAmount'], properties: { goalAmount: { exclusiveMinimum: 0 } } } }
+  : schema(input);
 const obj = (properties: Record<string, unknown>, required = Object.keys(properties)) => ({ type: 'object', properties, required });
 const publicUser = obj({ id: { type: 'string' }, email: { type: 'string', format: 'email' }, dataPrivacyConsent: { const: true }, createdAt: { type: 'string', format: 'date-time' } });
 const loginUser = obj({ id: { type: 'string' }, email: { type: 'string', format: 'email' } });
@@ -45,7 +49,7 @@ export function buildSpec(version: 'legacy' | 'v1') {
     if (action === 'updateTransaction') { delete example.walletId; delete example.wallet_id; }
     const publicOperation = 'public' in operation;
     paths[path] ??= {};
-    paths[path][method] = { operationId: `${version}_${action}`, tags: [operation.path.split('/')[1]], summary: action, description: operation.description + (v1 ? ' Authorization takes precedence over cookie. Cookie writes require an Origin in PUBLIC_ORIGINS; missing Origin is rejected. Implemented.' : ' Legacy response contract; auth is unified with v1. Cookie writes and login/register/logout require an exact trusted Origin; no Origin is rejected. A valid Bearer on protected APIs does not fall back to cookies.'), security: publicOperation ? [] : [{ bearerAuth: [] }, { sessionCookie: [] }], ...(path.includes('{id}') ? { parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', pattern: '^[a-fA-F0-9]{24}$' } }] } : {}), ...(input ? { requestBody: { required: true, content: { 'application/json': { schema: schema(input), example } } } } : {}), responses };
+    paths[path][method] = { operationId: `${version}_${action}`, tags: [operation.path.split('/')[1]], summary: action, description: operation.description + (v1 ? ' Authorization takes precedence over cookie. Cookie writes require an Origin in PUBLIC_ORIGINS; missing Origin is rejected. Implemented.' : ' Legacy response contract; auth is unified with v1. Cookie writes and login/register/logout require an exact trusted Origin; no Origin is rejected. A valid Bearer on protected APIs does not fall back to cookies.'), security: publicOperation ? [] : [{ bearerAuth: [] }, { sessionCookie: [] }], ...(path.includes('{id}') ? { parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', pattern: '^[a-fA-F0-9]{24}$' } }] } : {}), ...(input ? { requestBody: { required: true, content: { 'application/json': { schema: requestSchema(action, input), example } } } } : {}), responses };
   }
   return { openapi: '3.1.0', info: { title: `FinLover ${version} API`, version: '1.0.0', description: 'Implemented operations only. GET lists, reports, wallet reads and current-user endpoints are not implemented. UI mock screens are not API integration.' }, servers: [{ url: '/' }], paths, components: { securitySchemes: { bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, sessionCookie: { type: 'apiKey', in: 'cookie', name: 'session_token' } } } };
 }
