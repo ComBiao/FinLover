@@ -39,7 +39,7 @@ FinLover/
 ├── docs/
 └── src/
     ├── app/                       # page/layout composition and thin API entries
-    ├── features/                  # auth, categories, transactions, dashboard UI
+    ├── features/                  # auth, categories, transactions, homepage UI
     ├── components/                # shared UI, ui/ = shadcn base components
     ├── lib/ / types/ / mocks/      # browser-safe helpers, UI types, demo data
     ├── shared/contracts/          # shared HTTP schemas/types, source imports
@@ -78,9 +78,9 @@ Transaction services own balance deltas and validate references. Repositories re
 
 Use shadcn/ui base controls and lucide-react icons. Add shadcn components from root using `npx shadcn add <name>`. Validate external data with Zod. Keep client-only form validation separate from persisted HTTP schemas. Zustand holds UI state; TanStack Query handles actual API mutations through the root QueryClientProvider.
 
-Login/register/logout now use `/api/v1/auth/*`. Registration sends matching passwords and consent; the existing User schema does not persist the form's name. Successful login redirects to dashboard; logout clears the cookie and query cache before redirecting. Errors remain visible rather than reporting fake success.
+Login/register/logout now use `/api/v1/auth/*`. Registration sends matching passwords and consent; the existing User schema does not persist the form's name. Successful login redirects to the homepage; logout clears the cookie and query cache before redirecting. Errors remain visible rather than reporting fake success.
 
-Category/transaction/dashboard screens and displayed profile details remain mock/demo data. List/wallet/report/current-user APIs and full UI integration are not implemented by this refactor. Existing browser routes remain `/`, `/login`, `/register`, `/dashboard`, `/category`, `/transactions`.
+Category/transaction/homepage screens and displayed profile details remain mock/demo data. List/wallet/report/current-user APIs and full UI integration are not implemented by this refactor. Existing browser routes remain `/`, `/login`, `/register`, `/homepage`, `/category`, `/transactions`.
 
 ## 5. Auth and CSRF
 

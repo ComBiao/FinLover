@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 
@@ -9,7 +9,12 @@ import { DeleteTransactionDialog } from "@/features/transactions/components/Dele
 import { TransactionFilterBar } from "@/features/transactions/components/TransactionFilterBar";
 import { TransactionTable } from "@/features/transactions/components/TransactionTable";
 import { Button } from "@/components/ui/button";
-import { MOCK_TRANSACTIONS } from "@/features/transactions/mockTransactions";
+import { useTransactions } from "@/features/transactions/hooks/useTransactions";
+import {
+  useCreateTransaction,
+  useDeleteTransaction,
+  useUpdateTransaction,
+} from "@/features/transactions/hooks/useTransactionMutations";
 import { filterTransactions } from "@/features/transactions/transactions";
 import { useTransactionFilters } from "@/features/transactions/store/useTransactionFilters";
 import { useTransactionModal } from "@/features/transactions/store/useTransactionModal";
@@ -19,10 +24,15 @@ import { SummaryCards } from "./SummaryCards";
 
 /**
  * Transaction management page: filterable/searchable list of every
- * transaction with edit/delete actions per row.
+ * transaction with edit/delete actions per row. The transaction list itself
+ * comes from the shared `useTransactions` query (same mock data source Home
+ * reads/mutates), so a change made from either page is visible in both.
  */
 export default function TransactionsPage() {
-  const [transactions, setTransactions] = useState<Transaction[]>(MOCK_TRANSACTIONS);
+  const { data: transactions = [] } = useTransactions();
+  const createTransaction = useCreateTransaction();
+  const updateTransaction = useUpdateTransaction();
+  const deleteTransaction = useDeleteTransaction();
   const filters = useTransactionFilters((state) => state.filters);
   const setFilters = useTransactionFilters((state) => state.setFilters);
   const resetFilters = useTransactionFilters((state) => state.resetFilters);
@@ -38,24 +48,21 @@ export default function TransactionsPage() {
     [transactions, filters]
   );
 
-  /**
-   * TODO: integrate the v1 transaction API when replacing mock data with server data.
-   */
   function handleDeleteTransaction(id: string) {
-    setTransactions((prev) => prev.filter((transaction) => transaction.id !== id));
-    toast.success("Transaction deleted successfully");
+    deleteTransaction.mutate(id, {
+      onSuccess: () => toast.success("Transaction deleted successfully"),
+    });
   }
 
   function handleAddTransaction(newTransaction: Transaction) {
-    setTransactions((prev) => [newTransaction, ...prev]);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- the modal assigns a throwaway client-side id; the mock service assigns its own.
+    const { id: _clientId, ...input } = newTransaction;
+    createTransaction.mutate(input);
   }
 
   function handleEditTransaction(updatedTransaction: Transaction) {
-    setTransactions((prev) =>
-      prev.map((transaction) =>
-        transaction.id === updatedTransaction.id ? updatedTransaction : transaction
-      )
-    );
+    const { id, ...input } = updatedTransaction;
+    updateTransaction.mutate({ id, input });
   }
 
   return (
