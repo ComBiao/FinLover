@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useCategories } from "@/features/categories/hooks/useCategories";
+import { ApiClientError } from "@/lib/api/client";
 import { z } from "zod";
 import { Plus, Utensils, Car, Home, ShoppingCart, Zap, HeartPulse, Film, MoreHorizontal, Wallet, Banknote, Gift, Award, PieChart, Star, Smile, Check, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -49,23 +50,23 @@ const COLORS = [
 ];
 
 const initialExpenses = [
-  { id: 1, name: "Food & Drinks", iconName: "Utensils", color: "bg-orange-100 text-orange-600" },
-  { id: 2, name: "Transportation", iconName: "Car", color: "bg-blue-100 text-blue-600" },
-  { id: 3, name: "Essentials", iconName: "Home", color: "bg-green-100 text-green-600" },
-  { id: 4, name: "Shopping", iconName: "ShoppingCart", color: "bg-pink-100 text-pink-600" },
-  { id: 5, name: "Utilities", iconName: "Zap", color: "bg-yellow-100 text-yellow-600" },
-  { id: 6, name: "Health", iconName: "HeartPulse", color: "bg-red-100 text-red-600" },
-  { id: 7, name: "Entertainment", iconName: "Film", color: "bg-purple-100 text-purple-600" },
-  { id: 8, name: "Others", iconName: "MoreHorizontal", color: "bg-gray-100 text-gray-600" },
+  { id: "seed-expense-1", name: "Food & Drinks", iconName: "Utensils", color: "bg-orange-100 text-orange-600" },
+  { id: "seed-expense-2", name: "Transportation", iconName: "Car", color: "bg-blue-100 text-blue-600" },
+  { id: "seed-expense-3", name: "Essentials", iconName: "Home", color: "bg-green-100 text-green-600" },
+  { id: "seed-expense-4", name: "Shopping", iconName: "ShoppingCart", color: "bg-pink-100 text-pink-600" },
+  { id: "seed-expense-5", name: "Utilities", iconName: "Zap", color: "bg-yellow-100 text-yellow-600" },
+  { id: "seed-expense-6", name: "Health", iconName: "HeartPulse", color: "bg-red-100 text-red-600" },
+  { id: "seed-expense-7", name: "Entertainment", iconName: "Film", color: "bg-purple-100 text-purple-600" },
+  { id: "seed-expense-8", name: "Others", iconName: "MoreHorizontal", color: "bg-gray-100 text-gray-600" },
 ];
 
 const initialIncomes = [
-  { id: 1, name: "Salary", iconName: "Wallet", color: "bg-green-100 text-green-600" },
-  { id: 2, name: "Wages", iconName: "Banknote", color: "bg-emerald-100 text-emerald-600" },
-  { id: 3, name: "Allowance/Gift", iconName: "Gift", color: "bg-pink-100 text-pink-600" },
-  { id: 4, name: "Bonus", iconName: "Award", color: "bg-yellow-100 text-yellow-600" },
-  { id: 5, name: "Investment", iconName: "PieChart", color: "bg-blue-100 text-blue-600" },
-  { id: 6, name: "Others", iconName: "MoreHorizontal", color: "bg-gray-100 text-gray-600" },
+  { id: "seed-income-1", name: "Salary", iconName: "Wallet", color: "bg-green-100 text-green-600" },
+  { id: "seed-income-2", name: "Wages", iconName: "Banknote", color: "bg-emerald-100 text-emerald-600" },
+  { id: "seed-income-3", name: "Allowance/Gift", iconName: "Gift", color: "bg-pink-100 text-pink-600" },
+  { id: "seed-income-4", name: "Bonus", iconName: "Award", color: "bg-yellow-100 text-yellow-600" },
+  { id: "seed-income-5", name: "Investment", iconName: "PieChart", color: "bg-blue-100 text-blue-600" },
+  { id: "seed-income-6", name: "Others", iconName: "MoreHorizontal", color: "bg-gray-100 text-gray-600" },
 ];
 
 const categorySchema = z.object({
@@ -74,7 +75,8 @@ const categorySchema = z.object({
 
 export function CategoryClient() {
   const [type, setType] = useState<"expense" | "income">("expense");
-  const { expenses, incomes, deleteCategory, editCategory, addCategory } = useCategories(initialExpenses, initialIncomes);
+  const { expenses, incomes, deleteCategory, editCategory, createCategory, isCreating } =
+    useCategories(initialExpenses, initialIncomes);
 
   // Modal State
   const [isOpen, setIsOpen] = useState(false);
@@ -83,9 +85,9 @@ export function CategoryClient() {
   const [newColor, setNewColor] = useState(COLORS[0]);
   const [errors, setErrors] = useState<Record<string, string[] | undefined>>({});
 
-  const [categoryToDelete, setCategoryToDelete] = useState<number | null>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
 
-  const [categoryToEdit, setCategoryToEdit] = useState<number | null>(null);
+  const [categoryToEdit, setCategoryToEdit] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editIcon, setEditIcon] = useState(ICONS[0].name);
   const [editColor, setEditColor] = useState(COLORS[0]);
@@ -100,7 +102,7 @@ export function CategoryClient() {
     setCategoryToEdit(null);
   };
 
-  const openEditModal = (cat: { id: number; name: string; iconName: string; color: string }) => {
+  const openEditModal = (cat: { id: string; name: string; iconName: string; color: string }) => {
     setCategoryToEdit(cat.id);
     setEditName(cat.name);
     setEditIcon(cat.iconName);
@@ -123,7 +125,7 @@ export function CategoryClient() {
     setCategoryToEdit(null);
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     const trimmedName = newName.trim();
     const result = categorySchema.safeParse({ name: trimmedName });
     if (!result.success) {
@@ -133,19 +135,28 @@ export function CategoryClient() {
 
     setErrors({});
 
-    const newCat = {
-      id: Date.now(),
-      name: trimmedName,
-      iconName: newIcon,
-      color: newColor,
-    };
+    try {
+      await createCategory(type, {
+        name: trimmedName,
+        iconName: newIcon,
+        color: newColor,
+      });
 
-    addCategory(type, newCat);
-
-    setIsOpen(false);
-    setNewName("");
-    setNewIcon(ICONS[0].name);
-    setNewColor(COLORS[0]);
+      setIsOpen(false);
+      setNewName("");
+      setNewIcon(ICONS[0].name);
+      setNewColor(COLORS[0]);
+    } catch (error) {
+      // The only realistic failure here is a duplicate name (409, no
+      // structured `fields`) — surface it under the Name field either way,
+      // since that's the one field a create request can actually conflict
+      // on.
+      const message =
+        error instanceof ApiClientError
+          ? (error.fields?.name ?? error.message)
+          : "Unable to connect. Please try again.";
+      setErrors({ name: [message] });
+    }
   };
 
   const getIconComponent = (iconName: string) => {
@@ -246,7 +257,9 @@ export function CategoryClient() {
               <DialogClose render={<Button variant="outline" />}>
                 Cancel
               </DialogClose>
-              <Button onClick={handleCreate}>Create Category</Button>
+              <Button onClick={handleCreate} disabled={isCreating}>
+                {isCreating ? "Creating…" : "Create Category"}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
