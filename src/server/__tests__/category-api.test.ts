@@ -526,6 +526,7 @@ describe('DELETE /api/categories/[id]', () => {
       type: 'expense',
       amount: 42,
       date: new Date(),
+      title: 'Test transaction',
     }));
 
     const req = createRequest('DELETE', `/api/categories/${cat._id}`);
@@ -543,7 +544,7 @@ describe('DELETE /api/categories/[id]', () => {
     const cat = await seedCategory();
     const tx = await seedTransaction(new Transaction({
       userId: MOCK_USER_ID, walletId: (await Wallet.create({ userId: MOCK_USER_ID, name: 'Fixture wallet' }))._id,
-      categoryId: cat._id, type: 'expense', amount: 42, date: new Date(),
+      categoryId: cat._id, type: 'expense', amount: 42, date: new Date(), title: 'Test transaction',
     }));
     const update = vi.spyOn(Transaction, 'updateMany').mockImplementationOnce(() => {
       throw new Error('Injected cascade failure');
@@ -573,6 +574,7 @@ describe('DELETE /api/categories/[id]', () => {
       type: 'expense',
       amount: 42,
       date: new Date(),
+      title: 'Test transaction',
     }));
     const session = await mongoose.startSession();
     const start = vi.spyOn(mongoose, 'startSession').mockResolvedValueOnce(session);

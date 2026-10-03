@@ -46,6 +46,14 @@ export interface ITransaction extends Document {
   type: 'income' | 'expense';
   amount: number;
   date: Date;
+  /**
+   * Required on new writes (#108). Optional here because documents written
+   * before this field existed have none — `required` only guards saves,
+   * not reads, so old records still load with `title: undefined`;
+   * `TransactionRepository`'s `record()` maps that to a display fallback
+   * before it ever reaches a client.
+   */
+  title?: string;
   notes?: string;
   note?: string;
   recurrence: IRecurrence;
@@ -74,6 +82,7 @@ const TransactionSchema: Schema = new Schema({
   },
   amount: { type: Number, required: true, min: [0.01, 'Amount must be at least 0.01'] },
   date: { type: Date, required: true },
+  title: { type: String, required: true, trim: true, maxlength: 100 },
   notes: { type: String, maxlength: 255, alias: 'note' },
   recurrence: { type: RecurrenceSchema, default: () => ({ isRecurring: false }) },
 }, {
