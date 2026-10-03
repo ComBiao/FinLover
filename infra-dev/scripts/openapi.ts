@@ -3,13 +3,14 @@ import path from 'node:path';
 import Ajv from 'ajv/dist/2020';
 import addFormats from 'ajv-formats';
 import SwaggerParser from '@apidevtools/swagger-parser';
-import { buildSpec, operations } from '../../src/server/shared/docs/openapi';
+import { buildSpec, operationsFor } from '../../src/server/shared/docs/openapi';
 const dir = path.resolve(import.meta.dirname, '../../docs/api');
 const mode = process.argv[2] ?? 'check';
 async function main() {
 await mkdir(dir, { recursive: true });
 for (const version of ['legacy', 'v1'] as const) {
   const spec = buildSpec(version);
+  const operations = operationsFor(version);
   const text = JSON.stringify(spec, null, 2) + '\n';
   const file = path.join(dir, `${version}.json`);
   await SwaggerParser.validate(JSON.parse(text));

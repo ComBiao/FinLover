@@ -80,7 +80,7 @@ Use shadcn/ui base controls and lucide-react icons. Add shadcn components from r
 
 Login/register/logout now use `/api/v1/auth/*`. Registration sends matching passwords and consent; the existing User schema does not persist the form's name. Successful login redirects to dashboard; logout clears the cookie and query cache before redirecting. Errors remain visible rather than reporting fake success.
 
-Category/transaction/dashboard screens and displayed profile details remain mock/demo data. List/wallet/report/current-user APIs and full UI integration are not implemented by this refactor. Existing browser routes remain `/`, `/login`, `/register`, `/dashboard`, `/category`, `/transactions`.
+Category/transaction/dashboard screens and displayed profile details remain mock/demo data. List/report/current-user APIs and wallet APIs other than `PATCH /api/v1/wallets/{id}/saving` (v1 only) and full UI integration are not implemented by this refactor. Existing browser routes remain `/`, `/login`, `/register`, `/dashboard`, `/category`, `/transactions`.
 
 ## 5. Auth and CSRF
 
