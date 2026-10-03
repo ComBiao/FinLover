@@ -28,7 +28,10 @@ export function versioned(handler: Handler, options: Options = {}) {
         return NextResponse.json({ status: false, error, timestamp: new Date().toISOString(), path }, { status: response.status === 422 ? 400 : response.status, headers });
       }
       const value = payload?.data ?? payload;
-      return NextResponse.json({ status: true, data: options.output && value ? options.output(value) : value }, { status: response.status === 204 ? 200 : response.status, headers });
+      const data = options.output && value
+        ? Array.isArray(value) ? value.map(item => options.output!(item)) : options.output(value)
+        : value;
+      return NextResponse.json({ status: true, data }, { status: response.status === 204 ? 200 : response.status, headers });
     } catch (error) { logError(error); return NextResponse.json({ status: false, error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }, timestamp: new Date().toISOString(), path }, { status: 500 }); }
   });
 }

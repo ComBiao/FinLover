@@ -3,7 +3,7 @@
   "info": {
     "title": "FinLover legacy API",
     "version": "1.0.0",
-    "description": "Implemented operations only. GET lists, reports, wallets and current-user endpoints are not implemented. UI mock screens are not API integration."
+    "description": "Implemented operations only. Wallet create/list are available on v1; category/transaction lists, reports and current-user endpoints are not implemented. UI mock screens are not API integration."
   },
   "servers": [
     {
@@ -50,7 +50,7 @@
                   "confirmPassword",
                   "dataPrivacyConsent"
                 ],
-                "additionalProperties": false
+                "additionalProperties": true
               },
               "example": {
                 "email": "test@example.com",
@@ -143,7 +143,7 @@
             }
           },
           "403": {
-            "description": "System category or untrusted/missing Origin for cookie writes",
+            "description": "Forbidden resource or untrusted/missing Origin for cookie writes",
             "content": {
               "application/json": {
                 "schema": {
@@ -183,7 +183,7 @@
             }
           },
           "409": {
-            "description": "Duplicate email/category name",
+            "description": "Duplicate email, category, or wallet name",
             "content": {
               "application/json": {
                 "schema": {
@@ -337,7 +337,7 @@
                   "email",
                   "password"
                 ],
-                "additionalProperties": false
+                "additionalProperties": true
               },
               "example": {
                 "email": "test@example.com",
@@ -459,7 +459,7 @@
             }
           },
           "403": {
-            "description": "System category or untrusted/missing Origin for cookie writes",
+            "description": "Forbidden resource or untrusted/missing Origin for cookie writes",
             "content": {
               "application/json": {
                 "schema": {
@@ -610,7 +610,7 @@
             }
           },
           "403": {
-            "description": "System category or untrusted/missing Origin for cookie writes",
+            "description": "Forbidden resource or untrusted/missing Origin for cookie writes",
             "content": {
               "application/json": {
                 "schema": {
@@ -736,7 +736,7 @@
                   "name",
                   "type"
                 ],
-                "additionalProperties": false
+                "additionalProperties": true
               },
               "example": {
                 "name": "Food",
@@ -890,7 +890,7 @@
             }
           },
           "403": {
-            "description": "System category or untrusted/missing Origin for cookie writes",
+            "description": "Forbidden resource or untrusted/missing Origin for cookie writes",
             "content": {
               "application/json": {
                 "schema": {
@@ -930,7 +930,7 @@
             }
           },
           "409": {
-            "description": "Duplicate email/category name",
+            "description": "Duplicate email, category, or wallet name",
             "content": {
               "application/json": {
                 "schema": {
@@ -1103,7 +1103,7 @@
                     "pattern": "^#[0-9A-Fa-f]{6}$"
                   }
                 },
-                "additionalProperties": false
+                "additionalProperties": true
               },
               "example": {
                 "name": "Food",
@@ -1257,7 +1257,7 @@
             }
           },
           "403": {
-            "description": "System category or untrusted/missing Origin for cookie writes",
+            "description": "Forbidden resource or untrusted/missing Origin for cookie writes",
             "content": {
               "application/json": {
                 "schema": {
@@ -1337,7 +1337,7 @@
             }
           },
           "409": {
-            "description": "Duplicate email/category name",
+            "description": "Duplicate email, category, or wallet name",
             "content": {
               "application/json": {
                 "schema": {
@@ -1628,7 +1628,7 @@
             }
           },
           "403": {
-            "description": "System category or untrusted/missing Origin for cookie writes",
+            "description": "Forbidden resource or untrusted/missing Origin for cookie writes",
             "content": {
               "application/json": {
                 "schema": {
@@ -1854,7 +1854,7 @@
                   "amount",
                   "date"
                 ],
-                "additionalProperties": false
+                "additionalProperties": true
               },
               "example": {
                 "wallet_id": "507f1f77bcf86cd799439011",
@@ -2005,7 +2005,7 @@
             }
           },
           "403": {
-            "description": "System category or untrusted/missing Origin for cookie writes",
+            "description": "Forbidden resource or untrusted/missing Origin for cookie writes",
             "content": {
               "application/json": {
                 "schema": {
@@ -2277,7 +2277,7 @@
                   "amount",
                   "date"
                 ],
-                "additionalProperties": false
+                "additionalProperties": true
               },
               "example": {
                 "category_id": null,
@@ -2427,7 +2427,7 @@
             }
           },
           "403": {
-            "description": "System category or untrusted/missing Origin for cookie writes",
+            "description": "Forbidden resource or untrusted/missing Origin for cookie writes",
             "content": {
               "application/json": {
                 "schema": {
@@ -2739,7 +2739,7 @@
             }
           },
           "403": {
-            "description": "System category or untrusted/missing Origin for cookie writes",
+            "description": "Forbidden resource or untrusted/missing Origin for cookie writes",
             "content": {
               "application/json": {
                 "schema": {

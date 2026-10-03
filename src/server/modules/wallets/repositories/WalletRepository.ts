@@ -16,7 +16,9 @@ function toRecord(doc: InstanceType<typeof Wallet>): WalletRecord {
     color: doc.color,
     isSaving: doc.isSaving,
     goalAmount: doc.goalAmount,
-    hideBalance: doc.hideBalance
+    hideBalance: doc.hideBalance,
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt
   };
 }
 
