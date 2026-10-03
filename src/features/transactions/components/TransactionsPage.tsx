@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 
@@ -9,6 +10,8 @@ import { DeleteTransactionDialog } from "@/features/transactions/components/Dele
 import { TransactionFilterBar } from "@/features/transactions/components/TransactionFilterBar";
 import { TransactionTable } from "@/features/transactions/components/TransactionTable";
 import { Button } from "@/components/ui/button";
+import { postApi } from "@/lib/api/client";
+import { toLocalISODate } from "@/lib/utils";
 import { MOCK_TRANSACTIONS } from "@/features/transactions/mockTransactions";
 import { filterTransactions } from "@/features/transactions/transactions";
 import { useTransactionFilters } from "@/features/transactions/store/useTransactionFilters";
@@ -46,8 +49,30 @@ export default function TransactionsPage() {
     toast.success("Transaction deleted successfully");
   }
 
-  function handleAddTransaction(newTransaction: Transaction) {
-    setTransactions((prev) => [newTransaction, ...prev]);
+  const createTransactionMutation = useMutation({
+    mutationFn: (input: Omit<Transaction, "id">) =>
+      postApi<{ id: string }>("/api/v1/transactions", {
+        walletId: input.walletId,
+        categoryId: input.categoryId ?? null,
+        type: input.type,
+        amount: input.amount,
+        date: toLocalISODate(input.date),
+        title: input.title,
+        note: input.note,
+      }),
+  });
+
+  /**
+   * US3-1: persists via `POST /api/v1/transactions`, then prepends the
+   * server-assigned id to local state. There is no `GET` list endpoint yet
+   * (same limitation as #101's category list — tracked separately), so a
+   * hard refresh still reloads `MOCK_TRANSACTIONS`; the create itself is
+   * real.
+   */
+  async function handleAddTransaction(input: Omit<Transaction, "id">) {
+    const created = await createTransactionMutation.mutateAsync(input);
+    setTransactions((prev) => [{ ...input, id: created.id }, ...prev]);
+    toast.success("Transaction added successfully");
   }
 
   function handleEditTransaction(updatedTransaction: Transaction) {
