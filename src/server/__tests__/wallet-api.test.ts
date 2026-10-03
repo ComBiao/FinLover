@@ -53,6 +53,37 @@ describe('GET /api/v1/wallets', () => {
     ]);
     expect(payload.data).not.toContainEqual(expect.objectContaining({ name: 'Private' }));
   });
+
+  it('returns an empty array when the caller has no wallets', async () => {
+    const response = await v1.listWallets(request('/api/v1/wallets', `Bearer ${token}`), context());
+
+    expect(response.status).toBe(200);
+    expect((await response.json()).data).toEqual([]);
+  });
+
+  it('requires authentication and does not fall back from an invalid Bearer token to a cookie', async () => {
+    const unauthenticated = await v1.listWallets(request('/api/v1/wallets'), context());
+    expect(unauthenticated.status).toBe(401);
+
+    const invalidBearer = new NextRequest('http://localhost:3000/api/v1/wallets', {
+      method: 'GET',
+      headers: { authorization: 'Bearer invalid', cookie: `session_token=${token}` },
+    });
+    const rejected = await v1.listWallets(invalidBearer, context());
+    expect(rejected.status).toBe(401);
+  });
+
+  it('accepts cookie authentication for a GET without an Origin header', async () => {
+    await Wallet.create({ userId, name: 'Main' });
+    const cookieRequest = new NextRequest('http://localhost:3000/api/v1/wallets', {
+      method: 'GET',
+      headers: { cookie: `session_token=${token}` },
+    });
+
+    const response = await v1.listWallets(cookieRequest, context());
+
+    expect(response.status).toBe(200);
+  });
 });
 
 describe('GET /api/v1/wallets/{id}', () => {
@@ -84,6 +115,21 @@ describe('GET /api/v1/wallets/{id}', () => {
     const wallet = await Wallet.create({ userId: otherUserId, name: 'Private' });
 
     const response = await v1.getWallet(request(`/api/v1/wallets/${wallet._id}`, `Bearer ${token}`), context(String(wallet._id)));
+
+    expect(response.status).toBe(404);
+    expect((await response.json()).error.code).toBe('NOT_FOUND');
+  });
+
+  it('returns 400 for a malformed ID', async () => {
+    const response = await v1.getWallet(request('/api/v1/wallets/not-an-id', `Bearer ${token}`), context('not-an-id'));
+
+    expect(response.status).toBe(400);
+    expect((await response.json()).error.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('returns 404 for a valid ID that does not exist', async () => {
+    const id = new mongoose.Types.ObjectId().toString();
+    const response = await v1.getWallet(request(`/api/v1/wallets/${id}`, `Bearer ${token}`), context(id));
 
     expect(response.status).toBe(404);
     expect((await response.json()).error.code).toBe('NOT_FOUND');
