@@ -1,6 +1,6 @@
 # API guide
 
-Open `/api/docs` on the application origin (port 3000 locally). Both versions are implemented for the nine operations below. Specs are served at `/api/openapi/legacy.json` and `/api/openapi/v1.json`; committed artifacts are [legacy.json](legacy.json) and [v1.json](v1.json). Relative server `/` keeps requests on the current origin without doubling `/api`.
+Open `/api/docs` on the application origin (port 3000 locally). Legacy and v1 are implemented for the nine operations below; the wallet saving operation is v1 only. Specs are served at `/api/openapi/legacy.json` and `/api/openapi/v1.json`; committed artifacts are [legacy.json](legacy.json) and [v1.json](v1.json). Relative server `/` keeps requests on the current origin without doubling `/api`.
 
 | Method | Legacy | v1 |
 | --- | --- | --- |
@@ -11,8 +11,9 @@ Open `/api/docs` on the application origin (port 3000 locally). Both versions ar
 | PUT, DELETE | `/api/categories/{id}` | `/api/v1/categories/{id}` |
 | POST | `/api/transaction` | `/api/v1/transactions` |
 | PUT, DELETE | `/api/transaction/{id}` | `/api/v1/transactions/{id}` |
+| PATCH | Not available | `/api/v1/wallets/{id}/saving` |
 
-GET lists, wallet APIs, reports and current-user endpoints remain unimplemented. Existing UI mock screens do not call all of these APIs.
+GET lists, other wallet APIs, reports and current-user endpoints remain unimplemented. Existing UI mock screens do not call all of these APIs.
 
 ## Authentication and examples
 
@@ -45,3 +46,5 @@ Shared schemas live in `src/shared/contracts/`; operation metadata lives in `src
 Swagger serves local assets under `/api/docs/assets/` and are included in the single application build. In development, Try it out can create/update/delete test data. In production all submit methods are disabled by the server-rendered configuration; API authentication still applies independently. Use a dedicated test database for manual exploration.
 
 Auth policy changes from the old legacy API: cookie support is now shared with v1; browser-auth and cookie mutations now return 403 for untrusted/missing Origin and 415 for non-JSON bodies. Cookie SameSite alone is not used as CSRF protection. No token is copied into a synthetic Authorization header.
+
+Wallet saving (v1 only): `PATCH /api/v1/wallets/{id}/saving` with `{"isSaving":true,"goalAmount":10000}` turns Saving Wallet on; `goalAmount` must be greater than 0 (missing or 0 returns 400). `{"isSaving":false}` turns it off and clears the goal. The balance is never changed, a wallet owned by another user returns 404, and several wallets may be saving wallets at once.

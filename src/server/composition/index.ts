@@ -15,6 +15,8 @@ export const rawCategories = createCategoryRouter(deleteCategoryService);
 import { createTransactionRouter } from '../modules/transactions/router';
 import { WalletRepository } from '../modules/wallets/repositories/WalletRepository';
 export const walletRepository = new WalletRepository();
+import { createWalletRouter } from '../modules/wallets/router';
+export const rawWallets = createWalletRouter(walletRepository);
 export const rawTransactions = createTransactionRouter(walletRepository, new CategoryRepository(), new MongoUnitOfWork());
 
 
@@ -33,4 +35,7 @@ export const transactions = {
   create: logged(secure(rawTransactions.create, { protected: true })),
   update: logged(secure(rawTransactions.update, { protected: true })),
   remove: logged(secure(rawTransactions.remove, { protected: true })),
+};
+export const wallets = {
+  updateSaving: logged(secure(rawWallets.updateSaving, { protected: true })),
 };

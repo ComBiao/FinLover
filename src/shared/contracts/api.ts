@@ -9,6 +9,10 @@ export const categoryResponse = categoryInput.extend({ id: objectId, isSystem: z
 export const walletInput = z.object({ name: z.string().trim().min(1).max(50), color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(), isSaving: z.boolean().optional(), goalAmount: z.number().min(0).optional(), hideBalance: z.boolean().optional() });
 export const walletUpdate = walletInput.partial();
 export const walletResponse = walletInput.extend({ id: objectId, balance: z.number(), isDefault: z.boolean(), isSaving: z.boolean(), hideBalance: z.boolean(), createdAt: z.iso.datetime(), updatedAt: z.iso.datetime() });
+export const walletSavingUpdate = z.object({ isSaving: z.boolean(), goalAmount: z.number().optional() }).superRefine((value, ctx) => {
+  if (value.isSaving && !(value.goalAmount !== undefined && value.goalAmount > 0)) ctx.addIssue({ code: 'custom', path: ['goalAmount'], message: 'Goal amount must be greater than 0 when saving is on' });
+});
+export const walletSavingResponse = walletResponse.omit({ createdAt: true, updatedAt: true }).extend({ goalAmount: z.number().optional() });
 export const apiError = z.object({ code: z.string(), message: z.string(), fields: z.record(z.string(), z.string()).optional() });
 export type ApiResult<T> = { status: true; data: T } | { status: false; error: z.infer<typeof apiError>; timestamp: string; path: string };
 
