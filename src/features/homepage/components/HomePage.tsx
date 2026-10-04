@@ -111,8 +111,8 @@ export function HomePage() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex flex-col gap-3.5">
             <div>
-              <div className="text-2xl font-extrabold text-foreground sm:text-3xl">
-                Good afternoon, {userName}
+              <div suppressHydrationWarning className="text-2xl font-extrabold text-foreground sm:text-3xl">
+                {new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening'}, {userName}
               </div>
               <div className="mt-1 text-sm text-muted-foreground">
                 Here&apos;s your money at a glance.
