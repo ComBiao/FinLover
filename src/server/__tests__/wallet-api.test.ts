@@ -46,8 +46,8 @@ const create = (body: unknown, ...authorization: [string?]) =>
   v1.createWallet(post(body, authorization.length === 0 ? `Bearer ${token}` : authorization[0]), context());
 
 describe('POST /api/v1/wallets', () => {
-  it('creates a wallet owned by the caller with the saving and hide settings applied', async () => {
-    const response = await create({ name: 'Holiday fund', isSaving: true, hideBalance: true });
+  it('creates a wallet owned by the caller with the saving settings applied', async () => {
+    const response = await create({ name: 'Holiday fund', isSaving: true});
 
     expect(response.status).toBe(201);
     const payload = await response.json();
@@ -57,13 +57,11 @@ describe('POST /api/v1/wallets', () => {
       name: 'Holiday fund',
       balance: 0,
       isSaving: true,
-      hideBalance: true,
     });
 
     const stored = await Wallet.findById(payload.data.id);
     expect(String(stored!.userId)).toBe(userId);
     expect(stored!.isSaving).toBe(true);
-    expect(stored!.hideBalance).toBe(true);
   });
 
   it('uses defaults when only a name is sent', async () => {
@@ -74,7 +72,6 @@ describe('POST /api/v1/wallets', () => {
       name: 'Cash',
       balance: 0,
       isSaving: false,
-      hideBalance: false,
       isDefault: false,
     });
   });

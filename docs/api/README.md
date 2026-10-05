@@ -31,10 +31,10 @@ Example v1 transaction body (replace IDs with records owned by the test user):
 Example v1 wallet body:
 
 ```json
-{"name":"Holiday fund","color":"#3B82F6","isSaving":true,"goalAmount":1200,"hideBalance":true}
+{"name":"Holiday fund","color":"#3B82F6","isSaving":true,"goalAmount":1200}
 ```
 
-Wallet create/list responses expose only `id`, `name`, `balance`, `isDefault`, `color`, `isSaving`, `goalAmount`, `hideBalance`, `createdAt` and `updatedAt`. Duplicate wallet names return 409 with `fields.name`. Object request schemas accept and strip unknown properties; they are not persisted.
+Wallet create/list responses expose only `id`, `name`, `balance`, `isDefault`, `color`, `isSaving`, `goalAmount`, `createdAt` and `updatedAt`. Duplicate wallet names return 409 with `fields.name`. Object request schemas accept and strip unknown properties; they are not persisted.
 
 Legacy uses `wallet_id`, `category_id`, and request type `Expense`/`Income`. Responses persist lowercase types. v1 validates ISO calendar dates and minimum amount 0.01; legacy retains its original request parsing/status behavior. Legacy transaction field validation returns 422, malformed JSON returns 500, and DELETE returns empty 204. v1 validation returns 400 and DELETE returns `{ "status": true, "data": null }`. Category updates are partial; transaction updates replace editable fields and cannot move wallet through the HTTP API.
 

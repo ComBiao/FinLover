@@ -3650,9 +3650,6 @@
                   "goalAmount": {
                     "type": "number",
                     "minimum": 0
-                  },
-                  "hideBalance": {
-                    "type": "boolean"
                   }
                 },
                 "required": [
@@ -3664,8 +3661,7 @@
                 "name": "Holiday fund",
                 "color": "#3B82F6",
                 "isSaving": true,
-                "goalAmount": 1200,
-                "hideBalance": true
+                "goalAmount": 1200
               }
             }
           }
@@ -3700,9 +3696,6 @@
                           "type": "number",
                           "minimum": 0
                         },
-                        "hideBalance": {
-                          "type": "boolean"
-                        },
                         "id": {
                           "type": "string",
                           "pattern": "^[a-f0-9]{24}$"
@@ -3727,7 +3720,6 @@
                       "required": [
                         "name",
                         "isSaving",
-                        "hideBalance",
                         "id",
                         "balance",
                         "isDefault",
@@ -4112,9 +4104,6 @@
                             "type": "number",
                             "minimum": 0
                           },
-                          "hideBalance": {
-                            "type": "boolean"
-                          },
                           "id": {
                             "type": "string",
                             "pattern": "^[a-f0-9]{24}$"
@@ -4139,7 +4128,6 @@
                         "required": [
                           "name",
                           "isSaving",
-                          "hideBalance",
                           "id",
                           "balance",
                           "isDefault",
