@@ -82,6 +82,8 @@ Login/register/logout now use `/api/v1/auth/*`. Registration sends matching pass
 
 The v1 API implements GET wallet list and detail reads; legacy has no wallet operations. Category/transaction/dashboard screens and displayed profile details remain mock/demo data. Report/current-user APIs and full UI integration are not implemented by this refactor. Existing browser routes remain `/`, `/login`, `/register`, `/dashboard`, `/category`, `/transactions`.
 
+The Category screen defines 11 built-in expense categories and 6 built-in income categories. `isDefault` prevents editing/deleting built-ins in both the cards and the local state hook. `isFallback` identifies Other, which stays last when custom categories are added. These categories remain local UI state and do not change server category data or transaction classification.
+
 ## 5. Auth and CSRF
 
 Both legacy and v1 protected APIs use the same resolver and principal. Browser auth uses HttpOnly `session_token`, seven-day lifetime, Path=/, SameSite=Lax, Secure in production and no Domain attribute. The browser never reads or stores JWTs in localStorage.
