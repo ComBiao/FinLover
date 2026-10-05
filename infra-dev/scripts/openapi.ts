@@ -42,7 +42,7 @@ for (const version of ['legacy', 'v1'] as const) {
   else {
     const stored = await readFile(file, 'utf8');
     await SwaggerParser.validate(JSON.parse(stored));
-    if (stored !== text) throw new Error(`${file} is out of date; run npm run api:generate`);
+    if (stored.replace(/\r\n/g, '\n') !== text.replace(/\r\n/g, '\n')) throw new Error(`${file} is out of date; run npm run api:generate`);
   }
   console.log(`${version}: valid, ${entries.length} operations, ${mode}`);
 }
