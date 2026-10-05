@@ -12,7 +12,7 @@ Open `/api/docs` on the application origin (port 3000 locally). Both versions ar
 | POST | `/api/transaction` | `/api/v1/transactions` |
 | PUT, DELETE | `/api/transaction/{id}` | `/api/v1/transactions/{id}` |
 
-GET lists, wallet APIs, reports and current-user endpoints remain unimplemented. Existing UI mock screens do not call all of these APIs.
+The v1 API implements a monthly transaction read at `GET /api/v1/transactions?month=YYYY-MM`; omitting `month` uses the current month in `APPLICATION_TIMEZONE`. Other GET lists, wallet APIs, reports and current-user endpoints remain unimplemented. Existing UI mock screens do not call all of these APIs.
 
 ## Authentication and examples
 

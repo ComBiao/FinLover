@@ -13,3 +13,10 @@ export function publicOrigins() {
 }
 
 export function jwtSecret() { return z.string().min(1, "Missing JWT_SECRET").parse(process.env.JWT_SECRET); }
+
+export function applicationTimezone() {
+  const timezone = process.env.APPLICATION_TIMEZONE?.trim() || 'Asia/Bangkok';
+  try { new Intl.DateTimeFormat('en', { timeZone: timezone }).format(); }
+  catch { throw new Error('APPLICATION_TIMEZONE must be a valid IANA timezone'); }
+  return timezone;
+}

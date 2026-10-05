@@ -11,6 +11,7 @@ export const v1 = {
   createCategory: versioned(categories.create, { protected: true, schema: categoryInput, output: categoryOutput }),
   updateCategory: versioned(categories.update, { protected: true, schema: categoryUpdate, output: categoryOutput }),
   deleteCategory: versioned(categories.remove, { protected: true, output: categoryOutput }),
+  listTransactions: versioned(transactions.list, { protected: true }),
   createTransaction: versioned(transactions.create, { protected: true, schema: transactionInput, input: txInput, output: txOutput }),
   updateTransaction: versioned(transactions.update, { protected: true, schema: transactionUpdate, input: txInput, output: txOutput }),
   deleteTransaction: versioned(transactions.remove, { protected: true }),

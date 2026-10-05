@@ -25,7 +25,8 @@ for (const version of ['legacy', 'v1'] as const) {
     }
   }
   const entries = Object.values(spec.paths).flatMap(value => Object.values(value)) as { operationId: string }[];
-  if (entries.length !== operations.length || new Set(entries.map(value => value.operationId)).size !== operations.length) throw new Error('Operation coverage or duplicate operationId');
+  const expected = operations.filter(operation => !('v1Only' in operation) || !operation.v1Only || version === 'v1').length;
+  if (entries.length !== expected || new Set(entries.map(value => value.operationId)).size !== expected) throw new Error('Operation coverage or duplicate operationId');
   if (mode === 'generate') await writeFile(file, text);
   else {
     const stored = await readFile(file, 'utf8');

@@ -80,7 +80,7 @@ Use shadcn/ui base controls and lucide-react icons. Add shadcn components from r
 
 Login/register/logout now use `/api/v1/auth/*`. Registration sends matching passwords and consent; the existing User schema does not persist the form's name. Successful login redirects to dashboard; logout clears the cookie and query cache before redirecting. Errors remain visible rather than reporting fake success.
 
-Category/transaction/dashboard screens and displayed profile details remain mock/demo data. List/wallet/report/current-user APIs and full UI integration are not implemented by this refactor. Existing browser routes remain `/`, `/login`, `/register`, `/dashboard`, `/category`, `/transactions`.
+Category/transaction/dashboard screens and displayed profile details remain mock/demo data. A v1 monthly transaction read API is available, but other list/wallet/report/current-user APIs and full UI integration are not implemented. Existing browser routes remain `/`, `/login`, `/register`, `/dashboard`, `/category`, `/transactions`.
 
 ## 5. Auth and CSRF
 
@@ -99,6 +99,7 @@ Logout clears the browser cookie but does not revoke a stateless JWT already iss
 | MONGODB_URI | Replica set connection string; local compose sample uses directConnection=true for Docker hostname discovery |
 | JWT_SECRET | Server-only signing/verification secret |
 | BCRYPT_SALT_ROUNDS | Existing 4–31 validation/fallback, default 10 |
+| APPLICATION_TIMEZONE | IANA timezone used to choose the current month when a monthly transaction request omits `month`; defaults to `Asia/Bangkok` |
 | PUBLIC_ORIGINS | Exact comma-separated local/production origins |
 | PREVIEW_ORIGINS | Optional explicit preview aliases; production origins are not inherited in preview |
 | VERCEL_ENV / VERCEL_URL / VERCEL_BRANCH_URL | Platform-owned metadata used for exact preview deployment/branch origins |

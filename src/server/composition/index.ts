@@ -30,6 +30,7 @@ export const categories = {
   remove: logged(secure(rawCategories.remove, { protected: true })),
 };
 export const transactions = {
+  list: logged(secure(rawTransactions.list, { protected: true })),
   create: logged(secure(rawTransactions.create, { protected: true })),
   update: logged(secure(rawTransactions.update, { protected: true })),
   remove: logged(secure(rawTransactions.remove, { protected: true })),
