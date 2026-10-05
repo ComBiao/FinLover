@@ -77,12 +77,13 @@ describe('POST /api/v1/wallets', () => {
   });
 
   it('ignores owner, balance, default and unknown fields in the body (no mass assignment)', async () => {
+    const clientId = new mongoose.Types.ObjectId().toString();
     const response = await create({
       name: 'Sneaky',
       userId: otherUserId,
       balance: 999999,
       isDefault: true,
-      _id: new mongoose.Types.ObjectId().toString(),
+      _id: clientId,
       createdAt: '2000-01-01T00:00:00.000Z',
       unknownField: 'ignored',
     });
@@ -93,7 +94,7 @@ describe('POST /api/v1/wallets', () => {
     expect(String(stored!.userId)).toBe(userId);
     expect(stored!.balance).toBe(0);
     expect(stored!.isDefault).toBe(false);
-    expect(String(stored!._id)).not.toBe(undefined);
+    expect(String(stored!._id)).not.toBe(clientId);
     expect(stored).not.toHaveProperty('unknownField');
     expect(await Wallet.countDocuments({ userId: otherUserId })).toBe(0);
   });
