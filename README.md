@@ -14,6 +14,8 @@ npm run dev
 
 Login, registration and logout call the API. The v1 wallet API supports create/list, while transaction/category/dashboard and wallet screens still use mock data; the displayed profile name remains demo data. Wallet creation currently has no per-user limit. Registration's name field is validated in the UI but is not persisted by the existing User schema. Complete server-data integration remains separate work.
 
+The Category screen includes 11 fixed expense categories and 6 fixed income categories. Built-in categories cannot be opened, edited or deleted; custom categories remain editable and appear before the final Other category in each list.
+
 ```bash
 npm run lint
 npm run type-check

@@ -244,10 +244,11 @@ describe('Mongoose Schema Validations', () => {
       const validTransaction = new Transaction({
         userId: validUserId.toString(),
         walletId: validWalletId.toString(),
-        categoryId: validCategoryId.toString(), 
+        categoryId: validCategoryId.toString(),
         amount: 100.50,
         type: 'income',
         date: new Date(),
+        title: 'Test transaction',
       });
       const savedTransaction = await seedTransaction(validTransaction);
       
@@ -264,6 +265,7 @@ describe('Mongoose Schema Validations', () => {
         amount: 50,
         type: 'expense',
         date: new Date(),
+        title: 'Test transaction',
       });
       const savedTransaction = await seedTransaction(noCategoryTransaction);
       
@@ -278,6 +280,7 @@ describe('Mongoose Schema Validations', () => {
         amount: 25,
         type: 'expense',
         date: new Date(),
+        title: 'Test transaction',
       });
       const saved = await seedTransaction(tx);
 
