@@ -35,6 +35,8 @@ export default function TransactionsPage() {
   const deleteTransaction = useDeleteTransaction();
   const filters = useTransactionFilters((state) => state.filters);
   const setFilters = useTransactionFilters((state) => state.setFilters);
+  const period = useTransactionFilters((state) => state.period);
+  const setPeriod = useTransactionFilters((state) => state.setPeriod);
   const resetFilters = useTransactionFilters((state) => state.resetFilters);
   const openModal = useTransactionModal((state) => state.openModal);
   const openEditModal = useTransactionModal((state) => state.openEditModal);
@@ -83,7 +85,13 @@ export default function TransactionsPage() {
 
         <SummaryCards transactions={filteredTransactions} />
 
-        <TransactionFilterBar value={filters} onValueChange={setFilters} onReset={resetFilters} />
+        <TransactionFilterBar
+          value={filters}
+          onValueChange={setFilters}
+          period={period}
+          onPeriodChange={setPeriod}
+          onReset={resetFilters}
+        />
 
         <div className="flex items-baseline justify-between gap-3">
           <h2 className="text-lg font-semibold text-foreground">All Transaction</h2>
