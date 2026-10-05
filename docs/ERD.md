@@ -50,6 +50,7 @@ erDiagram
     String type
     Number amount
     Date date
+    String title
     String notes
     Embedded recurrence
     ObjectId _id
