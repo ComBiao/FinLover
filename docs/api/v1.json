@@ -2344,8 +2344,9 @@
               },
               "example": {
                 "name": "Holiday fund",
-                "color": "#FF8800",
-                "hideBalance": false
+                "color": "#3B82F6",
+                "isSaving": true,
+                "goalAmount": 1200
               }
             }
           }
@@ -3470,9 +3471,8 @@
                 "additionalProperties": false
               },
               "example": {
-                "name": "Trip to Japan",
-                "color": "#FF8800",
-                "hideBalance": true
+                "name": "Holiday fund",
+                "color": "#3B82F6"
               }
             }
           }
