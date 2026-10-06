@@ -16,6 +16,8 @@ import { createTransactionRouter } from '../modules/transactions/router';
 import { WalletRepository } from '../modules/wallets/repositories/WalletRepository';
 export const walletRepository = new WalletRepository();
 export const rawTransactions = createTransactionRouter(walletRepository, new CategoryRepository(), new MongoUnitOfWork());
+import { createWalletRouter } from '../modules/wallets/router';
+export const rawWallets = createWalletRouter(walletRepository);
 
 
 
@@ -33,4 +35,8 @@ export const transactions = {
   create: logged(secure(rawTransactions.create, { protected: true })),
   update: logged(secure(rawTransactions.update, { protected: true })),
   remove: logged(secure(rawTransactions.remove, { protected: true })),
+};
+export const wallets = {
+  list: logged(secure(rawWallets.list, { protected: true })),
+  get: logged(secure(rawWallets.get, { protected: true })),
 };
