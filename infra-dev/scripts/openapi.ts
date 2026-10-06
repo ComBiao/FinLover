@@ -16,9 +16,21 @@ async function routeFiles(directory: string): Promise<string[]> {
   }));
   return nested.flat();
 }
+function operationKeysFromRoutes(files: string[], root: string, version: 'legacy' | 'v1') {
+  return Promise.all(files.map(async file => {
+    const relative = path.relative(root, path.dirname(file));
+    const segments = relative === '' ? [] : relative.split(path.sep);
+    if (version === 'legacy' && ['v1', 'docs', 'openapi'].includes(segments[0] ?? '')) return [];
+    const route = `${version === 'v1' ? '/api/v1' : '/api'}${segments.length ? `/${segments.map(segment => segment.replace(/^\[(.+)\]$/, '{$1}')).join('/')}` : ''}`;
+    const contents = await readFile(file, 'utf8');
+    return [...contents.matchAll(/export\s+(?:const|(?:async\s+)?function)\s+(GET|POST|PUT|PATCH|DELETE|OPTIONS|HEAD)\b/g)]
+      .map(match => `${match[1].toLowerCase()} ${route}`);
+  })).then(keys => keys.flat());
+}
 async function main() {
 await mkdir(dir, { recursive: true });
 for (const version of ['legacy', 'v1'] as const) {
+  const versionOperations = operations.filter(operation => !('versions' in operation) || operation.versions.some(value => value === version));
   const spec = buildSpec(version);
   const text = JSON.stringify(spec, null, 2) + '\n';
   const file = path.join(dir, `${version}.json`);
@@ -35,13 +47,21 @@ for (const version of ['legacy', 'v1'] as const) {
       if (body && !ajv.validate(body.schema, body.example)) throw new Error(`Invalid example for ${route}: ${ajv.errorsText()}`);
     }
   }
+  const appApi = path.resolve(import.meta.dirname, '../../src/app/api');
+  const routeRoot = version === 'v1' ? path.join(appApi, 'v1') : appApi;
+  const routeKeys = await operationKeysFromRoutes(await routeFiles(routeRoot), routeRoot, version);
+  const specKeys = Object.entries(spec.paths).flatMap(([route, methods]) => Object.keys(methods).map(method => `${method} ${route}`));
+  const missing = routeKeys.filter(key => !specKeys.includes(key));
+  if (missing.length) throw new Error(`Missing OpenAPI operation(s) for ${version} route method(s): ${missing.join(', ')}`);
   const entries = Object.values(spec.paths).flatMap(value => Object.values(value)) as { operationId: string }[];
+  if (entries.length !== versionOperations.length || new Set(entries.map(value => value.operationId)).size !== versionOperations.length) throw new Error('Operation coverage or duplicate operationId');
   const applicableCount = operations.filter(operation => !('versions' in operation) || (operation.versions as readonly string[]).includes(version)).length;
   if (entries.length !== applicableCount || new Set(entries.map(value => value.operationId)).size !== applicableCount) throw new Error('Operation coverage or duplicate operationId');
   if (mode === 'generate') await writeFile(file, text);
   else {
     const stored = await readFile(file, 'utf8');
     await SwaggerParser.validate(JSON.parse(stored));
+    if (stored.replace(/\r\n/g, '\n') !== text.replace(/\r\n/g, '\n')) throw new Error(`${file} is out of date; run npm run api:generate`);
     if (stored.replace(/\r\n/g, '\n') !== text.replace(/\r\n/g, '\n')) throw new Error(`${file} is out of date; run npm run api:generate`);
   }
   console.log(`${version}: valid, ${entries.length} operations, ${mode}`);

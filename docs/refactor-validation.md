@@ -1,6 +1,6 @@
 # Modular monolith validation — 2026-09-27
 
-Historical validation report: the statement below that no wallet endpoints were added predates issues #71/#72. The v1 GET wallet list/detail endpoints are now implemented; legacy has no wallet operations. See the current [API guide](api/README.md).
+Historical validation report: the statement below that no wallet endpoints were added predates issues #71/#72. The v1 wallet create endpoint and GET list/detail endpoints are now implemented; legacy has no wallet operations. See the current [API guide](api/README.md).
 
 ## Implemented
 
