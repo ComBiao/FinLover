@@ -1,8 +1,8 @@
 "use client";
 import { useState } from "react";
-import { useCategories } from "@/features/categories/hooks/useCategories";
+import { useCategories, type Category } from "@/features/categories/hooks/useCategories";
 import { z } from "zod";
-import { Plus, Utensils, Car, Home, ShoppingCart, Zap, HeartPulse, Film, MoreHorizontal, Wallet, Banknote, Gift, Award, PieChart, Star, Smile, Check, Pencil } from "lucide-react";
+import { Plus, Utensils, Car, Home, ShoppingCart, Zap, HeartPulse, Film, MoreHorizontal, Wallet, Banknote, Gift, Award, PieChart, Star, Smile, Check, Pencil, GraduationCap, Briefcase, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -35,6 +35,9 @@ const ICONS = [
   { name: 'MoreHorizontal', icon: MoreHorizontal },
   { name: 'Star', icon: Star },
   { name: 'Smile', icon: Smile },
+  { name: 'GraduationCap', icon: GraduationCap },
+  { name: 'Briefcase', icon: Briefcase },
+  { name: 'CreditCard', icon: CreditCard },
 ];
 
 const COLORS = [
@@ -49,24 +52,27 @@ const COLORS = [
 ];
 
 const initialExpenses = [
-  { id: 1, name: "Food & Drinks", iconName: "Utensils", color: "bg-orange-100 text-orange-600" },
-  { id: 2, name: "Transportation", iconName: "Car", color: "bg-blue-100 text-blue-600" },
-  { id: 3, name: "Essentials", iconName: "Home", color: "bg-green-100 text-green-600" },
-  { id: 4, name: "Shopping", iconName: "ShoppingCart", color: "bg-pink-100 text-pink-600" },
-  { id: 5, name: "Utilities", iconName: "Zap", color: "bg-yellow-100 text-yellow-600" },
-  { id: 6, name: "Health", iconName: "HeartPulse", color: "bg-red-100 text-red-600" },
-  { id: 7, name: "Entertainment", iconName: "Film", color: "bg-purple-100 text-purple-600" },
-  { id: 8, name: "Others", iconName: "MoreHorizontal", color: "bg-gray-100 text-gray-600" },
-];
+  { id: 1, name: "Food", iconName: "Utensils", color: "bg-orange-100 text-orange-600" },
+  { id: 2, name: "Transport & Car", iconName: "Car", color: "bg-blue-100 text-blue-600" },
+  { id: 3, name: "Shopping", iconName: "ShoppingCart", color: "bg-pink-100 text-pink-600" },
+  { id: 4, name: "Entertainment", iconName: "Film", color: "bg-purple-100 text-purple-600" },
+  { id: 5, name: "Home & utilities", iconName: "Home", color: "bg-green-100 text-green-600" },
+  { id: 6, name: "Health & Wellness", iconName: "HeartPulse", color: "bg-red-100 text-red-600" },
+  { id: 7, name: "Education", iconName: "GraduationCap", color: "bg-yellow-100 text-yellow-600" },
+  { id: 8, name: "Work & Business", iconName: "Briefcase", color: "bg-blue-100 text-blue-600" },
+  { id: 9, name: "Save & Invest", iconName: "PieChart", color: "bg-green-100 text-green-600" },
+  { id: 10, name: "Loans & cards", iconName: "CreditCard", color: "bg-purple-100 text-purple-600" },
+  { id: 11, name: "Other", iconName: "MoreHorizontal", color: "bg-gray-100 text-gray-600", isFallback: true },
+].map((category) => ({ ...category, isDefault: true }));
 
 const initialIncomes = [
   { id: 1, name: "Salary", iconName: "Wallet", color: "bg-green-100 text-green-600" },
   { id: 2, name: "Wages", iconName: "Banknote", color: "bg-emerald-100 text-emerald-600" },
-  { id: 3, name: "Allowance/Gift", iconName: "Gift", color: "bg-pink-100 text-pink-600" },
-  { id: 4, name: "Bonus", iconName: "Award", color: "bg-yellow-100 text-yellow-600" },
-  { id: 5, name: "Investment", iconName: "PieChart", color: "bg-blue-100 text-blue-600" },
-  { id: 6, name: "Others", iconName: "MoreHorizontal", color: "bg-gray-100 text-gray-600" },
-];
+  { id: 3, name: "Gifts", iconName: "Gift", color: "bg-pink-100 text-pink-600" },
+  { id: 4, name: "Trade & Business", iconName: "Briefcase", color: "bg-yellow-100 text-yellow-600" },
+  { id: 5, name: "Cashback", iconName: "Banknote", color: "bg-blue-100 text-blue-600" },
+  { id: 6, name: "Other", iconName: "MoreHorizontal", color: "bg-gray-100 text-gray-600", isFallback: true },
+].map((category) => ({ ...category, isDefault: true }));
 
 const categorySchema = z.object({
   name: z.string().min(1, "Name is required").max(50, "Name must not exceed 50 characters"),
@@ -100,7 +106,8 @@ export function CategoryClient() {
     setCategoryToEdit(null);
   };
 
-  const openEditModal = (cat: { id: number; name: string; iconName: string; color: string }) => {
+  const openEditModal = (cat: Category) => {
+    if (cat.isDefault) return;
     setCategoryToEdit(cat.id);
     setEditName(cat.name);
     setEditIcon(cat.iconName);
@@ -392,23 +399,26 @@ export function CategoryClient() {
           return (
             <Card
               key={cat.id}
-              role="button"
-              tabIndex={0}
-              onClick={() => openEditModal(cat)}
-              onKeyDown={(e) => {
+              role={cat.isDefault ? undefined : "button"}
+              tabIndex={cat.isDefault ? undefined : 0}
+              onClick={cat.isDefault ? undefined : () => openEditModal(cat)}
+              onKeyDown={cat.isDefault ? undefined : (e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
                   openEditModal(cat);
                 }
               }}
-              className="relative flex flex-col items-center justify-center p-6 gap-4 border-border/50 hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer transition-all hover:shadow-sm group bg-card"
+              className={cn(
+                "relative flex flex-col items-center justify-center p-6 gap-4 border-border/50 bg-card",
+                !cat.isDefault && "hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer transition-all hover:shadow-sm group"
+              )}
             >
-              <div
+              {!cat.isDefault && <div
                 className="absolute top-2 right-2 p-1.5 rounded-full text-muted-foreground group-hover:bg-muted group-hover:text-foreground opacity-0 group-hover:opacity-100 transition-all"
                 title="Edit Category"
               >
                 <Pencil className="size-4" />
-              </div>
+              </div>}
 
               <div className={cn("size-14 rounded-full flex items-center justify-center transition-transform group-hover:scale-110", cat.color)}>
                 <IconComponent className="size-7" />
