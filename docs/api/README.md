@@ -1,6 +1,6 @@
 # API guide
 
-Open `/api/docs` on the application origin (port 3000 locally). Both versions support the nine shared operations below; v1 also supports wallet endpoints. Specs are served at `/api/openapi/legacy.json` and `/api/openapi/v1.json`; committed artifacts are [legacy.json](legacy.json) and [v1.json](v1.json). Relative server `/` keeps requests on the current origin without doubling `/api`.
+Open `/api/docs` on the application origin (port 3000 locally). Legacy implements the nine shared operations; v1 also supports wallet create, list, detail, and update operations. Specs are served at `/api/openapi/legacy.json` and `/api/openapi/v1.json`; committed artifacts are [legacy.json](legacy.json) and [v1.json](v1.json). Relative server `/` keeps requests on the current origin without doubling `/api`.
 
 | Method | Legacy | v1 |
 | --- | --- | --- |
@@ -14,7 +14,7 @@ Open `/api/docs` on the application origin (port 3000 locally). Both versions su
 | GET, POST | — | `/api/v1/wallets` |
 | GET, PUT | — | `/api/v1/wallets/{id}` |
 
-Wallet edits accept only `name`, `color`, and `hideBalance`; wallet reads and edits are limited to the owner's records. Other GET lists, reports, and current-user endpoints remain unimplemented. Existing UI mock screens do not call all of these APIs.
+Wallet updates accept only `name` and `color`; reads and updates are limited to the wallet owner. The legacy API has no wallet operations. Other GET lists, reports, and current-user endpoints remain unimplemented. Existing UI mock screens do not call all of these APIs.
 
 ## Authentication and examples
 
@@ -27,6 +27,14 @@ Example v1 transaction body (replace IDs with records owned by the test user):
 ```json
 {"walletId":"507f1f77bcf86cd799439011","categoryId":null,"type":"expense","amount":42,"date":"2026-09-27","note":"Lunch"}
 ```
+
+Example v1 wallet body:
+
+```json
+{"name":"Holiday fund","color":"#3B82F6","isSaving":true,"goalAmount":1200}
+```
+
+Wallet responses expose only `id`, `name`, `balance`, `isDefault`, `color`, `isSaving`, `goalAmount`, `createdAt` and `updatedAt`. Duplicate wallet names return 409 with `fields.name`. Object request schemas accept and strip unknown properties; they are not persisted.
 
 Legacy uses `wallet_id`, `category_id`, and request type `Expense`/`Income`. Responses persist lowercase types. v1 validates ISO calendar dates and minimum amount 0.01; legacy retains its original request parsing/status behavior. Legacy transaction field validation returns 422, malformed JSON returns 500, and DELETE returns empty 204. v1 validation returns 400 and DELETE returns `{ "status": true, "data": null }`. Category updates are partial; transaction updates replace editable fields and cannot move wallet through the HTTP API.
 

@@ -11,4 +11,8 @@ export type Wallet = {
   icon: LucideIcon;
   /** Optional custom color from the API (hex like "#f0c48a" or a Tailwind class string). Not in `IWallet` yet (`src/models/Wallet.ts`) — reserved for when the backend adds it. */
   color?: string;
+  /** Whether this wallet tracks a savings goal (Home's Total balance card only shows goal progress for a saving wallet). */
+  isSaving?: boolean;
+  /** Target amount for a saving wallet; `null`/absent means no goal is set. */
+  savingGoal?: number | null;
 };

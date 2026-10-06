@@ -4,6 +4,10 @@ import { z } from 'zod';
 import { validationFields } from './errors';
 import { secure, type Handler, type RouteContext, type Policy } from './policy';
 type Options = Policy & { schema?: z.ZodType; input?: (value: Record<string, unknown>) => unknown; output?: (value: Record<string, unknown>) => unknown };
+function mapOutput(value: unknown, output?: Options['output']) {
+  if (!output || value === undefined || value === null) return value;
+  return Array.isArray(value) ? value.map(item => output(item as Record<string, unknown>)) : output(value as Record<string, unknown>);
+}
 /** Version mapping only: auth/CSRF policies and principal are shared with legacy. */
 export function versioned(handler: Handler, options: Options = {}) {
   const execute = secure(async (request, context) => {
@@ -28,7 +32,7 @@ export function versioned(handler: Handler, options: Options = {}) {
         return NextResponse.json({ status: false, error, timestamp: new Date().toISOString(), path }, { status: response.status === 422 ? 400 : response.status, headers });
       }
       const value = payload?.data ?? payload;
-      return NextResponse.json({ status: true, data: options.output && value ? options.output(value) : value }, { status: response.status === 204 ? 200 : response.status, headers });
+      return NextResponse.json({ status: true, data: mapOutput(value, options.output) }, { status: response.status === 204 ? 200 : response.status, headers });
     } catch (error) { logError(error); return NextResponse.json({ status: false, error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }, timestamp: new Date().toISOString(), path }, { status: 500 }); }
   });
 }
