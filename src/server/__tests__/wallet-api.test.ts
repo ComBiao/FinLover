@@ -4,7 +4,8 @@ import mongoose from 'mongoose';
 import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import Wallet from '@/server/db/models/Wallet';
 import { signToken } from '@/server/shared/auth/crypto';
-import { POST as postWalletRoute } from '@/app/api/v1/wallets/route';
+import { GET as listWalletRoute, POST as postWalletRoute } from '@/app/api/v1/wallets/route';
+import { GET as getWalletRoute, PUT as updateWalletRoute } from '@/app/api/v1/wallets/[id]/route';
 
 vi.mock('@/server/db/index', () => ({ connectDB: vi.fn(async () => {}) }));
 
@@ -24,6 +25,22 @@ const postRequest = (body: unknown, authorization: string | null = `Bearer ${tok
   body: JSON.stringify(body),
 });
 const createWallet = (body: unknown, authorization: string | null = `Bearer ${token}`) => postWalletRoute(postRequest(body, authorization));
+const putWallet = (id: string, body: unknown, ...authorization: [string?]) => {
+  const auth = authorization.length === 0 ? `Bearer ${token}` : authorization[0];
+  return updateWalletRoute(new NextRequest(`http://localhost:3000/api/v1/wallets/${id}`, {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json', ...(auth ? { authorization: auth } : {}) },
+    body: JSON.stringify(body),
+  }), context(id));
+};
+const seedTravelWallet = () => Wallet.create({
+  userId,
+  name: 'Travel Fund',
+  color: '#112233',
+  balance: 500,
+  isSaving: true,
+  goalAmount: 2000,
+});
 
 let mongo: MongoMemoryReplSet;
 
@@ -263,5 +280,133 @@ describe('GET /api/v1/wallets/{id}', () => {
 
     expect(response.status).toBe(401);
     expect((await response.json()).error.code).toBe('UNAUTHORIZED');
+  });
+});
+
+describe('PUT /api/v1/wallets/{id}', () => {
+  it('updates name and color, visible through both GET routes', async () => {
+    const wallet = await seedTravelWallet();
+    const response = await putWallet(String(wallet._id), { name: 'Trip to Japan', color: '#AABBCC' });
+
+    expect(response.status).toBe(200);
+    expect((await response.json()).data).toMatchObject({ id: String(wallet._id), name: 'Trip to Japan', color: '#AABBCC' });
+
+    const listed = await listWalletRoute(request('/api/v1/wallets', `Bearer ${token}`));
+    expect((await listed.json()).data).toContainEqual(expect.objectContaining({ id: String(wallet._id), name: 'Trip to Japan', color: '#AABBCC' }));
+    const detail = await getWalletRoute(request(`/api/v1/wallets/${wallet._id}`, `Bearer ${token}`), context(String(wallet._id)));
+    expect((await detail.json()).data).toMatchObject({ name: 'Trip to Japan', color: '#AABBCC' });
+  });
+
+  it('keeps the name when only the color changes', async () => {
+    const wallet = await seedTravelWallet();
+    const response = await putWallet(String(wallet._id), { color: '#AABBCC' });
+
+    expect(response.status).toBe(200);
+    expect((await response.json()).data).toMatchObject({ name: 'Travel Fund', color: '#AABBCC' });
+  });
+
+  it('keeps the color when only the name changes and trims the new name', async () => {
+    const wallet = await seedTravelWallet();
+    const response = await putWallet(String(wallet._id), { name: '  Trip to Japan  ' });
+
+    expect(response.status).toBe(200);
+    expect((await response.json()).data).toMatchObject({ name: 'Trip to Japan', color: '#112233' });
+  });
+
+  it('ignores balance, saving settings, owner, default flag and unknown fields', async () => {
+    const wallet = await seedTravelWallet();
+    const response = await putWallet(String(wallet._id), {
+      name: 'Trip to Japan',
+      balance: 999999,
+      isSaving: false,
+      goalAmount: 1,
+      userId: otherUserId,
+      isDefault: true,
+      unknownField: 'ignored',
+    });
+
+    expect(response.status).toBe(200);
+    const stored = await Wallet.findById(wallet._id).lean();
+    expect(stored).toMatchObject({ name: 'Trip to Japan', balance: 500, isSaving: true, goalAmount: 2000, isDefault: false });
+    expect(String(stored!.userId)).toBe(userId);
+    expect(stored).not.toHaveProperty('unknownField');
+  });
+
+  it('accepts an empty body as a partial update without changing wallet fields', async () => {
+    const wallet = await seedTravelWallet();
+    const response = await putWallet(String(wallet._id), {});
+
+    expect(response.status).toBe(200);
+    expect((await response.json()).data).toMatchObject({ name: 'Travel Fund', color: '#112233' });
+  });
+
+  it('returns 404 for another owner and does not change that wallet', async () => {
+    const wallet = await Wallet.create({ userId: otherUserId, name: 'Private', color: '#112233' });
+    const response = await putWallet(String(wallet._id), { name: 'Stolen', color: '#AABBCC' });
+
+    expect(response.status).toBe(404);
+    expect((await response.json()).error.code).toBe('NOT_FOUND');
+    expect(await Wallet.findById(wallet._id)).toMatchObject({ name: 'Private', color: '#112233' });
+  });
+
+  it('returns 404 for a missing wallet and 400 for an invalid ID', async () => {
+    const missingId = new mongoose.Types.ObjectId().toString();
+    const missing = await putWallet(missingId, { name: 'Ghost' });
+    expect(missing.status).toBe(404);
+
+    const malformed = await putWallet('not-an-object-id', { name: 'Anything' });
+    expect(malformed.status).toBe(400);
+    expect((await malformed.json()).error.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('rejects duplicate names for this owner but allows another owner to use the same name', async () => {
+    await Wallet.create({ userId, name: 'Main' });
+    const wallet = await seedTravelWallet();
+    const duplicate = await putWallet(String(wallet._id), { name: ' Main ' });
+    expect(duplicate.status).toBe(409);
+    expect((await Wallet.findById(wallet._id))!.name).toBe('Travel Fund');
+
+    await Wallet.create({ userId: otherUserId, name: 'Shared' });
+    const allowed = await putWallet(String(wallet._id), { name: 'Shared' });
+    expect(allowed.status).toBe(200);
+  });
+
+  it('allows keeping the wallet current name', async () => {
+    const wallet = await seedTravelWallet();
+    const response = await putWallet(String(wallet._id), { name: 'Travel Fund' });
+
+    expect(response.status).toBe(200);
+    expect((await response.json()).data).toMatchObject({ name: 'Travel Fund', color: '#112233' });
+  });
+
+  it.each([
+    ['a blank name', { name: '   ' }],
+    ['a name over 50 characters', { name: 'a'.repeat(51) }],
+    ['an invalid color', { color: 'red' }],
+    ['a null name', { name: null }],
+  ])('returns 400 for %s without changing the wallet', async (_label, body) => {
+    const wallet = await seedTravelWallet();
+    const response = await putWallet(String(wallet._id), body);
+
+    expect(response.status).toBe(400);
+    expect((await response.json()).error.code).toBe('VALIDATION_ERROR');
+    expect(await Wallet.findById(wallet._id)).toMatchObject({ name: 'Travel Fund', color: '#112233' });
+  });
+
+  it('returns 400 for malformed JSON and 401 without authentication', async () => {
+    const wallet = await seedTravelWallet();
+    const malformed = new NextRequest(`http://localhost:3000/api/v1/wallets/${wallet._id}`, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+      body: '{',
+    });
+    const malformedResponse = await updateWalletRoute(malformed, context(String(wallet._id)));
+    expect(malformedResponse.status).toBe(400);
+    expect((await malformedResponse.json()).error.code).toBe('INVALID_JSON');
+
+    const unauthorized = await putWallet(String(wallet._id), { name: 'Trip to Japan' }, undefined);
+    expect(unauthorized.status).toBe(401);
+    expect((await unauthorized.json()).error.code).toBe('UNAUTHORIZED');
+    expect((await Wallet.findById(wallet._id))!.name).toBe('Travel Fund');
   });
 });

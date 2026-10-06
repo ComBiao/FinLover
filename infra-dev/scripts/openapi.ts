@@ -3,7 +3,7 @@ import path from 'node:path';
 import Ajv from 'ajv/dist/2020';
 import addFormats from 'ajv-formats';
 import SwaggerParser from '@apidevtools/swagger-parser';
-import { buildSpec, operations } from '../../src/server/shared/docs/openapi';
+import { buildSpec, operationsFor } from '../../src/server/shared/docs/openapi';
 const dir = path.resolve(import.meta.dirname, '../../docs/api');
 const apiRoot = path.resolve(import.meta.dirname, '../../src/app/api');
 const mode = process.argv[2] ?? 'check';
@@ -30,7 +30,7 @@ function operationKeysFromRoutes(files: string[], root: string, version: 'legacy
 async function main() {
 await mkdir(dir, { recursive: true });
 for (const version of ['legacy', 'v1'] as const) {
-  const versionOperations = operations.filter(operation => !('versions' in operation) || operation.versions.some(value => value === version));
+  const versionOperations = operationsFor(version);
   const spec = buildSpec(version);
   const text = JSON.stringify(spec, null, 2) + '\n';
   const file = path.join(dir, `${version}.json`);
@@ -55,13 +55,10 @@ for (const version of ['legacy', 'v1'] as const) {
   if (missing.length) throw new Error(`Missing OpenAPI operation(s) for ${version} route method(s): ${missing.join(', ')}`);
   const entries = Object.values(spec.paths).flatMap(value => Object.values(value)) as { operationId: string }[];
   if (entries.length !== versionOperations.length || new Set(entries.map(value => value.operationId)).size !== versionOperations.length) throw new Error('Operation coverage or duplicate operationId');
-  const applicableCount = operations.filter(operation => !('versions' in operation) || (operation.versions as readonly string[]).includes(version)).length;
-  if (entries.length !== applicableCount || new Set(entries.map(value => value.operationId)).size !== applicableCount) throw new Error('Operation coverage or duplicate operationId');
   if (mode === 'generate') await writeFile(file, text);
   else {
     const stored = await readFile(file, 'utf8');
     await SwaggerParser.validate(JSON.parse(stored));
-    if (stored.replace(/\r\n/g, '\n') !== text.replace(/\r\n/g, '\n')) throw new Error(`${file} is out of date; run npm run api:generate`);
     if (stored.replace(/\r\n/g, '\n') !== text.replace(/\r\n/g, '\n')) throw new Error(`${file} is out of date; run npm run api:generate`);
   }
   console.log(`${version}: valid, ${entries.length} operations, ${mode}`);

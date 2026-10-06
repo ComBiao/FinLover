@@ -1,6 +1,6 @@
 # API guide
 
-Open `/api/docs` on the application origin (port 3000 locally). Legacy implements the nine operations below; v1 adds wallet creation and two wallet reads. Specs are served at `/api/openapi/legacy.json` and `/api/openapi/v1.json`; committed artifacts are [legacy.json](legacy.json) and [v1.json](v1.json). Relative server `/` keeps requests on the current origin without doubling `/api`.
+Open `/api/docs` on the application origin (port 3000 locally). Legacy implements the nine shared operations; v1 also supports wallet create, list, detail, and update operations. Specs are served at `/api/openapi/legacy.json` and `/api/openapi/v1.json`; committed artifacts are [legacy.json](legacy.json) and [v1.json](v1.json). Relative server `/` keeps requests on the current origin without doubling `/api`.
 
 | Method | Legacy | v1 |
 | --- | --- | --- |
@@ -11,11 +11,10 @@ Open `/api/docs` on the application origin (port 3000 locally). Legacy implement
 | PUT, DELETE | `/api/categories/{id}` | `/api/v1/categories/{id}` |
 | POST | `/api/transaction` | `/api/v1/transactions` |
 | PUT, DELETE | `/api/transaction/{id}` | `/api/v1/transactions/{id}` |
-| GET | — | `/api/v1/wallets` |
-| POST | — | `/api/v1/wallets` |
-| GET | — | `/api/v1/wallets/{id}` |
+| GET, POST | — | `/api/v1/wallets` |
+| GET, PUT | — | `/api/v1/wallets/{id}` |
 
-Wallet list/detail reads are v1-only; the legacy API has no wallet operations. Reports and current-user endpoints remain unimplemented. Existing UI mock screens do not call all of these APIs.
+Wallet updates accept only `name` and `color`; reads and updates are limited to the wallet owner. The legacy API has no wallet operations. Other GET lists, reports, and current-user endpoints remain unimplemented. Existing UI mock screens do not call all of these APIs.
 
 ## Authentication and examples
 

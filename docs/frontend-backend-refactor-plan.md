@@ -1,6 +1,6 @@
 # FinLover — Modular Monolith Implementation Plan (Revised)
 
-Historical plan: wallet route scope below predates issues #71/#72. The v1 wallet create endpoint and GET list/detail endpoints are now implemented; legacy has no wallet operations. Use the current [API guide](api/README.md) and [codebase guide](codebase.md) for the present contract.
+Historical plan: wallet route scope below predates issues #71/#72. The v1 wallet create, GET list/detail, and PUT update endpoints are now implemented; legacy has no wallet operations. Use the current [API guide](api/README.md) and [codebase guide](codebase.md) for the present contract.
 
 สถานะ: **implement และตรวจรับ local แล้ว — ยังไม่ได้ deploy Vercel**  
 ปรับล่าสุด: 27 กันยายน 2026  

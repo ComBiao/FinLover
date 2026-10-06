@@ -12,6 +12,8 @@ export class GetWalletController {
       const { id } = await params;
       await connectDB();
       return NextResponse.json({ data: await this.service.execute(id, principal!.userId) });
-    } catch (error) { return walletErrorResponse(error); }
+    } catch (error) {
+      return walletErrorResponse(error);
+    }
   }
 }
