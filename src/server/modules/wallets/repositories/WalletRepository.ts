@@ -16,6 +16,7 @@ function toRecord(doc: InstanceType<typeof Wallet>): WalletRecord {
     color: doc.color,
     isSaving: doc.isSaving,
     goalAmount: doc.goalAmount,
+    hideBalance: doc.hideBalance ?? false,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt
   };
@@ -28,7 +29,7 @@ export class WalletRepository implements WalletAccess, WalletRepositoryPort {
     if (!result.matchedCount) throw new AppError('NOT_FOUND', 'Wallet not found');
   }
   async list(userId: string, context?: TransactionContext) {
-    const docs = await Wallet.find({ userId }).session(sessionOf(context) ?? null);
+    const docs = await Wallet.find({ userId }).sort({ isDefault: -1, createdAt: 1 }).session(sessionOf(context) ?? null);
     return docs.map(toRecord);
   }
   async findOwned(id: string, userId: string, context?: TransactionContext) {

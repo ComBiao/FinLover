@@ -39,4 +39,5 @@ export const transactions = {
 export const wallets = {
   create: logged(secure(rawWallets.create, { protected: true })),
   list: logged(secure(rawWallets.list, { protected: true })),
+  get: logged(secure(rawWallets.get, { protected: true })),
 };

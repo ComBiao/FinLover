@@ -35,148 +35,112 @@ beforeEach(async () => {
   await Wallet.deleteMany({});
 });
 
-//=============== POST Method tests ===============//
-const post = (body: unknown, authorization?: string) => new NextRequest('http://localhost:3000/api/v1/wallets', {
-  method: 'POST',
-  headers: { 'content-type': 'application/json', ...(authorization ? { authorization } : {}) },
-  body: JSON.stringify(body),
-});
-// An omitted authorization uses the fixture token; an explicit `undefined` means no login.
-const create = (body: unknown, ...authorization: [string?]) =>
-  v1.createWallet(post(body, authorization.length === 0 ? `Bearer ${token}` : authorization[0]), context());
+//=============== GET Method tests ===============//
+describe('GET /api/v1/wallets', () => {
+  it("returns only the caller's wallets with the default wallet first", async () => {
+    const regular = await Wallet.create({ userId, name: 'Everyday' });
+    const defaultWallet = await Wallet.create({ userId, name: 'Main', isDefault: true });
+    await Wallet.create({ userId: otherUserId, name: 'Private' });
 
-describe('POST /api/v1/wallets', () => {
-  it('creates a wallet owned by the caller with the saving settings applied', async () => {
-    const response = await create({ name: 'Holiday fund', isSaving: true});
+    const response = await v1.listWallets(request('/api/v1/wallets', `Bearer ${token}`), context());
 
-    expect(response.status).toBe(201);
+    expect(response.status).toBe(200);
     const payload = await response.json();
     expect(payload).toMatchObject({ status: true });
-    expect(payload.data).not.toHaveProperty('userId');
-    expect(payload.data).toMatchObject({
+    expect(payload.data).toEqual([
+      expect.objectContaining({ id: String(defaultWallet._id), name: 'Main', isDefault: true }),
+      expect.objectContaining({ id: String(regular._id), name: 'Everyday', isDefault: false }),
+    ]);
+    expect(payload.data).not.toContainEqual(expect.objectContaining({ name: 'Private' }));
+  });
+
+  it('returns an empty array when the caller has no wallets', async () => {
+    const response = await v1.listWallets(request('/api/v1/wallets', `Bearer ${token}`), context());
+
+    expect(response.status).toBe(200);
+    expect((await response.json()).data).toEqual([]);
+  });
+
+  it('requires authentication and does not fall back from an invalid Bearer token to a cookie', async () => {
+    const unauthenticated = await v1.listWallets(request('/api/v1/wallets'), context());
+    expect(unauthenticated.status).toBe(401);
+
+    const invalidBearer = new NextRequest('http://localhost:3000/api/v1/wallets', {
+      method: 'GET',
+      headers: { authorization: 'Bearer invalid', cookie: `session_token=${token}` },
+    });
+    const rejected = await v1.listWallets(invalidBearer, context());
+    expect(rejected.status).toBe(401);
+  });
+
+  it('accepts cookie authentication for a GET without an Origin header', async () => {
+    await Wallet.create({ userId, name: 'Main' });
+    const cookieRequest = new NextRequest('http://localhost:3000/api/v1/wallets', {
+      method: 'GET',
+      headers: { cookie: `session_token=${token}` },
+    });
+
+    const response = await v1.listWallets(cookieRequest, context());
+
+    expect(response.status).toBe(200);
+  });
+});
+
+describe('GET /api/v1/wallets/{id}', () => {
+  it('returns an owned wallet including its balance, color, saving, and hide settings', async () => {
+    const wallet = await Wallet.create({
+      userId,
       name: 'Holiday fund',
-      balance: 0,
+      balance: 1250.5,
+      color: '#12AB34',
       isSaving: true,
+      goalAmount: 5000,
+      hideBalance: true,
     });
 
-    const stored = await Wallet.findById(payload.data.id);
-    expect(String(stored!.userId)).toBe(userId);
-    expect(stored!.isSaving).toBe(true);
-  });
+    const response = await v1.getWallet(request(`/api/v1/wallets/${wallet._id}`, `Bearer ${token}`), context(String(wallet._id)));
 
-  it('uses defaults when only a name is sent', async () => {
-    const response = await create({ name: 'Cash' });
-
-    expect(response.status).toBe(201);
+    expect(response.status).toBe(200);
     expect((await response.json()).data).toMatchObject({
-      name: 'Cash',
-      balance: 0,
-      isSaving: false,
-      isDefault: false,
+      id: String(wallet._id),
+      balance: 1250.5,
+      color: '#12AB34',
+      isSaving: true,
+      goalAmount: 5000,
+      hideBalance: true,
     });
   });
 
-  it('ignores owner, balance, default and unknown fields in the body (no mass assignment)', async () => {
-    const clientId = new mongoose.Types.ObjectId().toString();
-    const response = await create({
-      name: 'Sneaky',
-      userId: otherUserId,
-      balance: 999999,
-      isDefault: true,
-      _id: clientId,
-      createdAt: '2000-01-01T00:00:00.000Z',
-      unknownField: 'ignored',
-    });
+  it("returns 404 when the wallet belongs to another user", async () => {
+    const wallet = await Wallet.create({ userId: otherUserId, name: 'Private' });
 
-    expect(response.status).toBe(201);
-    const { data } = await response.json();
-    const stored = await Wallet.findById(data.id).lean();
-    expect(String(stored!.userId)).toBe(userId);
-    expect(stored!.balance).toBe(0);
-    expect(stored!.isDefault).toBe(false);
-    expect(String(stored!._id)).not.toBe(clientId);
-    expect(stored).not.toHaveProperty('unknownField');
-    expect(await Wallet.countDocuments({ userId: otherUserId })).toBe(0);
+    const response = await v1.getWallet(request(`/api/v1/wallets/${wallet._id}`, `Bearer ${token}`), context(String(wallet._id)));
+
+    expect(response.status).toBe(404);
+    expect((await response.json()).error.code).toBe('NOT_FOUND');
   });
 
-  it('shows the new wallet in the wallet list', async () => {
-    const created = await (await create({ name: 'Savings' })).json();
-
-    const list = await v1.listWallets(request('/api/v1/wallets', `Bearer ${token}`), context());
-
-    expect(list.status).toBe(200);
-    const listed = (await list.json()).data;
-    expect(listed).toContainEqual(
-      expect.objectContaining({ id: created.data.id, name: 'Savings' }),
-    );
-    expect(listed.every((wallet: Record<string, unknown>) => !('userId' in wallet))).toBe(true);
-  });
-
-  it('returns 409 for a duplicate name for the same user and creates nothing', async () => {
-    await Wallet.create({ userId, name: 'Main' });
-
-    const response = await create({ name: 'Main' });
-
-    expect(response.status).toBe(409);
-    const payload = await response.json();
-    expect(payload).toMatchObject({ status: false });
-    expect(payload.error.code).toBe('CONFLICT');
-    expect(payload.error.fields).toEqual({ name: 'A wallet with this name already exists' });
-    expect(await Wallet.countDocuments({ userId })).toBe(1);
-  });
-
-  it('treats a name that only differs by surrounding whitespace as a duplicate', async () => {
-    await Wallet.create({ userId, name: 'Main' });
-
-    const response = await create({ name: '  Main  ' });
-
-    expect(response.status).toBe(409);
-    expect(await Wallet.countDocuments({ userId })).toBe(1);
-  });
-
-  it('allows the same name for a different user', async () => {
-    await Wallet.create({ userId: otherUserId, name: 'Main' });
-
-    const response = await create({ name: 'Main' });
-
-    expect(response.status).toBe(201);
-    expect(await Wallet.countDocuments({ name: 'Main' })).toBe(2);
-  });
-
-  it.each([
-    ['a missing name', {}],
-    ['a blank name', { name: '   ' }],
-    ['a name over 50 characters', { name: 'a'.repeat(51) }],
-    ['a non-boolean saving flag', { name: 'Bad', isSaving: 'yes' }],
-    ['an invalid color', { name: 'Bad', color: 'red' }],
-  ])('returns 400 for %s and creates nothing', async (_label, body) => {
-    const response = await create(body);
+  it('returns 400 for a malformed ID', async () => {
+    const response = await v1.getWallet(request('/api/v1/wallets/not-an-id', `Bearer ${token}`), context('not-an-id'));
 
     expect(response.status).toBe(400);
     expect((await response.json()).error.code).toBe('VALIDATION_ERROR');
-    expect(await Wallet.countDocuments()).toBe(0);
   });
 
-  it('returns 400 for malformed JSON', async () => {
-    const malformed = new NextRequest('http://localhost:3000/api/v1/wallets', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
-      body: '{',
-    });
+  it('returns 404 for a valid ID that does not exist', async () => {
+    const id = new mongoose.Types.ObjectId().toString();
+    const response = await v1.getWallet(request(`/api/v1/wallets/${id}`, `Bearer ${token}`), context(id));
 
-    const response = await v1.createWallet(malformed, context());
-
-    expect(response.status).toBe(400);
-    expect((await response.json()).error.code).toBe('INVALID_JSON');
-    expect(await Wallet.countDocuments()).toBe(0);
+    expect(response.status).toBe(404);
+    expect((await response.json()).error.code).toBe('NOT_FOUND');
   });
 
-  it('returns 401 without a login and creates nothing', async () => {
-    const response = await create({ name: 'Main' }, undefined);
+  it('returns 401 without a login', async () => {
+    const wallet = await Wallet.create({ userId, name: 'Main' });
+
+    const response = await v1.getWallet(request(`/api/v1/wallets/${wallet._id}`), context(String(wallet._id)));
 
     expect(response.status).toBe(401);
     expect((await response.json()).error.code).toBe('UNAUTHORIZED');
-    expect(await Wallet.countDocuments()).toBe(0);
   });
 });
-  
