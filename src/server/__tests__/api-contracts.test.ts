@@ -115,3 +115,77 @@ describe('v1 cookie authentication and CSRF', () => {
     const result = await v1.createCategory(request('POST', '/api/v1/categories', body, { cookie, origin: 'http://localhost:3000' }), context()); expect(result.status).toBe(201);
   });
 });
+
+describe('v1 delete-account contract', () => {
+  const path = '/api/v1/auth/delete-account';
+  const seedUser = () => User.create({ _id: user, email: 'me@example.com', passwordHash: 'x', dataPrivacyConsent: true });
+  const cookieCleared = () => cookieStore.delete.mock.calls.length + cookieStore.set.mock.calls.length > 0;
+
+  it('is documented for v1 only', () => {
+    expect(buildSpec('v1').paths[path]?.delete).toBeDefined();
+    expect(buildSpec('legacy').paths['/api/auth/delete-account']).toBeUndefined();
+  });
+
+  it('200: Bearer auth deletes the account and matches the schema', async () => {
+    await seedUser();
+    const res = await v1.deleteAccount(request('DELETE', path), context());
+    expect(res.status).toBe(200);
+    expect(await contract('v1', path, 'delete', res)).toEqual({ status: true, data: { success: true } });
+    expect(await User.findById(user)).toBeNull();
+    expect(await Wallet.countDocuments({ userId: user })).toBe(0);
+    expect(cookieCleared()).toBe(true);
+  });
+
+  it('200: cookie auth with a trusted Origin succeeds', async () => {
+    await seedUser();
+    const res = await v1.deleteAccount(request('DELETE', path, undefined, { cookie: `session_token=${token}` }), context());
+    expect(res.status).toBe(200);
+    await contract('v1', path, 'delete', res);
+    expect(await User.findById(user)).toBeNull();
+  });
+
+  it('401: no credentials, nothing deleted', async () => {
+    await seedUser();
+    const res = await v1.deleteAccount(request('DELETE', path, undefined, {}), context());
+    expect(res.status).toBe(401);
+    await contract('v1', path, 'delete', res);
+    expect(await User.findById(user)).not.toBeNull();
+  });
+
+  it('401: expired token, nothing deleted', async () => {
+    await seedUser();
+    const expired = jwt.sign({ userId: user }, process.env.JWT_SECRET!, { expiresIn: '-1s' });
+    const res = await v1.deleteAccount(request('DELETE', path, undefined, { authorization: `Bearer ${expired}` }), context());
+    expect(res.status).toBe(401);
+    await contract('v1', path, 'delete', res);
+    expect(await User.findById(user)).not.toBeNull();
+  });
+
+  it('401: a valid cookie does not rescue an invalid Bearer header', async () => {
+    await seedUser();
+    const res = await v1.deleteAccount(
+      request('DELETE', path, undefined, { cookie: `session_token=${token}`, authorization: 'Bearer invalid' }),
+      context(),
+    );
+    expect(res.status).toBe(401);
+    await contract('v1', path, 'delete', res);
+    expect(await User.findById(user)).not.toBeNull();
+  });
+
+  it('403: cookie auth without an Origin header, nothing deleted', async () => {
+    await seedUser();
+    // The shared request() helper adds an Origin on /auth/ paths, so build this one by hand.
+    const noOrigin = new NextRequest(`http://localhost:3000${path}`, { method: 'DELETE', headers: { cookie: `session_token=${token}` } });
+    const res = await v1.deleteAccount(noOrigin, context());
+    expect(res.status).toBe(403);
+    await contract('v1', path, 'delete', res);
+    expect(await User.findById(user)).not.toBeNull();
+  });
+
+  it('404: valid token for an already-deleted user, cookie still cleared', async () => {
+    const res = await v1.deleteAccount(request('DELETE', path), context());
+    expect(res.status).toBe(404);
+    await contract('v1', path, 'delete', res);
+    expect(cookieCleared()).toBe(true);
+  });
+});

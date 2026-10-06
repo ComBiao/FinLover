@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { signToken } from "@/server/shared/auth/crypto";
+import { NextRequest } from "next/server";
 
 // connectDB and the User model touch a real database -- mocked the same
 // way login/logout's own tests mock theirs.
@@ -25,15 +26,16 @@ vi.mock("@/server/shared/auth/session", async (importOriginal) => {
 // exercise a UnitOfWork at all, so this mock has no precedent to copy from.
 // Replaced with a pass-through so the real Controller/Service/Repository
 // logic still runs, just without touching an actual database.
-vi.mock("@/server/db/unit-of-work", () => ({
-  MongoUnitOfWork: vi.fn().mockImplementation(() => ({
-    run: (work: (context: { session: undefined }) => Promise<unknown>) =>
-      work({ session: undefined }),
-  })),
-  sessionOf: () => undefined,
+vi.mock("@/server/db/unit-of-work", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/server/db/unit-of-work")>()),
+  MongoUnitOfWork: class {
+    run<T>(work: (context: { session: undefined }) => Promise<T>) {
+      return work({ session: undefined });
+    }
+  },
 }));
 
-import { DELETE } from "@/app/api/auth/delete-account/route";
+import { DELETE } from "@/app/api/v1/auth/delete-account/route";
 import User from "@/server/db/models/User";
 import { clearSessionCookie } from "@/server/shared/auth/session";
 
@@ -45,16 +47,17 @@ function signSessionToken(userId: string = VALID_USER_ID) {
   return signToken({ userId });
 }
 
-function deleteAccountRequest(
-  options: { cookieToken?: string; bearerToken?: string; origin?: string } = {}
-) {
+function deleteAccountRequest({ cookieToken, bearerToken, origin }: {
+  cookieToken?: string;
+  bearerToken?: string;
+  origin?: string;
+} = {}): NextRequest {
   const headers: Record<string, string> = {};
-  if (options.origin !== undefined) headers.origin = options.origin;
-  // Deliberately the literal resolvePrincipal() checks for, not the
-  // SESSION_COOKIE_NAME constant -- see note above.
-  if (options.cookieToken !== undefined) headers.cookie = `session_token=${options.cookieToken}`;
-  if (options.bearerToken !== undefined) headers.authorization = `Bearer ${options.bearerToken}`;
-  return new Request("http://localhost/api/auth/delete-account", {
+  if (cookieToken) headers.cookie = `session_token=${cookieToken}`;
+  if (bearerToken) headers.authorization = `Bearer ${bearerToken}`;
+  if (origin) headers.origin = origin;
+
+  return new NextRequest("http://localhost/api/v1/auth/delete-account", {
     method: "DELETE",
     headers,
   });
@@ -76,7 +79,7 @@ describe("DELETE /api/auth/delete-account", () => {
     const body = await res.json();
 
     expect(res.status).toBe(200);
-    expect(body).toEqual({ success: true });
+    expect(body).toEqual({ status: true, data: { success: true } });
     expect(User.findOneAndDelete).toHaveBeenCalledWith(
       { _id: VALID_USER_ID },
       { session: undefined }
@@ -95,7 +98,7 @@ describe("DELETE /api/auth/delete-account", () => {
     const body = await res.json();
 
     expect(res.status).toBe(200);
-    expect(body).toEqual({ success: true });
+    expect(body).toEqual({ status: true, data: { success: true } });
   });
 
   it("no credentials at all -> 401, rejected before the handler ever runs", async () => {
