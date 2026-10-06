@@ -3732,9 +3732,6 @@
                         "isDefault": {
                           "type": "boolean"
                         },
-                        "hideBalance": {
-                          "type": "boolean"
-                        },
                         "createdAt": {
                           "type": "string",
                           "format": "date-time",
@@ -3752,7 +3749,6 @@
                         "id",
                         "balance",
                         "isDefault",
-                        "hideBalance",
                         "createdAt",
                         "updatedAt"
                       ],
@@ -4144,9 +4140,6 @@
                           "isDefault": {
                             "type": "boolean"
                           },
-                          "hideBalance": {
-                            "type": "boolean"
-                          },
                           "createdAt": {
                             "type": "string",
                             "format": "date-time",
@@ -4164,7 +4157,6 @@
                           "id",
                           "balance",
                           "isDefault",
-                          "hideBalance",
                           "createdAt",
                           "updatedAt"
                         ],
@@ -4188,7 +4180,6 @@
                       "color": "#12AB34",
                       "isSaving": false,
                       "goalAmount": 0,
-                      "hideBalance": false,
                       "createdAt": "2026-09-27T12:00:00.000Z",
                       "updatedAt": "2026-09-27T12:00:00.000Z"
                     }
@@ -4373,9 +4364,6 @@
                         "isDefault": {
                           "type": "boolean"
                         },
-                        "hideBalance": {
-                          "type": "boolean"
-                        },
                         "createdAt": {
                           "type": "string",
                           "format": "date-time",
@@ -4393,7 +4381,6 @@
                         "id",
                         "balance",
                         "isDefault",
-                        "hideBalance",
                         "createdAt",
                         "updatedAt"
                       ],
@@ -4415,7 +4402,6 @@
                     "color": "#12AB34",
                     "isSaving": false,
                     "goalAmount": 0,
-                    "hideBalance": false,
                     "createdAt": "2026-09-27T12:00:00.000Z",
                     "updatedAt": "2026-09-27T12:00:00.000Z"
                   }

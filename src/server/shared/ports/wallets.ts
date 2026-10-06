@@ -12,7 +12,6 @@ export interface WalletRecord {
   color?: string;
   isSaving: boolean;
   goalAmount?: number;
-  hideBalance: boolean;
   createdAt: Date;
   updatedAt: Date;
   [key: string]: unknown;

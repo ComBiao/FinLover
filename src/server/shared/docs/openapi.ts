@@ -69,7 +69,7 @@ export function buildSpec(version: 'legacy' | 'v1') {
     const success = v1 ? obj({ status: { const: true }, data }) : action.includes('Category') || action.includes('Transaction') ? obj({ data }) : data;
     const error = v1 ? obj({ status: { const: false }, error: schema(apiError), timestamp: { type: 'string', format: 'date-time' }, path: { type: 'string' } }) : obj({ error: schema(apiError) });
     const status = v1 && operation.status === 204 ? 200 : operation.status;
-    const walletExample = { id: '507f1f77bcf86cd799439011', name: 'Main', balance: 1250.5, isDefault: true, color: '#12AB34', isSaving: false, goalAmount: 0, hideBalance: false, createdAt: '2026-09-27T12:00:00.000Z', updatedAt: '2026-09-27T12:00:00.000Z' };
+    const walletExample = { id: '507f1f77bcf86cd799439011', name: 'Main', balance: 1250.5, isDefault: true, color: '#12AB34', isSaving: false, goalAmount: 0, createdAt: '2026-09-27T12:00:00.000Z', updatedAt: '2026-09-27T12:00:00.000Z' };
     const responseExample = action === 'listWallets' ? { status: true, data: [walletExample] } : action === 'getWallet' ? { status: true, data: walletExample } : undefined;
     const responses: Record<string, unknown> = { [status]: { description: 'Success', ...(status === 204 ? {} : { content: { 'application/json': { schema: success, ...(responseExample ? { example: responseExample } : {}) } } }) } };
     const errors = new Set<number>(operation.errors.map(value => v1 && value === 422 ? 400 : value));
