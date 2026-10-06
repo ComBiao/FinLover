@@ -1,6 +1,6 @@
 import type { TransactionContext } from './unit-of-work';
 
-export type WalletCreateInput = { name: string; color?: string; isSaving?: boolean; goalAmount?: number; hideBalance?: boolean };
+export type WalletCreateInput = { name: string; color?: string; isSaving?: boolean; goalAmount?: number;};
 export type WalletUpdateInput = Partial<WalletCreateInput>;
 
 export interface WalletRecord {
@@ -12,7 +12,6 @@ export interface WalletRecord {
   color?: string;
   isSaving: boolean;
   goalAmount?: number;
-  hideBalance: boolean;
   createdAt: Date;
   updatedAt: Date;
   [key: string]: unknown;
