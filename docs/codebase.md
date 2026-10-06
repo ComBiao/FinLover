@@ -80,7 +80,7 @@ Use shadcn/ui base controls and lucide-react icons. Add shadcn components from r
 
 Login/register/logout now use `/api/v1/auth/*`. Registration sends matching passwords and consent; the existing User schema does not persist the form's name. Successful login redirects to the homepage; logout clears the cookie and query cache before redirecting. Errors remain visible rather than reporting fake success.
 
-Category/transaction/homepage screens and displayed profile details remain mock/demo data. List/wallet/report/current-user APIs and full UI integration are not implemented by this refactor. Existing browser routes remain `/`, `/login`, `/register`, `/homepage`, `/category`, `/transactions`.
+The v1 API implements GET wallet list and detail reads; legacy has no wallet operations. Category/transaction/homepage screens and displayed profile details remain mock/demo data. Report/current-user APIs and full UI integration are not implemented by this refactor. Existing browser routes remain `/`, `/login`, `/register`, `/homepage`, `/category`, `/transactions`.
 
 The Category screen defines 11 built-in expense categories and 6 built-in income categories. `isDefault` prevents editing/deleting built-ins in both the cards and the local state hook. `isFallback` identifies Other, which stays last when custom categories are added. These categories remain local UI state and do not change server category data or transaction classification.
 
