@@ -3,24 +3,8 @@ import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { CATEGORY_STYLES, resolveChipTone } from "@/components/chipColor";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { cn } from "@/lib/utils";
+import { cn, formatBaht } from "@/lib/utils";
 import type { HomeSavingGoal, HomeTopCategory } from "@/features/homepage/services/homeService";
-
-/** `฿1,304` for a whole number, `฿1,304.50` for a fractional one — decimals only ever appear when the amount actually has cents. */
-export function formatCurrency(amount: number) {
-  const abs = Math.abs(amount);
-  const hasFraction = abs % 1 !== 0;
-  return `฿${abs.toLocaleString("en-US", {
-    minimumFractionDigits: hasFraction ? 2 : 0,
-    maximumFractionDigits: 2,
-  })}`;
-}
-
-function formatSigned(amount: number) {
-  if (amount > 0) return `+${formatCurrency(amount)}`;
-  if (amount < 0) return `-${formatCurrency(amount)}`;
-  return formatCurrency(amount);
-}
 
 type TotalBalanceCardProps = {
   walletLabel: string;
@@ -59,7 +43,7 @@ export function TotalBalanceCard({
               </span>
             </div>
             <div className="text-3xl font-extrabold text-foreground sm:text-4xl">
-              {formatCurrency(totalBalance)}
+              {formatBaht(Math.abs(totalBalance))}
             </div>
 
             {savingGoal ? (
@@ -69,13 +53,13 @@ export function TotalBalanceCard({
                   <span className="text-xs font-semibold text-foreground/70">
                     {savingGoal.reached
                       ? "Goal reached"
-                      : `${formatCurrency(savingGoal.remaining)} to go`}
+                      : `${formatBaht(savingGoal.remaining)} to go`}
                   </span>
                 </div>
                 <Progress value={savingGoal.percent} className="[&>div]:bg-card/80" />
                 <span className="text-xs text-foreground/80">
-                  {savingGoal.walletName} · {formatCurrency(savingGoal.current)} of{" "}
-                  {formatCurrency(savingGoal.goal)} · {savingGoal.percent}%
+                  {savingGoal.walletName} · {formatBaht(Math.abs(savingGoal.current))} of{" "}
+                  {formatBaht(savingGoal.goal)} · {savingGoal.percent}%
                 </span>
               </div>
             ) : null}
@@ -118,7 +102,7 @@ function AmountCard({ label, amount, emptyLabel, tone }: AmountCardProps) {
             tone === "expense" ? "text-destructive" : "text-success"
           )}
         >
-          {formatCurrency(amount)}
+          {formatBaht(amount)}
         </div>
         {amount === 0 ? <span className="text-sm text-muted-foreground">{emptyLabel}</span> : null}
       </CardContent>
@@ -183,7 +167,7 @@ export function NetCard({ monthLabel, net, status, income, expense }: NetCardPro
             status === "surplus" ? "text-success" : status === "overspending" ? "text-destructive" : "text-foreground"
           )}
         >
-          {formatSigned(net)}
+          {formatBaht(net, { sign: true })}
         </div>
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2.5">
@@ -258,7 +242,7 @@ export function TopCategoriesCard({ monthLabel, topCategories }: TopCategoriesCa
                   </span>
                   <span className="flex-1 text-sm font-medium text-foreground">{category.name}</span>
                   <span className="text-base font-bold text-foreground">
-                    {formatCurrency(category.amount)}
+                    {formatBaht(category.amount)}
                   </span>
                 </li>
               );

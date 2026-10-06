@@ -53,18 +53,28 @@ export default function TransactionsPage() {
   function handleDeleteTransaction(id: string) {
     deleteTransaction.mutate(id, {
       onSuccess: () => toast.success("Transaction deleted successfully"),
+      onError: () => toast.error("Couldn't delete this transaction"),
     });
   }
 
   function handleAddTransaction(newTransaction: Transaction) {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars -- the modal assigns a throwaway client-side id; the mock service assigns its own.
     const { id: _clientId, ...input } = newTransaction;
-    createTransaction.mutate(input);
+    createTransaction.mutate(input, {
+      onSuccess: () => toast.success("Transaction added"),
+      onError: () => toast.error("Couldn't save this transaction"),
+    });
   }
 
   function handleEditTransaction(updatedTransaction: Transaction) {
     const { id, ...input } = updatedTransaction;
-    updateTransaction.mutate({ id, input });
+    updateTransaction.mutate(
+      { id, input },
+      {
+        onSuccess: () => toast.success("Transaction updated"),
+        onError: () => toast.error("Couldn't update this transaction"),
+      }
+    );
   }
 
   return (

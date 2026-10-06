@@ -83,6 +83,7 @@ export function HomePage() {
         setMonth(monthKeyOfDate(created.date));
         toast.success("Transaction added");
       },
+      onError: () => toast.error("Couldn't save this transaction"),
     });
   }
 
@@ -95,6 +96,7 @@ export function HomePage() {
           setMonth(monthKeyOfDate(updated.date));
           toast.success("Transaction updated");
         },
+        onError: () => toast.error("Couldn't update this transaction"),
       }
     );
   }
@@ -102,6 +104,7 @@ export function HomePage() {
   function handleDeleteTransaction(id: string) {
     deleteTransaction.mutate(id, {
       onSuccess: () => toast.success("Transaction deleted"),
+      onError: () => toast.error("Couldn't delete this transaction"),
     });
   }
 
