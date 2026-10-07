@@ -119,7 +119,7 @@ describe('v1 cookie authentication and CSRF', () => {
 describe('v1 delete-account contract', () => {
   const path = '/api/v1/auth/delete-account';
   const seedUser = () => User.create({ _id: user, email: 'me@example.com', passwordHash: 'x', dataPrivacyConsent: true });
-  const cookieCleared = () => cookieStore.delete.mock.calls.length + cookieStore.set.mock.calls.length > 0;
+  const cookieCleared = () => cookieStore.delete.mock.calls.some(([name]) => name === 'session_token');
 
   it('is documented for v1 only', () => {
     expect(buildSpec('v1').paths[path]?.delete).toBeDefined();
