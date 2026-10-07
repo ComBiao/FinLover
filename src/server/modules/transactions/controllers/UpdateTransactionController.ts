@@ -29,11 +29,11 @@ export class UpdateTransactionController {
         return errorResponse(422, 'VALIDATION_ERROR', 'One or more fields are invalid', validationFields(parsed.error));
       }
 
-      const { category_id, type, amount, date, note } = parsed.data;
+      const { category_id, type, amount, date, title, note } = parsed.data;
 
       // 3. Database Operations
       await connectDB();
-      const tx = await this.service.execute(id, user_id, { categoryId: category_id || null, type: type.toLowerCase() as 'income' | 'expense', amount, date: new Date(date), note });
+      const tx = await this.service.execute(id, user_id, { categoryId: category_id || null, type: type.toLowerCase() as 'income' | 'expense', amount, date: new Date(date), title, note });
       return NextResponse.json({ data: TransactionResponseDTO.legacy(tx) });
 
     } catch (error) {

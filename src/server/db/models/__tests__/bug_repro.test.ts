@@ -39,14 +39,15 @@ describe('Transaction categoryId validation bug', () => {
       categoryId: incomeCat._id,
       type: 'income',
       amount: 100,
-      date: new Date()
+      date: new Date(),
+      title: 'Test transaction',
     }));
 
     // Try to update the transaction's category to an expense category
     let err: Error | null = null;
     try {
       const service = new UpdateTransactionService(new TransactionRepository(), new WalletRepository(), new CategoryRepository(), new MongoUnitOfWork());
-      await service.execute(String(tx._id), String(user._id), { walletId: String(wallet._id), categoryId: String(expenseCat._id), type: tx.type, amount: tx.amount, date: tx.date });
+      await service.execute(String(tx._id), String(user._id), { walletId: String(wallet._id), categoryId: String(expenseCat._id), type: tx.type, amount: tx.amount, date: tx.date, title: tx.title ?? 'Test transaction' });
     } catch (e) {
       err = e as Error;
     }

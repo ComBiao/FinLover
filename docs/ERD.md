@@ -25,7 +25,6 @@ erDiagram
     String color
     Boolean isSaving
     Number goalAmount
-    Boolean hideBalance
     ObjectId _id
     Date createdAt
     Date updatedAt
@@ -50,6 +49,7 @@ erDiagram
     String type
     Number amount
     Date date
+    String title
     String notes
     Embedded recurrence
     ObjectId _id
