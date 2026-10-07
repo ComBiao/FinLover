@@ -947,9 +947,6 @@
         "description": "Permanently delete the authenticated user and cascade-delete their wallets, categories and transactions atomically. Session cookie only: any Authorization header, valid or not, is rejected with 401. No password re-authentication. Clears the session cookie, including when the account is already gone (404). Authorization takes precedence over cookie. Cookie writes require an Origin in PUBLIC_ORIGINS; missing Origin is rejected. Implemented.",
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
             "sessionCookie": []
           }
         ],
@@ -967,61 +964,13 @@
                     "data": {
                       "type": "object",
                       "properties": {
-                        "walletId": {
-                          "type": "string",
-                          "pattern": "^[a-f0-9]{24}$"
-                        },
-                        "categoryId": {
-                          "anyOf": [
-                            {
-                              "type": "string",
-                              "pattern": "^[a-f0-9]{24}$"
-                            },
-                            {
-                              "type": "null"
-                            }
-                          ]
-                        },
-                        "type": {
-                          "type": "string",
-                          "enum": [
-                            "income",
-                            "expense"
-                          ]
-                        },
-                        "amount": {
-                          "type": "number",
-                          "minimum": 0.01
-                        },
-                        "date": {
-                          "type": "string",
-                          "format": "date",
-                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
-                        },
-                        "title": {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 100
-                        },
-                        "note": {
-                          "type": "string",
-                          "maxLength": 255
-                        },
-                        "id": {
-                          "type": "string",
-                          "pattern": "^[a-f0-9]{24}$"
+                        "success": {
+                          "const": true
                         }
                       },
                       "required": [
-                        "walletId",
-                        "categoryId",
-                        "type",
-                        "amount",
-                        "date",
-                        "title",
-                        "id"
-                      ],
-                      "additionalProperties": false
+                        "success"
+                      ]
                     }
                   },
                   "required": [
