@@ -17,8 +17,12 @@ vi.mock("@/server/db/models/User", () => ({
 // (like login.test.ts does for setSessionCookie) would be fine too, but
 // this project doesn't need anything else from the module in this file.
 vi.mock("@/server/shared/auth/session", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/server/shared/auth/session")>();
-  return { ...actual, clearSessionCookie: vi.fn().mockResolvedValue(undefined) };
+  const actual =
+    await importOriginal<typeof import("@/server/shared/auth/session")>();
+  return {
+    ...actual,
+    clearSessionCookie: vi.fn().mockResolvedValue(undefined),
+  };
 });
 
 // MongoUnitOfWork.run() calls mongoose.startSession() for real, which
@@ -47,7 +51,11 @@ function signSessionToken(userId: string = VALID_USER_ID) {
   return signToken({ userId });
 }
 
-function deleteAccountRequest({ cookieToken, bearerToken, origin }: {
+function deleteAccountRequest({
+  cookieToken,
+  bearerToken,
+  origin,
+}: {
   cookieToken?: string;
   bearerToken?: string;
   origin?: string;
@@ -71,10 +79,12 @@ beforeEach(() => {
 describe("DELETE /api/auth/delete-account", () => {
   it("valid, cookie-authenticated: deletes the account, clears the cookie, returns success", async () => {
     const token = signSessionToken();
-    vi.mocked(User.findOneAndDelete).mockResolvedValue({ _id: VALID_USER_ID } as never);
+    vi.mocked(User.findOneAndDelete).mockResolvedValue({
+      _id: VALID_USER_ID,
+    } as never);
 
     const res = await DELETE(
-      deleteAccountRequest({ cookieToken: token, origin: "http://localhost" })
+      deleteAccountRequest({ cookieToken: token, origin: "http://localhost" }),
     );
     const body = await res.json();
 
@@ -82,27 +92,28 @@ describe("DELETE /api/auth/delete-account", () => {
     expect(body).toEqual({ status: true, data: { success: true } });
     expect(User.findOneAndDelete).toHaveBeenCalledWith(
       { _id: VALID_USER_ID },
-      { session: undefined }
+      { session: undefined },
     );
     expect(clearSessionCookie).toHaveBeenCalled();
   });
 
-  it("valid, Bearer-authenticated: succeeds with no Origin header needed", async () => {
+  it("Bearer-authenticated: rejected with 401, nothing deleted", async () => {
     const token = signSessionToken();
-    vi.mocked(User.findOneAndDelete).mockResolvedValue({ _id: VALID_USER_ID } as never);
-
-    // Deliberately no `origin` set -- a Bearer-sourced principal isn't a
-    // cookie mutation, so secure() shouldn't require one here, unlike the
-    // cookie-authenticated case above.
     const res = await DELETE(deleteAccountRequest({ bearerToken: token }));
     const body = await res.json();
 
-    expect(res.status).toBe(200);
-    expect(body).toEqual({ status: true, data: { success: true } });
+    expect(res.status).toBe(401);
+    expect(body).toMatchObject({
+      status: false,
+      error: { code: "UNAUTHORIZED" },
+    });
+    expect(User.findOneAndDelete).not.toHaveBeenCalled();
   });
 
   it("no credentials at all -> 401, rejected before the handler ever runs", async () => {
-    const res = await DELETE(deleteAccountRequest({ origin: "http://localhost" }));
+    const res = await DELETE(
+      deleteAccountRequest({ origin: "http://localhost" }),
+    );
     const body = await res.json();
 
     expect(res.status).toBe(401);
@@ -127,7 +138,7 @@ describe("DELETE /api/auth/delete-account", () => {
     vi.mocked(User.findOneAndDelete).mockResolvedValue(null);
 
     const res = await DELETE(
-      deleteAccountRequest({ cookieToken: token, origin: "http://localhost" })
+      deleteAccountRequest({ cookieToken: token, origin: "http://localhost" }),
     );
     const body = await res.json();
 
@@ -138,10 +149,12 @@ describe("DELETE /api/auth/delete-account", () => {
 
   it("database failure -> 500 INTERNAL_ERROR, not an unhandled exception, cookie left alone", async () => {
     const token = signSessionToken();
-    vi.mocked(User.findOneAndDelete).mockRejectedValue(new Error("connection lost"));
+    vi.mocked(User.findOneAndDelete).mockRejectedValue(
+      new Error("connection lost"),
+    );
 
     const res = await DELETE(
-      deleteAccountRequest({ cookieToken: token, origin: "http://localhost" })
+      deleteAccountRequest({ cookieToken: token, origin: "http://localhost" }),
     );
     const body = await res.json();
 

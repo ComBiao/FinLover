@@ -116,19 +116,24 @@ describe('v1 cookie authentication and CSRF', () => {
   });
 });
 
-describe('v1 delete-account contract', () => {
+describe('v1 delete-account contract (session cookie only)', () => {
   const path = '/api/v1/auth/delete-account';
+  const cookie = `session_token=${token}`;
   const seedUser = () => User.create({ _id: user, email: 'me@example.com', passwordHash: 'x', dataPrivacyConsent: true });
   const cookieCleared = () => cookieStore.delete.mock.calls.length + cookieStore.set.mock.calls.length > 0;
+  // request() adds Origin on /auth/ paths and content-type always; headers passed here replace the default Bearer.
+  const call = (headers: Record<string, string>) => v1.deleteAccount(request('DELETE', path, undefined, headers), context());
 
-  it('is documented for v1 only', () => {
-    expect(buildSpec('v1').paths[path]?.delete).toBeDefined();
+  it('is documented for v1 only, with the session cookie as its only security scheme', () => {
+    const operation = buildSpec('v1').paths[path]?.delete as { security: unknown };
+    expect(operation).toBeDefined();
+    expect(operation.security).toEqual([{ sessionCookie: [] }]);
     expect(buildSpec('legacy').paths['/api/auth/delete-account']).toBeUndefined();
   });
 
-  it('200: Bearer auth deletes the account and matches the schema', async () => {
+  it('200: cookie auth with a trusted Origin deletes the account and matches the schema', async () => {
     await seedUser();
-    const res = await v1.deleteAccount(request('DELETE', path), context());
+    const res = await call({ cookie });
     expect(res.status).toBe(200);
     expect(await contract('v1', path, 'delete', res)).toEqual({ status: true, data: { success: true } });
     expect(await User.findById(user)).toBeNull();
@@ -136,9 +141,11 @@ describe('v1 delete-account contract', () => {
     expect(cookieCleared()).toBe(true);
   });
 
-  it('200: cookie auth with a trusted Origin succeeds', async () => {
+  it('200: a bodyless browser-style request without Content-Type succeeds', async () => {
     await seedUser();
-    const res = await v1.deleteAccount(request('DELETE', path, undefined, { cookie: `session_token=${token}` }), context());
+    // What fetch(url, { method: 'DELETE', credentials: 'include' }) sends: cookie and Origin, no body, no content-type.
+    const bare = new NextRequest(`http://localhost:3000${path}`, { method: 'DELETE', headers: { cookie, origin: 'http://localhost:3000' } });
+    const res = await v1.deleteAccount(bare, context());
     expect(res.status).toBe(200);
     await contract('v1', path, 'delete', res);
     expect(await User.findById(user)).toBeNull();
@@ -146,16 +153,26 @@ describe('v1 delete-account contract', () => {
 
   it('401: no credentials, nothing deleted', async () => {
     await seedUser();
-    const res = await v1.deleteAccount(request('DELETE', path, undefined, {}), context());
+    const res = await call({});
     expect(res.status).toBe(401);
     await contract('v1', path, 'delete', res);
     expect(await User.findById(user)).not.toBeNull();
   });
 
-  it('401: expired token, nothing deleted', async () => {
+  it('401: a valid Bearer token is rejected, nothing deleted and the cookie is kept', async () => {
+    await seedUser();
+    const res = await call({ authorization: `Bearer ${token}` });
+    expect(res.status).toBe(401);
+    await contract('v1', path, 'delete', res);
+    expect(await User.findById(user)).not.toBeNull();
+    expect(await Wallet.countDocuments({ userId: user })).toBe(1);
+    expect(cookieCleared()).toBe(false);
+  });
+
+  it('401: expired session cookie, nothing deleted', async () => {
     await seedUser();
     const expired = jwt.sign({ userId: user }, process.env.JWT_SECRET!, { expiresIn: '-1s' });
-    const res = await v1.deleteAccount(request('DELETE', path, undefined, { authorization: `Bearer ${expired}` }), context());
+    const res = await call({ cookie: `session_token=${expired}` });
     expect(res.status).toBe(401);
     await contract('v1', path, 'delete', res);
     expect(await User.findById(user)).not.toBeNull();
@@ -163,10 +180,7 @@ describe('v1 delete-account contract', () => {
 
   it('401: a valid cookie does not rescue an invalid Bearer header', async () => {
     await seedUser();
-    const res = await v1.deleteAccount(
-      request('DELETE', path, undefined, { cookie: `session_token=${token}`, authorization: 'Bearer invalid' }),
-      context(),
-    );
+    const res = await call({ cookie, authorization: 'Bearer invalid' });
     expect(res.status).toBe(401);
     await contract('v1', path, 'delete', res);
     expect(await User.findById(user)).not.toBeNull();
@@ -174,16 +188,25 @@ describe('v1 delete-account contract', () => {
 
   it('403: cookie auth without an Origin header, nothing deleted', async () => {
     await seedUser();
-    // The shared request() helper adds an Origin on /auth/ paths, so build this one by hand.
-    const noOrigin = new NextRequest(`http://localhost:3000${path}`, { method: 'DELETE', headers: { cookie: `session_token=${token}` } });
+    // request() adds an Origin on /auth/ paths, so build this one by hand. Content-Type is included
+    // so the failure can only come from the missing Origin.
+    const noOrigin = new NextRequest(`http://localhost:3000${path}`, { method: 'DELETE', headers: { cookie, 'content-type': 'application/json' } });
     const res = await v1.deleteAccount(noOrigin, context());
     expect(res.status).toBe(403);
     await contract('v1', path, 'delete', res);
     expect(await User.findById(user)).not.toBeNull();
   });
 
-  it('404: valid token for an already-deleted user, cookie still cleared', async () => {
-    const res = await v1.deleteAccount(request('DELETE', path), context());
+  it('403: cookie auth from a foreign Origin, nothing deleted', async () => {
+    await seedUser();
+    const res = await call({ cookie, origin: 'https://attacker.example' });
+    expect(res.status).toBe(403);
+    await contract('v1', path, 'delete', res);
+    expect(await User.findById(user)).not.toBeNull();
+  });
+
+  it('404: valid cookie for an already-deleted user, cookie still cleared', async () => {
+    const res = await call({ cookie });
     expect(res.status).toBe(404);
     await contract('v1', path, 'delete', res);
     expect(cookieCleared()).toBe(true);

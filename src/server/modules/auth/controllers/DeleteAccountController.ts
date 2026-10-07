@@ -25,6 +25,13 @@ export class DeleteAccountController {
       // mistakes, not a path expected to actually trigger.
       return errorResponse(401, "UNAUTHORIZED", "Missing or invalid token");
     }
+    if (principal.source !== "cookie") {
+      return errorResponse(
+        401,
+        "UNAUTHORIZED",
+        "This endpoint requires a browser session",
+      );
+    }
 
     try {
       await connectDB();

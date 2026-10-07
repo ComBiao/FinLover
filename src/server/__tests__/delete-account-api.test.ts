@@ -68,6 +68,7 @@ afterAll(async () => {
 }, 60_000);
 
 beforeEach(async () => {
+  vi.stubEnv("PUBLIC_ORIGINS", "http://localhost:3000");
   for (const collection of Object.values(mongoose.connection.collections)) {
     await collection.deleteMany({});
   }
@@ -80,10 +81,20 @@ beforeEach(async () => {
 // ---------------------------------------------------------------------------
 
 /** Bearer auth means no Origin header is needed (the CSRF check is cookie-only). */
-function deleteRequest(token: string | null = TOKEN) {
+function deleteRequest(
+  token: string | null = TOKEN,
+  via: "cookie" | "bearer" = "cookie",
+) {
+  const headers: Record<string, string> = {};
+  if (token && via === "cookie") {
+    headers.cookie = `session_token=${token}`;
+    headers.origin = "http://localhost:3000";
+  } else if (token) {
+    headers.authorization = `Bearer ${token}`;
+  }
   return new NextRequest("http://localhost:3000/api/v1/auth/delete-account", {
     method: "DELETE",
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    headers,
   });
 }
 
@@ -243,7 +254,6 @@ describe("DELETE /api/v1/auth/delete-account (real database)", () => {
     expect(cookieWasCleared()).toBe(true);
   });
 
-
   it("returns 401 for an expired token and deletes nothing", async () => {
     await seedUserWithData(USER_ID, "me@example.com");
     const expired = jwt.sign(
@@ -261,5 +271,18 @@ describe("DELETE /api/v1/auth/delete-account (real database)", () => {
       categories: 2,
       transactions: 3,
     });
+  });
+  
+  it("rejects Bearer auth with 401, deletes nothing and keeps the cookie", async () => {
+    await seedUserWithData(USER_ID, "me@example.com");
+    const res = await DELETE(deleteRequest(TOKEN, "bearer"));
+    expect(res.status).toBe(401);
+    expect(await countsFor(USER_ID)).toEqual({
+      users: 1,
+      wallets: 2,
+      categories: 2,
+      transactions: 3,
+    });
+    expect(cookieWasCleared()).toBe(false);
   });
 });
