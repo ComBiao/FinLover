@@ -17,6 +17,16 @@ import { connectDB } from "@/server/db/index";
 export class DeleteAccountController {
   constructor(private service: DeleteAccountService) {}
 
+  /**
+   * Deletes the account identified by the verified principal in context, without
+   * password re-entry. Authentication and Origin checks belong to the route policy.
+   * Returns 401 for a missing or non-cookie principal, 200 with { success: true }
+   * after deletion, or 404 if the account is missing. Clears the cookie on 200/404.
+   * Other caught errors become API error responses; unexpected errors become 500.
+   * Connection or deletion failures other than NOT_FOUND leave the cookie alone.
+   *
+   * @throws Errors clearing the cookie in the NOT_FOUND handler propagate.
+   */
   async handle(_request: Request, context: RouteContext) {
     const principal = context.principal;
     if (!principal) {

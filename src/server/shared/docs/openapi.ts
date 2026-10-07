@@ -22,6 +22,12 @@ export const operations = [
   { action: 'updateTransaction', method: 'put', path: '/transaction/{id}', status: 200, errors: [400, 401, 404, 422, 500], description: 'Replace editable fields of an owned transaction; reverse old and apply new balance atomically. wallet cannot be changed by this API.' },
   { action: 'deleteTransaction', method: 'delete', path: '/transaction/{id}', status: 204, errors: [400, 401, 404, 422, 500], description: 'Delete an owned transaction and reverse its balance atomically. Legacy success has no body.' },
 ] as const;
+/**
+ * Builds an OpenAPI 3.1 document for the selected API version, including its paths,
+ * response envelopes, and security schemes. Legacy specs omit v1-only operations;
+ * cookie-only operations advertise only session-cookie authentication.
+ * Returns the document without writing files; schema conversion errors propagate.
+ */
 export function buildSpec(version: 'legacy' | 'v1') {
   const v1 = version === 'v1';
   const paths: Record<string, Record<string, unknown>> = {};

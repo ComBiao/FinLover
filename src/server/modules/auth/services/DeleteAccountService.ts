@@ -13,6 +13,12 @@ import { AppError } from '@/server/shared/kernel/AppError';
 export class DeleteAccountService {
   constructor(private users: UserRepositoryPort, private uow: UnitOfWork) {}
 
+  /**
+   * Permanently deletes the user by ID within the supplied unit of work and returns
+   * the deleted record. The repository handles deletion of related account data.
+   * Rejects with AppError(NOT_FOUND) when the user does not exist; repository and
+   * unit-of-work errors propagate to the caller.
+   */
   execute(userId: string) {
     return this.uow.run(async (context) => {
       const deletedUser = await this.users.deleteById(userId, context);

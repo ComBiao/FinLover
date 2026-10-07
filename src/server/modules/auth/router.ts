@@ -7,6 +7,11 @@ import { LoginController } from './controllers/LoginController';
 import { RegisterController } from './controllers/RegisterController';
 import { LogoutController } from './controllers/LogoutController';
 import { DeleteAccountController } from './controllers/DeleteAccountController';
+/**
+ * Returns bound login, registration, logout, and account-deletion handlers.
+ * The unit of work applies to account deletion. Callers must apply authentication
+ * and Origin policies before exposing these handlers as routes.
+ */
 export function createAuthRouter(users: UserRepositoryPort, passwords: PasswordPort, uow: UnitOfWork) {
   const login = new LoginController(new LoginService(users, passwords));
   const register = new RegisterController(new RegisterService(users, passwords));
