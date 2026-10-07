@@ -71,7 +71,7 @@ export function buildSpec(version: 'legacy' | 'v1') {
                     : undefined;
     const data = action === 'register' ? obj({ user: publicUser })
       : action === 'login' ? obj({ user: loginUser })
-        : action === 'logout' ? obj({ success: { const: true } })
+        : action === 'logout' || action === 'deleteAccount' ? obj({ success: { const: true } })
           : action.includes('Category') ? (v1 ? schema(categoryResponse) : legacyCategory)
             : action === 'deleteTransaction' ? { type: 'null' }
               : action === 'createWallet' || action === 'getWallet' || action === 'updateWallet' ? schema(walletResponse)
@@ -106,7 +106,7 @@ export function buildSpec(version: 'legacy' | 'v1') {
       tags: [operation.path.split('/')[1]],
       summary: action,
       description: operation.description + authDescription,
-      security: publicOperation ? [] : [{ bearerAuth: [] }, { sessionCookie: [] }],
+            security: publicOperation ? [] : 'cookieOnly' in operation && operation.cookieOnly ? [{ sessionCookie: [] }] : [{ bearerAuth: [] }, { sessionCookie: [] }],
       ...(path.includes('{id}') ? { parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', pattern: '^[a-fA-F0-9]{24}$' } }] } : {}),
       ...(input ? { requestBody: { required: true, content: { 'application/json': { schema: inputSchema(input), example } } } } : {}),
       responses,

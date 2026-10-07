@@ -183,6 +183,9 @@ describe('v1 delete-account contract (session cookie only)', () => {
     expect(operation).toBeDefined();
     expect(operation.security).toEqual([{ sessionCookie: [] }]);
     expect(buildSpec('legacy').paths['/api/auth/delete-account']).toBeUndefined();
+
+    const other = buildSpec('v1').paths['/api/v1/categories/{id}']?.delete as { security: unknown };
+    expect(other.security).toEqual([{ bearerAuth: [] }, { sessionCookie: [] }]);
   });
 
   it('200: cookie auth with a trusted Origin deletes the account and matches the schema', async () => {
