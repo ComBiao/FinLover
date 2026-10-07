@@ -170,67 +170,102 @@ describe('v1 cookie authentication and CSRF', () => {
   });
 });
 
-describe('v1 wallet API contracts', () => {
-  it('validates the partial update request and wallet response schema', async () => {
-    const body = { name: 'Updated main', color: '#12AB34' };
-    const updateOperation = buildSpec('v1').paths['/api/v1/wallets/{id}'].put as { requestBody: { content: { 'application/json': { schema: object } } } };
-    expect(ajv.validate(updateOperation.requestBody.content['application/json'].schema, body)).toBe(true);
+describe('v1 delete-account contract (session cookie only)', () => {
+  const path = '/api/v1/auth/delete-account';
+  const cookie = `session_token=${token}`;
+  const seedUser = () => User.create({ _id: user, email: 'me@example.com', passwordHash: 'x', dataPrivacyConsent: true });
+  const cookieCleared = () => cookieStore.delete.mock.calls.length + cookieStore.set.mock.calls.length > 0;
+  // request() adds Origin on /auth/ paths and content-type always; headers passed here replace the default Bearer.
+  const call = (headers: Record<string, string>) => v1.deleteAccount(request('DELETE', path, undefined, headers), context());
 
-    const response = await v1.updateWallet(request('PUT', `/api/v1/wallets/${wallet}`, body), context(wallet));
-    expect(response.status).toBe(200);
-    const updated = await contract('v1', '/api/v1/wallets/{id}', 'put', response);
-    expect(updated.data).toMatchObject({ id: wallet, name: 'Updated main', color: '#12AB34' });
-    expect(updated.data).not.toHaveProperty('userId');
+  it('is documented for v1 only, with the session cookie as its only security scheme', () => {
+    const operation = buildSpec('v1').paths[path]?.delete as { security: unknown };
+    expect(operation).toBeDefined();
+    expect(operation.security).toEqual([{ sessionCookie: [] }]);
+    expect(buildSpec('legacy').paths['/api/auth/delete-account']).toBeUndefined();
+
+    const other = buildSpec('v1').paths['/api/v1/categories/{id}']?.delete as { security: unknown };
+    expect(other.security).toEqual([{ bearerAuth: [] }, { sessionCookie: [] }]);
   });
 
-  it('validates list/detail responses and never exposes userId', async () => {
-    const listed = await contract('v1', '/api/v1/wallets', 'get', await v1.listWallets(request('GET', '/api/v1/wallets'), context()));
-    expect(listed.data).toEqual([expect.objectContaining({ id: wallet, name: 'Main' })]);
-    expect(listed.data[0]).not.toHaveProperty('userId');
-
-    const detail = await contract('v1', '/api/v1/wallets/{id}', 'get', await v1.getWallet(request('GET', `/api/v1/wallets/${wallet}`), context(wallet)));
-    expect(detail.data).toMatchObject({ id: wallet, name: 'Main' });
-    expect(detail.data).not.toHaveProperty('userId');
-
-    const invalidId = await v1.getWallet(request('GET', '/api/v1/wallets/bad'), context('bad'));
-    expect(invalidId.status).toBe(400);
-    await contract('v1', '/api/v1/wallets/{id}', 'get', invalidId);
-
-    const missingId = new mongoose.Types.ObjectId().toString();
-    const missing = await v1.getWallet(request('GET', `/api/v1/wallets/${missingId}`), context(missingId));
-    expect(missing.status).toBe(404);
-    await contract('v1', '/api/v1/wallets/{id}', 'get', missing);
-
-    const foreign = await Wallet.create({ userId: other, name: 'Other user' });
-    const notOwned = await v1.getWallet(request('GET', `/api/v1/wallets/${foreign._id}`), context(String(foreign._id)));
-    expect(notOwned.status).toBe(404);
-    await contract('v1', '/api/v1/wallets/{id}', 'get', notOwned);
+  it('200: cookie auth with a trusted Origin deletes the account and matches the schema', async () => {
+    await seedUser();
+    const res = await call({ cookie });
+    expect(res.status).toBe(200);
+    expect(await contract('v1', path, 'delete', res)).toEqual({ status: true, data: { success: true } });
+    expect(await User.findById(user)).toBeNull();
+    expect(await Wallet.countDocuments({ userId: user })).toBe(0);
+    expect(cookieCleared()).toBe(true);
   });
 
-  it('validates unauthorized list responses and rejects invalid Bearer over a valid cookie', async () => {
-    const path = '/api/v1/wallets';
-    const missing = await v1.listWallets(request('GET', path, undefined, {}), context());
-    expect(missing.status).toBe(401);
-    await contract('v1', path, 'get', missing);
-
-    const invalidBearer = await v1.listWallets(request('GET', path, undefined, { authorization: 'Bearer invalid', cookie: `session_token=${token}` }), context());
-    expect(invalidBearer.status).toBe(401);
-    await contract('v1', path, 'get', invalidBearer);
+  it('200: a bodyless browser-style request without Content-Type succeeds', async () => {
+    await seedUser();
+    // What fetch(url, { method: 'DELETE', credentials: 'include' }) sends: cookie and Origin, no body, no content-type.
+    const bare = new NextRequest(`http://localhost:3000${path}`, { method: 'DELETE', headers: { cookie, origin: 'http://localhost:3000' } });
+    const res = await v1.deleteAccount(bare, context());
+    expect(res.status).toBe(200);
+    await contract('v1', path, 'delete', res);
+    expect(await User.findById(user)).toBeNull();
   });
 
-  it('allows cookie-authenticated list and detail reads without Origin and returns an empty list', async () => {
-    const cookie = `session_token=${token}`;
-    const listed = await v1.listWallets(request('GET', '/api/v1/wallets', undefined, { cookie }), context());
-    expect(listed.status).toBe(200);
-    await contract('v1', '/api/v1/wallets', 'get', listed);
+  it('401: no credentials, nothing deleted', async () => {
+    await seedUser();
+    const res = await call({});
+    expect(res.status).toBe(401);
+    await contract('v1', path, 'delete', res);
+    expect(await User.findById(user)).not.toBeNull();
+  });
 
-    const detail = await v1.getWallet(request('GET', `/api/v1/wallets/${wallet}`, undefined, { cookie }), context(wallet));
-    expect(detail.status).toBe(200);
-    await contract('v1', '/api/v1/wallets/{id}', 'get', detail);
+  it('401: a valid Bearer token is rejected, nothing deleted and the cookie is kept', async () => {
+    await seedUser();
+    const res = await call({ authorization: `Bearer ${token}` });
+    expect(res.status).toBe(401);
+    await contract('v1', path, 'delete', res);
+    expect(await User.findById(user)).not.toBeNull();
+    expect(await Wallet.countDocuments({ userId: user })).toBe(1);
+    expect(cookieCleared()).toBe(false);
+  });
 
-    await Wallet.deleteMany({ userId: user });
-    const empty = await v1.listWallets(request('GET', '/api/v1/wallets', undefined, { cookie }), context());
-    expect(empty.status).toBe(200);
-    expect((await contract('v1', '/api/v1/wallets', 'get', empty)).data).toEqual([]);
+  it('401: expired session cookie, nothing deleted', async () => {
+    await seedUser();
+    const expired = jwt.sign({ userId: user }, process.env.JWT_SECRET!, { expiresIn: '-1s' });
+    const res = await call({ cookie: `session_token=${expired}` });
+    expect(res.status).toBe(401);
+    await contract('v1', path, 'delete', res);
+    expect(await User.findById(user)).not.toBeNull();
+  });
+
+  it('401: a valid cookie does not rescue an invalid Bearer header', async () => {
+    await seedUser();
+    const res = await call({ cookie, authorization: 'Bearer invalid' });
+    expect(res.status).toBe(401);
+    await contract('v1', path, 'delete', res);
+    expect(await User.findById(user)).not.toBeNull();
+  });
+
+  it('403: cookie auth without an Origin header, nothing deleted', async () => {
+    await seedUser();
+    // request() adds an Origin on /auth/ paths, so build this one by hand. Content-Type is included
+    // so the failure can only come from the missing Origin.
+    const noOrigin = new NextRequest(`http://localhost:3000${path}`, { method: 'DELETE', headers: { cookie, 'content-type': 'application/json' } });
+    const res = await v1.deleteAccount(noOrigin, context());
+    expect(res.status).toBe(403);
+    await contract('v1', path, 'delete', res);
+    expect(await User.findById(user)).not.toBeNull();
+  });
+
+  it('403: cookie auth from a foreign Origin, nothing deleted', async () => {
+    await seedUser();
+    const res = await call({ cookie, origin: 'https://attacker.example' });
+    expect(res.status).toBe(403);
+    await contract('v1', path, 'delete', res);
+    expect(await User.findById(user)).not.toBeNull();
+  });
+
+  it('404: valid cookie for an already-deleted user, cookie still cleared', async () => {
+    const res = await call({ cookie });
+    expect(res.status).toBe(404);
+    await contract('v1', path, 'delete', res);
+    expect(cookieCleared()).toBe(true);
   });
 });

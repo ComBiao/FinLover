@@ -9,6 +9,7 @@ export const v1 = {
   login: versioned(auth.login, { schema: loginSchema, browserAuth: true }),
   register: versioned(auth.register, { schema: registerSchema, browserAuth: true }),
   logout: versioned(auth.logout, { browserAuth: true }),
+  deleteAccount: versioned(auth.deleteAccount, { protected: true }),
   createCategory: versioned(categories.create, { protected: true, schema: categoryInput, output: categoryOutput }),
   updateCategory: versioned(categories.update, { protected: true, schema: categoryUpdate, output: categoryOutput }),
   deleteCategory: versioned(categories.remove, { protected: true, output: categoryOutput }),

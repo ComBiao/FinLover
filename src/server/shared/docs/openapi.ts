@@ -32,6 +32,7 @@ export const operations = [
   { action: 'register', method: 'post', path: '/auth/register', status: 201, errors: [400, 409, 500], public: true, description: 'Create a user with explicit privacy consent. confirmPassword must match password; password is limited to 72 UTF-8 bytes. Never returns passwordHash.' },
   { action: 'login', method: 'post', path: '/auth/login', status: 200, errors: [400, 401, 500], public: true, description: 'Set HttpOnly session_token for seven days. Missing user and wrong password produce the same credentials error. Password is limited to 72 UTF-8 bytes.' },
   { action: 'logout', method: 'post', path: '/auth/logout', status: 200, errors: [], public: true, description: 'Clear the cookie. Idempotent. Does not revoke previously issued JWTs.' },
+  { action: 'deleteAccount', method: 'delete', path: '/auth/delete-account', status: 200, errors: [401, 404, 500], v1Only: true, cookieOnly: true, description: 'Permanently delete the authenticated user and cascade-delete their wallets, categories and transactions atomically. Session cookie only: any Authorization header, valid or not, is rejected with 401. No password re-authentication. Clears the session cookie, including when the account is already gone (404).'},
   { action: 'createCategory', method: 'post', path: '/categories', status: 201, errors: [400, 401, 409, 500], description: 'Create an owned custom category. Names are trimmed; duplicates conflict.' },
   { action: 'updateCategory', method: 'put', path: '/categories/{id}', status: 200, errors: [400, 401, 403, 404, 409, 500], description: 'Partial update of an owned non-system category.' },
   { action: 'deleteCategory', method: 'delete', path: '/categories/{id}', status: 200, errors: [400, 401, 403, 404, 500], description: 'Delete an owned non-system category and clear category references atomically. Transactions and wallet balances remain unchanged.' },
@@ -46,7 +47,11 @@ export const operations = [
 ] as const;
 
 export function operationsFor(version: 'legacy' | 'v1') {
-  return operations.filter(operation => !('versions' in operation) || operation.versions.some(value => value === version));
+  return operations.filter(operation => {
+    if ('v1Only' in operation && operation.v1Only) return version === 'v1';
+    if ('versions' in operation) return operation.versions.some(value => value === version);
+    return true; // Operations without versions restriction appear in both
+  });
 }
 
 export function buildSpec(version: 'legacy' | 'v1') {
@@ -67,7 +72,7 @@ export function buildSpec(version: 'legacy' | 'v1') {
                     : undefined;
     const data = action === 'register' ? obj({ user: publicUser })
       : action === 'login' ? obj({ user: loginUser })
-        : action === 'logout' ? obj({ success: { const: true } })
+        : action === 'logout' || action === 'deleteAccount' ? obj({ success: { const: true } })
           : action.includes('Category') ? (v1 ? schema(categoryResponse) : legacyCategory)
             : action === 'deleteTransaction' || action === 'deleteWallet' ? { type: 'null' }
               : action === 'createWallet' || action === 'getWallet' || action === 'updateWallet' ? schema(walletResponse)
@@ -102,7 +107,7 @@ export function buildSpec(version: 'legacy' | 'v1') {
       tags: [operation.path.split('/')[1]],
       summary: action,
       description: operation.description + authDescription,
-      security: publicOperation ? [] : [{ bearerAuth: [] }, { sessionCookie: [] }],
+            security: publicOperation ? [] : 'cookieOnly' in operation && operation.cookieOnly ? [{ sessionCookie: [] }] : [{ bearerAuth: [] }, { sessionCookie: [] }],
       ...(path.includes('{id}') ? { parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', pattern: '^[a-fA-F0-9]{24}$' } }] } : {}),
       ...(input ? { requestBody: { required: true, content: { 'application/json': { schema: inputSchema(input), example } } } } : {}),
       responses,
