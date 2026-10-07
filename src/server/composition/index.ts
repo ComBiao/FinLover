@@ -8,7 +8,7 @@ import { CategoryRepository } from '../modules/categories/repositories/CategoryR
 import { UserRepository } from '../modules/users/repositories/UserRepository';
 import { createAuthRouter } from '../modules/auth/router';
 import { hashPassword, comparePassword } from '@/server/shared/auth/crypto';
-export const rawAuth = createAuthRouter(new UserRepository(), { hash: hashPassword, compare: comparePassword });
+export const rawAuth = createAuthRouter(new UserRepository(), { hash: hashPassword, compare: comparePassword }, new MongoUnitOfWork());
 import { createCategoryRouter } from '../modules/categories/router';
 export const deleteCategoryService = new DeleteCategoryService(new CategoryRepository(), new TransactionRepository(), new MongoUnitOfWork());
 export const rawCategories = createCategoryRouter(deleteCategoryService);
@@ -25,6 +25,7 @@ export const auth = {
   login: logged(secure(rawAuth.login, { browserAuth: true })),
   register: logged(secure(rawAuth.register, { browserAuth: true })),
   logout: logged(secure(rawAuth.logout, { browserAuth: true })),
+  deleteAccount: logged(secure(rawAuth.deleteAccount, { protected: true })),
 };
 export const categories = {
   create: logged(secure(rawCategories.create, { protected: true })),
