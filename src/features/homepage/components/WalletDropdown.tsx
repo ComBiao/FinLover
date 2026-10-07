@@ -95,7 +95,7 @@ export function WalletDropdown({ wallets, value, onValueChange, className }: Wal
             <span className="block text-sm font-bold text-foreground">All wallets</span>
             <span className="block text-xs text-muted-foreground">Combined view</span>
           </span>
-          <span className="text-sm font-bold text-foreground">{formatBaht(Math.abs(totalBalance))}</span>
+          <span className="text-sm font-bold text-foreground">{formatBaht(totalBalance)}</span>
           <span className="flex w-5 shrink-0 justify-center">
             {value === "all" ? <Check className="size-4.5" strokeWidth={2.6} /> : null}
           </span>
@@ -135,7 +135,7 @@ export function WalletDropdown({ wallets, value, onValueChange, className }: Wal
                 <span className="block text-xs text-muted-foreground">{walletTypeLabel(wallet)}</span>
               </span>
               <span className="text-sm font-bold text-foreground">
-                {formatBaht(Math.abs(wallet.balance))}
+                {formatBaht(wallet.balance)}
               </span>
               <span className="flex w-5 shrink-0 justify-center" style={{ color: textColor }}>
                 {isSelected ? <Check className="size-4.5" strokeWidth={2.6} /> : null}

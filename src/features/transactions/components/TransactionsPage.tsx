@@ -37,6 +37,7 @@ export default function TransactionsPage() {
   const setFilters = useTransactionFilters((state) => state.setFilters);
   const period = useTransactionFilters((state) => state.period);
   const setPeriod = useTransactionFilters((state) => state.setPeriod);
+  const setPeriodMode = useTransactionFilters((state) => state.setMode);
   const resetFilters = useTransactionFilters((state) => state.resetFilters);
   const openModal = useTransactionModal((state) => state.openModal);
   const openEditModal = useTransactionModal((state) => state.openEditModal);
@@ -100,6 +101,7 @@ export default function TransactionsPage() {
           onValueChange={setFilters}
           period={period}
           onPeriodChange={setPeriod}
+          onPeriodModeChange={setPeriodMode}
           onReset={resetFilters}
         />
 

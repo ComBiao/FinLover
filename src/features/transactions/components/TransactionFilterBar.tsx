@@ -9,7 +9,7 @@ import { WalletSelector } from "@/components/WalletSelector";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PeriodPicker } from "@/features/transactions/components/PeriodPicker";
-import type { TransactionPeriod } from "@/features/transactions/period";
+import type { PeriodMode, TransactionPeriod } from "@/features/transactions/period";
 import { cn } from "@/lib/utils";
 import type { TransactionFilters } from "@/types/transaction";
 
@@ -18,6 +18,7 @@ type TransactionFilterBarProps = {
   onValueChange: (filters: TransactionFilters) => void;
   period: TransactionPeriod;
   onPeriodChange: (period: TransactionPeriod) => void;
+  onPeriodModeChange: (mode: PeriodMode) => void;
   onReset: () => void;
   className?: string;
 };
@@ -42,6 +43,7 @@ export function TransactionFilterBar({
   onValueChange,
   period,
   onPeriodChange,
+  onPeriodModeChange,
   onReset,
   className,
 }: TransactionFilterBarProps) {
@@ -109,7 +111,12 @@ export function TransactionFilterBar({
               allowAll
               className="w-full"
             />
-            <PeriodPicker value={period} onValueChange={onPeriodChange} className="w-full" />
+            <PeriodPicker
+              value={period}
+              onValueChange={onPeriodChange}
+              onModeChange={onPeriodModeChange}
+              className="w-full"
+            />
             <Button type="button" variant="ghost" size="sm" onClick={onReset} className="w-full">
               <X className="size-4" />
               Reset Filters
@@ -154,7 +161,12 @@ export function TransactionFilterBar({
             allowAll
             className="min-w-[110px] flex-1 sm:max-w-44 sm:flex-none"
           />
-          <PeriodPicker value={period} onValueChange={onPeriodChange} className="w-full sm:ml-auto sm:w-auto" />
+          <PeriodPicker
+            value={period}
+            onValueChange={onPeriodChange}
+            onModeChange={onPeriodModeChange}
+            className="w-full sm:ml-auto sm:w-auto"
+          />
         </div>
       </div>
     </div>

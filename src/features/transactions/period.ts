@@ -94,33 +94,44 @@ export function shiftPeriod(period: TransactionPeriod, direction: 1 | -1): Trans
   return { mode: "day", ...shiftDayRange(period, direction) };
 }
 
-function dateToMonthKey(date: Date): MonthKey {
-  return formatMonthKey(date.getFullYear(), date.getMonth() + 1);
+function daysInMonth(year: number, monthIndex: number) {
+  return new Date(year, monthIndex + 1, 0).getDate();
+}
+
+/** A date in the given year/month with `day` clamped to that month's length (31 → 28 in February). */
+function clampedDate(year: number, monthIndex: number, day: number) {
+  return new Date(year, monthIndex, Math.min(day, daysInMonth(year, monthIndex)));
 }
 
 /**
- * The date a period is "anchored" on: today, when the period is the current
- * month/year, otherwise the 1st of that month/year (or the range's end date,
- * for a day range). Used so switching modes keeps the same point in time
- * instead of jumping back to today.
+ * The period a mode switch lands on. `anchor` is stored separately from the
+ * period and only moves when the user navigates, so Month → Year → Month
+ * returns to the same month instead of drifting.
  */
-function anchorDate(period: TransactionPeriod): Date {
-  if (period.mode === "day") return period.to;
-
-  const now = today();
-  if (period.mode === "month") {
-    if (period.monthKey === currentMonthKey()) return now;
-    const { year, month } = parseMonthKey(period.monthKey);
-    return new Date(year, month - 1, 1);
+export function periodFromAnchor(anchor: Date, mode: PeriodMode): TransactionPeriod {
+  if (mode === "month") {
+    return { mode: "month", monthKey: formatMonthKey(anchor.getFullYear(), anchor.getMonth() + 1) };
   }
-  return period.year === now.getFullYear() ? now : new Date(period.year, 0, 1);
-}
-
-/** Switches mode while keeping "the current date" as the anchor (e.g. September 2026 → Year = 2026). */
-export function switchPeriodMode(period: TransactionPeriod, mode: PeriodMode): TransactionPeriod {
-  if (period.mode === mode) return period;
-  const anchor = anchorDate(period);
-  if (mode === "month") return { mode: "month", monthKey: dateToMonthKey(anchor) };
   if (mode === "year") return { mode: "year", year: anchor.getFullYear() };
   return { mode: "day", from: anchor, to: anchor };
+}
+
+/**
+ * The new anchor after the user navigates to `period` (‹ ›, or picking a
+ * month/year/range): month and year keep the previous anchor's day (and month,
+ * for a year), clamped to the target month's length; a day range anchors on
+ * its end date.
+ */
+export function anchorFromPeriod(period: TransactionPeriod, previousAnchor: Date): Date {
+  if (period.mode === "day") return period.to;
+  if (period.mode === "month") {
+    const { year, month } = parseMonthKey(period.monthKey);
+    return clampedDate(year, month - 1, previousAnchor.getDate());
+  }
+  return clampedDate(period.year, previousAnchor.getMonth(), previousAnchor.getDate());
+}
+
+/** Today at local midnight — the anchor on page load and after Reset Filters. */
+export function todayAnchor(): Date {
+  return today();
 }

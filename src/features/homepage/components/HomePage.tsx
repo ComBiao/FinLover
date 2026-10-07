@@ -46,8 +46,8 @@ export function HomePage() {
   const [walletId, setWalletId] = React.useState<string>("all");
 
   const { data: wallets = [] } = useWallets();
-  const { data: transactions = [] } = useTransactions();
-  const { data: summary } = useHomeSummary(month, walletId);
+  const { data: transactions = [], isPending: isTransactionsPending } = useTransactions();
+  const { data: summary, isPending: isSummaryPending } = useHomeSummary(month, walletId);
 
   const createTransaction = useCreateTransaction();
   const updateTransaction = useUpdateTransaction();
@@ -143,28 +143,36 @@ export function HomePage() {
             hasWallets={summary?.balance.hasWallets ?? wallets.length > 0}
             totalBalance={summary?.balance.totalBalance ?? 0}
             savingGoal={summary?.balance.savingGoal ?? null}
+            isLoading={isSummaryPending}
           />
-          <SpentCard monthLabel={monthLabel} amount={summary?.expense ?? 0} />
-          <IncomeCard monthLabel={monthLabel} amount={summary?.income ?? 0} />
+          <SpentCard monthLabel={monthLabel} amount={summary?.expense ?? 0} isLoading={isSummaryPending} />
+          <IncomeCard monthLabel={monthLabel} amount={summary?.income ?? 0} isLoading={isSummaryPending} />
           <NetCard
             monthLabel={monthLabel}
             net={summary?.net.net ?? 0}
             status={summary?.net.status ?? "even"}
             income={summary?.income ?? 0}
             expense={summary?.expense ?? 0}
+            isLoading={isSummaryPending}
           />
-          <TopCategoriesCard monthLabel={monthLabel} topCategories={summary?.topCategories ?? []} />
+          <TopCategoriesCard
+            monthLabel={monthLabel}
+            topCategories={summary?.topCategories ?? []}
+            isLoading={isSummaryPending}
+          />
         </div>
 
         <div className="flex items-baseline justify-between gap-3">
           <h2 className="text-lg font-semibold text-foreground">Transactions · {monthLabel}</h2>
-          <span className="text-sm text-muted-foreground">
-            {monthTransactions.length}{" "}
-            {monthTransactions.length === 1 ? "transaction" : "transactions"}
-          </span>
+          {isTransactionsPending ? null : (
+            <span className="text-sm text-muted-foreground">
+              {monthTransactions.length}{" "}
+              {monthTransactions.length === 1 ? "transaction" : "transactions"}
+            </span>
+          )}
         </div>
 
-        {monthTransactions.length === 0 ? (
+        {isTransactionsPending ? null : monthTransactions.length === 0 ? (
           <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border bg-card px-5 py-12 text-center">
             <p className="text-sm font-semibold text-foreground">No transactions this month yet</p>
             <p className="text-sm text-muted-foreground">

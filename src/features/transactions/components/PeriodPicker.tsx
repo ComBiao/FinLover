@@ -4,12 +4,13 @@ import { MonthPicker } from "@/features/homepage/components/MonthPicker";
 import { DayRangePicker } from "@/features/transactions/components/DayRangePicker";
 import { PeriodModeToggle } from "@/features/transactions/components/PeriodModeToggle";
 import { YearPicker } from "@/features/transactions/components/YearPicker";
-import { switchPeriodMode, type PeriodMode, type TransactionPeriod } from "@/features/transactions/period";
+import type { PeriodMode, TransactionPeriod } from "@/features/transactions/period";
 import { cn } from "@/lib/utils";
 
 type PeriodPickerProps = {
   value: TransactionPeriod;
   onValueChange: (period: TransactionPeriod) => void;
+  onModeChange: (mode: PeriodMode) => void;
   className?: string;
 };
 
@@ -18,14 +19,10 @@ type PeriodPickerProps = {
  * period selector. Month mode reuses Home's `MonthPicker` directly rather
  * than duplicating its 12-month grid popover.
  */
-export function PeriodPicker({ value, onValueChange, className }: PeriodPickerProps) {
-  function handleModeChange(mode: PeriodMode) {
-    onValueChange(switchPeriodMode(value, mode));
-  }
-
+export function PeriodPicker({ value, onValueChange, onModeChange, className }: PeriodPickerProps) {
   return (
     <div className={cn("flex flex-wrap items-center gap-2", className)}>
-      <PeriodModeToggle value={value.mode} onValueChange={handleModeChange} />
+      <PeriodModeToggle value={value.mode} onValueChange={onModeChange} />
 
       {value.mode === "month" ? (
         <MonthPicker
