@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { getHomeSummary } from "@/features/homepage/services/homeService";
 import type { MonthKey } from "@/features/homepage/month";
@@ -11,5 +11,6 @@ export function useHomeSummary(month: MonthKey, walletId: string) {
   return useQuery({
     queryKey: ["home-summary", month, walletId],
     queryFn: () => getHomeSummary(month, walletId),
+    placeholderData: keepPreviousData,
   });
 }

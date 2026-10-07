@@ -6,8 +6,7 @@ import { Check, ChevronDown, Wallet as WalletIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { hexToRgba, shadeHex } from "@/components/chipColor";
-import { formatCurrency as formatWalletBalance } from "@/features/homepage/components/HomeCards";
-import { cn } from "@/lib/utils";
+import { cn, formatBaht } from "@/lib/utils";
 import type { Wallet } from "@/types/wallet";
 
 type WalletDropdownProps = {
@@ -21,7 +20,7 @@ type WalletDropdownProps = {
 const ALL_WALLETS_COLOR = "#4A4757";
 
 function walletTypeLabel(wallet: Wallet) {
-  if (wallet.isSaving) return wallet.savingGoal ? `Saving wallet · goal ${formatWalletBalance(wallet.savingGoal)}` : "Saving wallet";
+  if (wallet.isSaving) return wallet.savingGoal ? `Saving wallet · goal ${formatBaht(wallet.savingGoal)}` : "Saving wallet";
   return "Daily wallet";
 }
 
@@ -96,7 +95,7 @@ export function WalletDropdown({ wallets, value, onValueChange, className }: Wal
             <span className="block text-sm font-bold text-foreground">All wallets</span>
             <span className="block text-xs text-muted-foreground">Combined view</span>
           </span>
-          <span className="text-sm font-bold text-foreground">{formatWalletBalance(totalBalance)}</span>
+          <span className="text-sm font-bold text-foreground">{formatBaht(totalBalance)}</span>
           <span className="flex w-5 shrink-0 justify-center">
             {value === "all" ? <Check className="size-4.5" strokeWidth={2.6} /> : null}
           </span>
@@ -136,7 +135,7 @@ export function WalletDropdown({ wallets, value, onValueChange, className }: Wal
                 <span className="block text-xs text-muted-foreground">{walletTypeLabel(wallet)}</span>
               </span>
               <span className="text-sm font-bold text-foreground">
-                {formatWalletBalance(wallet.balance)}
+                {formatBaht(wallet.balance)}
               </span>
               <span className="flex w-5 shrink-0 justify-center" style={{ color: textColor }}>
                 {isSelected ? <Check className="size-4.5" strokeWidth={2.6} /> : null}
