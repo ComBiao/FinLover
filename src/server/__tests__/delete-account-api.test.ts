@@ -23,6 +23,8 @@ import { signToken } from "@/server/shared/auth/crypto";
 import { seedTransaction } from "@/test/transaction-fixture";
 import jwt from "jsonwebtoken";
 
+let createCategory: typeof import("@/app/api/categories/route").POST;
+
 vi.mock("server-only", () => ({}));
 
 // Make connectDB a no-op: the connection is opened in beforeAll instead.
@@ -60,6 +62,7 @@ beforeAll(async () => {
   await Category.init();
   await Transaction.init();
   ({ DELETE } = await import("@/app/api/v1/auth/delete-account/route"));
+  ({ POST: createCategory } = await import("@/app/api/categories/route"));
 }, 60_000);
 
 afterAll(async () => {
@@ -244,7 +247,7 @@ describe("DELETE /api/v1/auth/delete-account (real database)", () => {
     }
   });
 
-  it("returns 404 and still clears the cookie for a valid token whose user is gone", async () => {
+  it("returns 404 and clears the cookie for a valid token whose user is gone", async () => {
     const res = await DELETE(deleteRequest());
     const json = await res.json();
 
@@ -272,7 +275,7 @@ describe("DELETE /api/v1/auth/delete-account (real database)", () => {
       transactions: 3,
     });
   });
-  
+
   it("rejects Bearer auth with 401, deletes nothing and keeps the cookie", async () => {
     await seedUserWithData(USER_ID, "me@example.com");
     const res = await DELETE(deleteRequest(TOKEN, "bearer"));
@@ -284,5 +287,24 @@ describe("DELETE /api/v1/auth/delete-account (real database)", () => {
       transactions: 3,
     });
     expect(cookieWasCleared()).toBe(false);
+  });
+  it("rejects another device's token after the account is deleted", async () => {
+    await seedUserWithData(USER_ID, "me@example.com");
+    const otherDevice = signToken({ userId: USER_ID.toString() }); // issued before the delete
+
+    expect((await DELETE(deleteRequest())).status).toBe(200);
+
+    const res = await createCategory(
+      new NextRequest("http://localhost:3000/api/categories", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${otherDevice}`,
+        },
+        body: JSON.stringify({ name: "Ghost", type: "expense" }),
+      }),
+    );
+    expect(res.status).toBe(401);
+    expect(await Category.countDocuments({ userId: USER_ID })).toBe(0);
   });
 });

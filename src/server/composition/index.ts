@@ -1,5 +1,5 @@
 import { logged } from '@/server/shared/http/logging';
-import { secure } from '@/server/shared/http/policy';
+import { secure, configureAccountCheck } from '@/server/shared/http/policy';
 import "server-only";
 import { TransactionRepository } from '../modules/transactions/repositories/TransactionRepository';
 import { DeleteCategoryService } from '../modules/categories/services/DeleteCategoryService';
@@ -51,3 +51,4 @@ export const accountExists = async (userId: string) => {
   await connectDB();
   return userRepository.existsById(userId);
 };
+configureAccountCheck(accountExists);
