@@ -15,4 +15,13 @@ export class UserRepository implements UserRepositoryPort {
    * ID casting, cascade, and database errors propagate to the caller.
    */
   async deleteById(userId: string, context?: TransactionContext) { return User.findOneAndDelete({ _id: userId }, { session: sessionOf(context) }); }
+  
+  /** Returns true if a user with this ID currently exists. */
+  /**
+   * Checks whether an account still exists, using a single indexed _id lookup.
+   * Used to reject tokens that belong to deleted accounts.
+   *
+   * @param userId - 24-hex user ID taken from a verified token.
+   */
+  async existsById(userId: string): Promise<boolean> { return (await User.exists({ _id: userId })) !== null; }
 }
