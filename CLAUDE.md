@@ -11,6 +11,7 @@ One modular Next.js application, one root package.json/lockfile, npm only, Node.
 ## Architecture
 - `src/app` composes pages/layouts and thin HTTP entries. Feature UI/hooks/stores live in `src/features`.
 - `src/server/modules`: controllers → services → repositories, constructor injection. Controllers do not query models; services do not import Next/HTTP or return HTTP statuses.
+- The wallet module currently exposes v1 GET list/detail endpoints only. Repository queries scope wallet reads to the authenticated user; response mapping omits `userId`. `PATCH /api/v1/wallets/{id}/saving` writes only `isSaving`/`goalAmount` (goal > 0 when on, cleared when off) and never changes the balance.
 - Cross-module ports live in `src/server/shared/ports`; implementations are wired in `src/server/composition`.
 - `src/server/db` owns models, connection, UnitOfWork and operational migrations. Transaction services own balance changes; repositories recheck ownership/type references and authorize one model write in an active UnitOfWork. Model middleware rejects unapproved save/query/bulk writes. Do not restore balance hooks or write application transactions directly through models. Raw collection access is reserved for operational migrations, test fixtures and internal cascades that remove the owning wallet(s).
 - Existing system-category guards/user-wallet persistence cascades remain for internal compatibility with session propagation. Category cascade clears references without changing balances.

@@ -35,7 +35,7 @@ beforeEach(async () => {
   vi.restoreAllMocks();
   await Promise.all([Wallet.deleteMany({}), Transaction.collection.deleteMany({}), Category.deleteMany({}), User.deleteMany({})]);
   const wallet = await Wallet.create({ userId: user, name: 'Main' });
-  input = { walletId: String(wallet._id), categoryId: null, type: 'expense', amount: 200, date: new Date('2026-08-25') };
+  input = { walletId: String(wallet._id), categoryId: null, type: 'expense', amount: 200, date: new Date('2026-08-25'), title: 'Test transaction' };
 });
 const balance = async (id = input.walletId) => (await Wallet.findById(id))!.balance;
 

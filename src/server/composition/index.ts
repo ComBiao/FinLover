@@ -37,5 +37,9 @@ export const transactions = {
   remove: logged(secure(rawTransactions.remove, { protected: true })),
 };
 export const wallets = {
+  create: logged(secure(rawWallets.create, { protected: true })),
+  list: logged(secure(rawWallets.list, { protected: true })),
+  get: logged(secure(rawWallets.get, { protected: true })),
+  update: logged(secure(rawWallets.update, { protected: true })),
   updateSaving: logged(secure(rawWallets.updateSaving, { protected: true })),
 };

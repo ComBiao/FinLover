@@ -13,6 +13,8 @@ beforeAll(async () => {
   mongoServer = await MongoMemoryServer.create();
   const uri = mongoServer.getUri();
   await mongoose.connect(uri);
+  // Await index creation: unique indexes are database constraints, not Mongoose validators.
+  await Promise.all([Wallet.init(), Category.init(), Transaction.init()]);
 }, 60000);
 
 afterAll(async () => {
@@ -55,26 +57,23 @@ describe('Mongoose Schema Validations', () => {
       expect(savedWallet.balance).toBe(0); // Default balance
       expect(savedWallet.isDefault).toBe(false); // Default isDefault
       expect(savedWallet.isSaving).toBe(false); // Default isSaving
-      expect(savedWallet.hideBalance).toBe(false); // Default hideBalance
       expect(savedWallet.color).toBeUndefined();
       expect(savedWallet.goalAmount).toBeUndefined();
     });
 
-    it('should save a Wallet with color, isSaving, goalAmount and hideBalance set', async () => {
+    it('should save a Wallet with color, isSaving, goalAmount', async () => {
       const wallet = new Wallet({
         userId: validUserId,
         name: 'Vacation Fund',
         color: '#4CAF50',
         isSaving: true,
         goalAmount: 5000,
-        hideBalance: true,
       });
       const saved = await wallet.save();
 
       expect(saved.color).toBe('#4CAF50');
       expect(saved.isSaving).toBe(true);
       expect(saved.goalAmount).toBe(5000);
-      expect(saved.hideBalance).toBe(true);
     });
 
     it('should auto-generate timestamps on save', async () => {
@@ -245,10 +244,11 @@ describe('Mongoose Schema Validations', () => {
       const validTransaction = new Transaction({
         userId: validUserId.toString(),
         walletId: validWalletId.toString(),
-        categoryId: validCategoryId.toString(), 
+        categoryId: validCategoryId.toString(),
         amount: 100.50,
         type: 'income',
         date: new Date(),
+        title: 'Test transaction',
       });
       const savedTransaction = await seedTransaction(validTransaction);
       
@@ -265,6 +265,7 @@ describe('Mongoose Schema Validations', () => {
         amount: 50,
         type: 'expense',
         date: new Date(),
+        title: 'Test transaction',
       });
       const savedTransaction = await seedTransaction(noCategoryTransaction);
       
@@ -279,6 +280,7 @@ describe('Mongoose Schema Validations', () => {
         amount: 25,
         type: 'expense',
         date: new Date(),
+        title: 'Test transaction',
       });
       const saved = await seedTransaction(tx);
 
