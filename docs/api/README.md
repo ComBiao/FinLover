@@ -1,6 +1,6 @@
 # API guide
 
-Open `/api/docs` on the application origin (port 3000 locally). Both versions are implemented for the nine operations below. Specs are served at `/api/openapi/legacy.json` and `/api/openapi/v1.json`; committed artifacts are [legacy.json](legacy.json) and [v1.json](v1.json). Relative server `/` keeps requests on the current origin without doubling `/api`.
+Open `/api/docs` on the application origin (port 3000 locally). Legacy implements the nine shared operations; v1 also supports monthly transaction reads plus wallet create, list, detail, update, and delete operations. Specs are served at `/api/openapi/legacy.json` and `/api/openapi/v1.json`; committed artifacts are [legacy.json](legacy.json) and [v1.json](v1.json). Relative server `/` keeps requests on the current origin without doubling `/api`.
 
 | Method | Legacy | v1 |
 | --- | --- | --- |
@@ -10,9 +10,12 @@ Open `/api/docs` on the application origin (port 3000 locally). Both versions ar
 | POST | `/api/categories` | `/api/v1/categories` |
 | PUT, DELETE | `/api/categories/{id}` | `/api/v1/categories/{id}` |
 | POST | `/api/transaction` | `/api/v1/transactions` |
+| GET | — | `/api/v1/transactions?month=YYYY-MM` |
 | PUT, DELETE | `/api/transaction/{id}` | `/api/v1/transactions/{id}` |
+| GET, POST | — | `/api/v1/wallets` |
+| GET, PUT, DELETE | — | `/api/v1/wallets/{id}` |
 
-The v1 API implements a monthly transaction read at `GET /api/v1/transactions?month=YYYY-MM`; omitting `month` uses the current month in `APPLICATION_TIMEZONE`. Other GET lists, wallet APIs, reports and current-user endpoints remain unimplemented. Existing UI mock screens do not call all of these APIs.
+The monthly transaction read returns only the caller's records in newest-first order; omitting `month` uses the current month in `APPLICATION_TIMEZONE`. Wallet updates accept only `name` and `color`; reads and updates are limited to the wallet owner. The legacy API has no wallet operations. Other GET lists, reports, and current-user endpoints remain unimplemented. Existing UI mock screens do not call all of these APIs.
 
 ## Authentication and examples
 
@@ -25,6 +28,14 @@ Example v1 transaction body (replace IDs with records owned by the test user):
 ```json
 {"walletId":"507f1f77bcf86cd799439011","categoryId":null,"type":"expense","amount":42,"date":"2026-09-27","note":"Lunch"}
 ```
+
+Example v1 wallet body:
+
+```json
+{"name":"Holiday fund","color":"#3B82F6","isSaving":true,"goalAmount":1200}
+```
+
+Wallet responses expose only `id`, `name`, `balance`, `isDefault`, `color`, `isSaving`, `goalAmount`, `createdAt` and `updatedAt`. Duplicate wallet names return 409 with `fields.name`. Object request schemas accept and strip unknown properties; they are not persisted.
 
 Legacy uses `wallet_id`, `category_id`, and request type `Expense`/`Income`. Responses persist lowercase types. v1 validates ISO calendar dates and minimum amount 0.01; legacy retains its original request parsing/status behavior. Legacy transaction field validation returns 422, malformed JSON returns 500, and DELETE returns empty 204. v1 validation returns 400 and DELETE returns `{ "status": true, "data": null }`. Category updates are partial; transaction updates replace editable fields and cannot move wallet through the HTTP API.
 
@@ -45,3 +56,5 @@ Shared schemas live in `src/shared/contracts/`; operation metadata lives in `src
 Swagger serves local assets under `/api/docs/assets/` and are included in the single application build. In development, Try it out can create/update/delete test data. In production all submit methods are disabled by the server-rendered configuration; API authentication still applies independently. Use a dedicated test database for manual exploration.
 
 Auth policy changes from the old legacy API: cookie support is now shared with v1; browser-auth and cookie mutations now return 403 for untrusted/missing Origin and 415 for non-JSON bodies. Cookie SameSite alone is not used as CSRF protection. No token is copied into a synthetic Authorization header.
+
+Delete wallet (v1 only): `DELETE /api/v1/wallets/{id}` returns `{ "status": true, "data": null }`. The wallet and all of its transactions are deleted in one UnitOfWork (MongoDB replica set required); if any step fails nothing is deleted. Other wallets' transactions are untouched, an invalid id returns 400, and a missing wallet or one owned by another user returns 404. Any owned wallet may be deleted, including the default or last wallet (no restriction is defined); deleted data cannot be recovered.
