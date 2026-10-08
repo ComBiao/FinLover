@@ -14,6 +14,7 @@ export const v1 = {
   deleteCategory: versioned(categories.remove, { protected: true, output: categoryOutput }),
   createTransaction: versioned(transactions.create, { protected: true, schema: transactionInput, input: txInput, output: txOutput }),
   updateTransaction: versioned(transactions.update, { protected: true, schema: transactionUpdate, input: txInput, output: txOutput }),
+  deleteWallet: versioned(rawWallets.remove, { protected: true }),
   deleteTransaction: versioned(transactions.remove, { protected: true }),
   createWallet: versioned(rawWallets.create, { protected: true, output: walletOutput }),
   listWallets: versioned(rawWallets.list, { protected: true, output: walletOutput }),

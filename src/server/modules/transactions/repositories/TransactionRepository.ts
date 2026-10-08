@@ -17,6 +17,9 @@ export class TransactionRepository implements TransactionRepositoryPort {
   async clearCategory(categoryId: string, userId: string, context: TransactionContext) {
     await authorizeTransactionWrite(Transaction.updateMany({ categoryId, userId }, { $set: { categoryId: null } }, { session: sessionOf(context) }), context);
   }
+  async removeByWallet(walletId: string, userId: string, context: TransactionContext) {
+    await authorizeTransactionWrite(Transaction.deleteMany({ walletId, userId }, { session: sessionOf(context) }), context);
+  }
   async findOwned(id: string, userId: string, context: TransactionContext) {
     const doc = await Transaction.findOne({ _id: id, userId }).session(sessionOf(context)!); return doc ? record(doc) : null;
   }

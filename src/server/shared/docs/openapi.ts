@@ -42,6 +42,7 @@ export const operations = [
   { action: 'createTransaction', method: 'post', path: '/transaction', status: 201, errors: [400, 401, 404, 422, 500], description: 'Create an owned transaction and adjust wallet balance in one MongoDB transaction. Requires a replica set. Category must belong to the user and match the transaction type. Persisted minimum amount is 0.01.' },
   { action: 'updateTransaction', method: 'put', path: '/transaction/{id}', status: 200, errors: [400, 401, 404, 422, 500], description: 'Replace editable fields of an owned transaction; reverse old and apply new balance atomically. wallet cannot be changed by this API.' },
   { action: 'deleteTransaction', method: 'delete', path: '/transaction/{id}', status: 204, errors: [400, 401, 404, 422, 500], description: 'Delete an owned transaction and reverse its balance atomically. Legacy success has no body.' },
+  { action: 'deleteWallet', method: 'delete', path: '/wallets/{id}', status: 204, errors: [400, 401, 404, 500], versions: ['v1'], description: 'Delete an owned wallet and all of its transactions atomically in one UnitOfWork; nothing is deleted if any step fails. Other wallets and their transactions are untouched. Any owned wallet may be deleted, including the default or last wallet. Data cannot be recovered.' },
 ] as const;
 
 export function operationsFor(version: 'legacy' | 'v1') {
@@ -68,7 +69,7 @@ export function buildSpec(version: 'legacy' | 'v1') {
       : action === 'login' ? obj({ user: loginUser })
         : action === 'logout' ? obj({ success: { const: true } })
           : action.includes('Category') ? (v1 ? schema(categoryResponse) : legacyCategory)
-            : action === 'deleteTransaction' ? { type: 'null' }
+            : action === 'deleteTransaction' || action === 'deleteWallet' ? { type: 'null' }
               : action === 'createWallet' || action === 'getWallet' || action === 'updateWallet' ? schema(walletResponse)
                 : action === 'listWallets' ? { type: 'array', items: schema(walletResponse) }
                   : (v1 ? schema(transactionResponse) : legacyTxResponse);
@@ -108,7 +109,7 @@ export function buildSpec(version: 'legacy' | 'v1') {
     };
   }
 
-  const walletStatus = v1 ? 'Wallet create, list, detail and update operations are available on v1.' : 'The legacy API has no wallet operations.';
+  const walletStatus = v1 ? 'Wallet create, list, detail, update and delete operations are available on v1.' : 'The legacy API has no wallet operations.';
   const unimplemented = v1 ? 'Category/transaction lists, reports and current-user endpoints are not implemented.' : 'Wallet endpoints, remaining GET lists, reports and current-user endpoints are not implemented.';
   return {
     openapi: '3.1.0',

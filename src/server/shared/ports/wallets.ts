@@ -24,3 +24,5 @@ export interface WalletRepositoryPort {
   update(id: string, userId: string, input: WalletUpdateInput): Promise<WalletRecord | null>;
   delete(id: string, userId: string, context: TransactionContext): Promise<unknown>;
 }
+
+export interface WalletTransactionCleanup { removeByWallet(walletId: string, userId: string, context: TransactionContext): Promise<void> }
