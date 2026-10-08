@@ -170,6 +170,71 @@ describe('v1 cookie authentication and CSRF', () => {
   });
 });
 
+describe('v1 wallet API contracts', () => {
+  it('validates the partial update request and wallet response schema', async () => {
+    const body = { name: 'Updated main', color: '#12AB34' };
+    const updateOperation = buildSpec('v1').paths['/api/v1/wallets/{id}'].put as { requestBody: { content: { 'application/json': { schema: object } } } };
+    expect(ajv.validate(updateOperation.requestBody.content['application/json'].schema, body)).toBe(true);
+
+    const response = await v1.updateWallet(request('PUT', `/api/v1/wallets/${wallet}`, body), context(wallet));
+    expect(response.status).toBe(200);
+    const updated = await contract('v1', '/api/v1/wallets/{id}', 'put', response);
+    expect(updated.data).toMatchObject({ id: wallet, name: 'Updated main', color: '#12AB34' });
+    expect(updated.data).not.toHaveProperty('userId');
+  });
+
+  it('validates list/detail responses and never exposes userId', async () => {
+    const listed = await contract('v1', '/api/v1/wallets', 'get', await v1.listWallets(request('GET', '/api/v1/wallets'), context()));
+    expect(listed.data).toEqual([expect.objectContaining({ id: wallet, name: 'Main' })]);
+    expect(listed.data[0]).not.toHaveProperty('userId');
+
+    const detail = await contract('v1', '/api/v1/wallets/{id}', 'get', await v1.getWallet(request('GET', `/api/v1/wallets/${wallet}`), context(wallet)));
+    expect(detail.data).toMatchObject({ id: wallet, name: 'Main' });
+    expect(detail.data).not.toHaveProperty('userId');
+
+    const invalidId = await v1.getWallet(request('GET', '/api/v1/wallets/bad'), context('bad'));
+    expect(invalidId.status).toBe(400);
+    await contract('v1', '/api/v1/wallets/{id}', 'get', invalidId);
+
+    const missingId = new mongoose.Types.ObjectId().toString();
+    const missing = await v1.getWallet(request('GET', `/api/v1/wallets/${missingId}`), context(missingId));
+    expect(missing.status).toBe(404);
+    await contract('v1', '/api/v1/wallets/{id}', 'get', missing);
+
+    const foreign = await Wallet.create({ userId: other, name: 'Other user' });
+    const notOwned = await v1.getWallet(request('GET', `/api/v1/wallets/${foreign._id}`), context(String(foreign._id)));
+    expect(notOwned.status).toBe(404);
+    await contract('v1', '/api/v1/wallets/{id}', 'get', notOwned);
+  });
+
+  it('validates unauthorized list responses and rejects invalid Bearer over a valid cookie', async () => {
+    const path = '/api/v1/wallets';
+    const missing = await v1.listWallets(request('GET', path, undefined, {}), context());
+    expect(missing.status).toBe(401);
+    await contract('v1', path, 'get', missing);
+
+    const invalidBearer = await v1.listWallets(request('GET', path, undefined, { authorization: 'Bearer invalid', cookie: `session_token=${token}` }), context());
+    expect(invalidBearer.status).toBe(401);
+    await contract('v1', path, 'get', invalidBearer);
+  });
+
+  it('allows cookie-authenticated list and detail reads without Origin and returns an empty list', async () => {
+    const cookie = `session_token=${token}`;
+    const listed = await v1.listWallets(request('GET', '/api/v1/wallets', undefined, { cookie }), context());
+    expect(listed.status).toBe(200);
+    await contract('v1', '/api/v1/wallets', 'get', listed);
+
+    const detail = await v1.getWallet(request('GET', `/api/v1/wallets/${wallet}`, undefined, { cookie }), context(wallet));
+    expect(detail.status).toBe(200);
+    await contract('v1', '/api/v1/wallets/{id}', 'get', detail);
+
+    await Wallet.deleteMany({ userId: user });
+    const empty = await v1.listWallets(request('GET', '/api/v1/wallets', undefined, { cookie }), context());
+    expect(empty.status).toBe(200);
+    expect((await contract('v1', '/api/v1/wallets', 'get', empty)).data).toEqual([]);
+  });
+});
+
 describe('v1 delete-account contract (session cookie only)', () => {
   const path = '/api/v1/auth/delete-account';
   const cookie = `session_token=${token}`;

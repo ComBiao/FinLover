@@ -20,8 +20,9 @@ import { createWalletRouter } from '../modules/wallets/router';
 export const deleteWalletService = new DeleteWalletService(walletRepository, new TransactionRepository(), new MongoUnitOfWork());
 export const rawWallets = createWalletRouter(walletRepository, deleteWalletService);
 export const rawTransactions = createTransactionRouter(walletRepository, new CategoryRepository(), new MongoUnitOfWork());
+import { connectDB } from '@/server/db/index';
 
-
+const userRepository = new UserRepository();
 
 export const auth = {
   login: logged(secure(rawAuth.login, { browserAuth: true })),
@@ -45,4 +46,8 @@ export const wallets = {
   get: logged(secure(rawWallets.get, { protected: true })),
   update: logged(secure(rawWallets.update, { protected: true })),
   remove: logged(secure(rawWallets.remove, { protected: true })),
+};
+export const accountExists = async (userId: string) => {
+  await connectDB();
+  return userRepository.existsById(userId);
 };

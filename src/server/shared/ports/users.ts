@@ -12,5 +12,6 @@ export interface UserRepositoryPort {
    * Resolves to the deleted record or null if absent; deletion errors propagate.
    */
   deleteById(userId: string, context?: TransactionContext): Promise<{ _id: unknown } | null>;
+  existsById(userId: string): Promise<boolean>;
 }
 export interface PasswordPort { hash(value: string): Promise<string>; compare(value: string, hash: string): Promise<boolean> }
