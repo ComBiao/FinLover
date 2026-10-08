@@ -21,7 +21,8 @@ export class DeleteAccountController {
    * Deletes the account identified by the verified principal in context, without
    * password re-entry. Authentication and Origin checks belong to the route policy.
    * Returns 401 for a missing or non-cookie principal, 200 with { success: true }
-   * after deletion, or 404 if the account is missing. Clears the cookie on 200/404.
+   * after deletion, or 404 if the account is already missing when deletion is attempted.
+   * Clears the cookie on 200/404.
    * Other caught errors become API error responses; unexpected errors become 500.
    * Connection or deletion failures other than NOT_FOUND leave the cookie alone.
    *
