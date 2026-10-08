@@ -1,5 +1,7 @@
 # Modular monolith validation — 2026-09-27
 
+Historical validation report: the statement below that no wallet endpoints were added predates issues #71/#72. The v1 wallet create, GET list/detail, and PUT update endpoints are now implemented; legacy has no wallet operations. See the current [API guide](api/README.md).
+
 ## Implemented
 
 One root Next.js application replaces the frontend/backend workspaces and contracts package. Routes compose server controllers, services, repositories and ports; shared contracts are browser-safe source. Application transaction services own balance changes in MongoDB transactions. Browser authentication uses HttpOnly cookies; legacy and v1 share principal resolution, authorization precedence and Origin/JSON policy for cookie writes. Login/register/logout are connected to the API.

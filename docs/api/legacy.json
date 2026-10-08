@@ -3,7 +3,7 @@
   "info": {
     "title": "FinLover legacy API",
     "version": "1.0.0",
-    "description": "Implemented operations only. GET lists, reports, wallet reads and current-user endpoints are not implemented. UI mock screens are not API integration."
+    "description": "Implemented operations only. The legacy API has no wallet operations. Wallet endpoints, remaining GET lists, reports and current-user endpoints are not implemented. UI mock screens are not API integration."
   },
   "servers": [
     {
@@ -50,7 +50,7 @@
                   "confirmPassword",
                   "dataPrivacyConsent"
                 ],
-                "additionalProperties": false
+                "additionalProperties": true
               },
               "example": {
                 "email": "test@example.com",
@@ -143,7 +143,7 @@
             }
           },
           "403": {
-            "description": "System category or untrusted/missing Origin for cookie writes",
+            "description": "Forbidden resource, system category, or untrusted/missing Origin for cookie writes",
             "content": {
               "application/json": {
                 "schema": {
@@ -183,7 +183,7 @@
             }
           },
           "409": {
-            "description": "Duplicate email/category name",
+            "description": "Duplicate email or category name",
             "content": {
               "application/json": {
                 "schema": {
@@ -337,7 +337,7 @@
                   "email",
                   "password"
                 ],
-                "additionalProperties": false
+                "additionalProperties": true
               },
               "example": {
                 "email": "test@example.com",
@@ -459,7 +459,7 @@
             }
           },
           "403": {
-            "description": "System category or untrusted/missing Origin for cookie writes",
+            "description": "Forbidden resource, system category, or untrusted/missing Origin for cookie writes",
             "content": {
               "application/json": {
                 "schema": {
@@ -610,7 +610,7 @@
             }
           },
           "403": {
-            "description": "System category or untrusted/missing Origin for cookie writes",
+            "description": "Forbidden resource, system category, or untrusted/missing Origin for cookie writes",
             "content": {
               "application/json": {
                 "schema": {
@@ -736,7 +736,7 @@
                   "name",
                   "type"
                 ],
-                "additionalProperties": false
+                "additionalProperties": true
               },
               "example": {
                 "name": "Food",
@@ -890,7 +890,7 @@
             }
           },
           "403": {
-            "description": "System category or untrusted/missing Origin for cookie writes",
+            "description": "Forbidden resource, system category, or untrusted/missing Origin for cookie writes",
             "content": {
               "application/json": {
                 "schema": {
@@ -930,7 +930,7 @@
             }
           },
           "409": {
-            "description": "Duplicate email/category name",
+            "description": "Duplicate email or category name",
             "content": {
               "application/json": {
                 "schema": {
@@ -1103,7 +1103,7 @@
                     "pattern": "^#[0-9A-Fa-f]{6}$"
                   }
                 },
-                "additionalProperties": false
+                "additionalProperties": true
               },
               "example": {
                 "name": "Food",
@@ -1257,7 +1257,7 @@
             }
           },
           "403": {
-            "description": "System category or untrusted/missing Origin for cookie writes",
+            "description": "Forbidden resource, system category, or untrusted/missing Origin for cookie writes",
             "content": {
               "application/json": {
                 "schema": {
@@ -1337,7 +1337,7 @@
             }
           },
           "409": {
-            "description": "Duplicate email/category name",
+            "description": "Duplicate email or category name",
             "content": {
               "application/json": {
                 "schema": {
@@ -1628,7 +1628,7 @@
             }
           },
           "403": {
-            "description": "System category or untrusted/missing Origin for cookie writes",
+            "description": "Forbidden resource, system category, or untrusted/missing Origin for cookie writes",
             "content": {
               "application/json": {
                 "schema": {
@@ -1843,6 +1843,11 @@
                     "type": "string",
                     "minLength": 1
                   },
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
                   "note": {
                     "type": "string",
                     "maxLength": 255
@@ -1852,9 +1857,10 @@
                   "wallet_id",
                   "type",
                   "amount",
-                  "date"
+                  "date",
+                  "title"
                 ],
-                "additionalProperties": false
+                "additionalProperties": true
               },
               "example": {
                 "wallet_id": "507f1f77bcf86cd799439011",
@@ -1862,6 +1868,7 @@
                 "type": "Expense",
                 "amount": 42,
                 "date": "2026-09-27",
+                "title": "Lunch",
                 "note": "Lunch"
               }
             }
@@ -1903,6 +1910,9 @@
                           "type": "string",
                           "format": "date"
                         },
+                        "title": {
+                          "type": "string"
+                        },
                         "note": {
                           "type": "string"
                         }
@@ -1913,7 +1923,8 @@
                         "category_id",
                         "type",
                         "amount",
-                        "date"
+                        "date",
+                        "title"
                       ]
                     }
                   },
@@ -2005,7 +2016,7 @@
             }
           },
           "403": {
-            "description": "System category or untrusted/missing Origin for cookie writes",
+            "description": "Forbidden resource, system category, or untrusted/missing Origin for cookie writes",
             "content": {
               "application/json": {
                 "schema": {
@@ -2267,6 +2278,11 @@
                     "type": "string",
                     "minLength": 1
                   },
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
                   "note": {
                     "type": "string",
                     "maxLength": 255
@@ -2275,15 +2291,17 @@
                 "required": [
                   "type",
                   "amount",
-                  "date"
+                  "date",
+                  "title"
                 ],
-                "additionalProperties": false
+                "additionalProperties": true
               },
               "example": {
                 "category_id": null,
                 "type": "Expense",
                 "amount": 42,
                 "date": "2026-09-27",
+                "title": "Lunch",
                 "note": "Lunch"
               }
             }
@@ -2325,6 +2343,9 @@
                           "type": "string",
                           "format": "date"
                         },
+                        "title": {
+                          "type": "string"
+                        },
                         "note": {
                           "type": "string"
                         }
@@ -2335,7 +2356,8 @@
                         "category_id",
                         "type",
                         "amount",
-                        "date"
+                        "date",
+                        "title"
                       ]
                     }
                   },
@@ -2427,7 +2449,7 @@
             }
           },
           "403": {
-            "description": "System category or untrusted/missing Origin for cookie writes",
+            "description": "Forbidden resource, system category, or untrusted/missing Origin for cookie writes",
             "content": {
               "application/json": {
                 "schema": {
@@ -2739,7 +2761,7 @@
             }
           },
           "403": {
-            "description": "System category or untrusted/missing Origin for cookie writes",
+            "description": "Forbidden resource, system category, or untrusted/missing Origin for cookie writes",
             "content": {
               "application/json": {
                 "schema": {

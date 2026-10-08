@@ -30,7 +30,7 @@ import {
 import { CATEGORY_STYLES, resolveChipTone, WALLET_TYPE_STYLES } from "@/components/chipColor";
 import { MOCK_CATEGORIES } from "@/mocks/mockCategories";
 import { MOCK_WALLETS } from "@/mocks/mockWallets";
-import { cn } from "@/lib/utils";
+import { cn, formatBaht } from "@/lib/utils";
 import type { Transaction } from "@/types/transaction";
 
 function formatDate(date: Date) {
@@ -38,8 +38,7 @@ function formatDate(date: Date) {
 }
 
 function formatAmount(amount: number, type: Transaction["type"]) {
-  const formatted = `฿${amount.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
-  return type === "income" ? `+${formatted}` : `-${formatted}`;
+  return `${type === "income" ? "+" : "-"}${formatBaht(amount)}`;
 }
 
 type TransactionTableProps = {

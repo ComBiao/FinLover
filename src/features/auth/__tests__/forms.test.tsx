@@ -22,7 +22,7 @@ describe('auth forms use the server', () => {
   it('logs in with a same-origin HttpOnly-cookie request and redirects only on success', async () => {
     fetchMock.mockResolvedValue(Response.json({ status: true, data: { user: { id: 'user' } } }));
     mount(<Login />); fireEvent.click(screen.getByText('Submit'));
-    await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/dashboard'));
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/homepage'));
     expect(fetchMock).toHaveBeenCalledWith('/api/v1/auth/login', expect.objectContaining({ method: 'POST', credentials: 'same-origin', body: JSON.stringify({ email: 'test@example.com', password: 'Password1' }) }));
     expect(localStorage.length).toBe(0);
   });

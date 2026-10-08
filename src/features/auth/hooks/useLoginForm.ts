@@ -77,7 +77,7 @@ export function useLoginForm() {
     try {
       await mutation.mutateAsync(result.data);
       client.clear();
-      router.replace('/dashboard');
+      router.replace('/homepage');
       router.refresh();
     } catch (error) {
       if (error instanceof ApiClientError) {

@@ -37,7 +37,7 @@ beforeEach(async () => { await Wallet.deleteMany({}); await Transaction.collecti
 let seq = 0;
 const wallet = (userId = USER, extra: Record<string, unknown> = {}) => Wallet.create({ userId, name: `W${++seq}`, balance: 100, ...extra });
 const seedTx = (userId: mongoose.Types.ObjectId, walletId: unknown, n: number) =>
-  Promise.all(Array.from({ length: n }, () => seedTransaction(new Transaction({ userId, walletId, type: 'income', amount: 10, date: new Date() }))));
+  Promise.all(Array.from({ length: n }, () => seedTransaction(new Transaction({ userId, walletId, type: 'income', amount: 10, date: new Date(), title: 'Seed' }))));
 const txCount = (walletId: unknown) => Transaction.collection.countDocuments({ walletId } as never);
 function call(id: string, token: string | null = TOKEN) {
   const request = new NextRequest(new URL(`/api/v1/wallets/${id}`, 'http://localhost:3000'), {

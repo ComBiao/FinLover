@@ -2,12 +2,8 @@ import { ArrowDownRight, ArrowUpRight, Wallet, type LucideIcon } from "lucide-re
 
 import { Card, CardContent } from "@/components/ui/card";
 import { summarizeTransactions } from "@/features/transactions/transactions";
-import { cn } from "@/lib/utils";
+import { cn, formatBaht } from "@/lib/utils";
 import type { Transaction } from "@/types/transaction";
-
-function formatCurrency(amount: number) {
-  return `฿${amount.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
-}
 
 type SummaryCardsProps = {
   transactions: Transaction[];
@@ -72,7 +68,7 @@ export function SummaryCards({ transactions }: SummaryCardsProps) {
                   card.valueClassName
                 )}
               >
-                {formatCurrency(card.value)}
+                {formatBaht(card.value)}
               </div>
             </div>
             <div

@@ -18,7 +18,7 @@ export const walletRepository = new WalletRepository();
 import { DeleteWalletService } from '../modules/wallets/services/DeleteWalletService';
 import { createWalletRouter } from '../modules/wallets/router';
 export const deleteWalletService = new DeleteWalletService(walletRepository, new TransactionRepository(), new MongoUnitOfWork());
-export const rawWallets = createWalletRouter(deleteWalletService);
+export const rawWallets = createWalletRouter(walletRepository, deleteWalletService);
 export const rawTransactions = createTransactionRouter(walletRepository, new CategoryRepository(), new MongoUnitOfWork());
 
 
@@ -39,5 +39,9 @@ export const transactions = {
   remove: logged(secure(rawTransactions.remove, { protected: true })),
 };
 export const wallets = {
+  create: logged(secure(rawWallets.create, { protected: true })),
+  list: logged(secure(rawWallets.list, { protected: true })),
+  get: logged(secure(rawWallets.get, { protected: true })),
+  update: logged(secure(rawWallets.update, { protected: true })),
   remove: logged(secure(rawWallets.remove, { protected: true })),
 };
