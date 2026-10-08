@@ -6,8 +6,10 @@ import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import { NextRequest } from 'next/server';
 import Wallet from '@/server/db/models/Wallet';
 import Transaction from '@/server/db/models/Transaction';
+import User from '@/server/db/models/User';
 import { signToken } from '@/server/shared/auth/crypto';
 import { seedTransaction } from '@/test/transaction-fixture';
+import { seedUser } from '@/test/user-fixture';
 import { MongoUnitOfWork } from '@/server/db/unit-of-work';
 import { WalletRepository } from '@/server/modules/wallets/repositories/WalletRepository';
 import { TransactionRepository } from '@/server/modules/transactions/repositories/TransactionRepository';
@@ -28,11 +30,19 @@ let replSet: MongoMemoryReplSet;
 beforeAll(async () => {
   replSet = await MongoMemoryReplSet.create({ replSet: { count: 1, storageEngine: 'wiredTiger' } });
   await mongoose.connect(replSet.getUri());
+  await User.init();
   await Wallet.init();
   DELETE = (await import('@/app/api/v1/wallets/[id]/route')).DELETE;
 }, 60_000);
 afterAll(async () => { await mongoose.disconnect(); await replSet?.stop(); }, 60_000);
-beforeEach(async () => { await Wallet.deleteMany({}); await Transaction.collection.deleteMany({}); });
+beforeEach(async () => {
+  await Promise.all([
+    Wallet.deleteMany({}),
+    Transaction.collection.deleteMany({}),
+    User.deleteMany({}),
+  ]);
+  await Promise.all([seedUser(USER), seedUser(OTHER)]);
+});
 
 let seq = 0;
 const wallet = (userId = USER, extra: Record<string, unknown> = {}) => Wallet.create({ userId, name: `W${++seq}`, balance: 100, ...extra });
