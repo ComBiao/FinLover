@@ -18,6 +18,7 @@ describe('GetTransactionsByMonthService', () => {
     ['2024-02', '2024-02-01T00:00:00.000Z', '2024-03-01T00:00:00.000Z'],
     ['2025-02', '2025-02-01T00:00:00.000Z', '2025-03-01T00:00:00.000Z'],
     ['2026-12', '2026-12-01T00:00:00.000Z', '2027-01-01T00:00:00.000Z'],
+    ['0099-10', '0099-10-01T00:00:00.000Z', '0099-11-01T00:00:00.000Z'],
   ])('builds an inclusive start and exclusive end for %s', (month, start, end) => {
     const boundaries = monthBoundaries(month);
     expect(boundaries.start.toISOString()).toBe(start);

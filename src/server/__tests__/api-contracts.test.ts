@@ -200,7 +200,7 @@ describe('v1 monthly transaction reads', () => {
   it('returns an empty collection and rejects invalid months or missing authentication', async () => {
     const empty = await v1.listTransactions(request('GET', '/api/v1/transactions?month=2024-02'), context());
     expect(await contract('v1', '/api/v1/transactions', 'get', empty)).toEqual({ status: true, data: [] });
-    for (const month of ['2026-00', '2026-13', '26-10', '2026/10']) {
+    for (const month of ['', '2026-00', '2026-13', '26-10', '2026/10']) {
       const invalid = await v1.listTransactions(request('GET', `/api/v1/transactions?month=${encodeURIComponent(month)}`), context());
       expect(invalid.status).toBe(400);
       await contract('v1', '/api/v1/transactions', 'get', invalid);
@@ -208,6 +208,21 @@ describe('v1 monthly transaction reads', () => {
     const unauthorized = await v1.listTransactions(request('GET', '/api/v1/transactions?month=2026-10', undefined, {}), context());
     expect(unauthorized.status).toBe(401);
     await contract('v1', '/api/v1/transactions', 'get', unauthorized);
+  });
+
+  it('uses the configured current month while excluding another user when month is omitted', async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date('2026-10-09T12:00:00.000Z'));
+      const owned = await transaction('2026-10-08', 'Owned');
+      await transaction('2026-10-08', 'Foreign', other);
+
+      const response = await v1.listTransactions(request('GET', '/api/v1/transactions'), context());
+      const payload = await contract('v1', '/api/v1/transactions', 'get', response);
+      expect(payload.data.map((item: { id: string }) => item.id)).toEqual([String(owned._id)]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('applies the existing title fallback to legacy documents', async () => {

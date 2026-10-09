@@ -13,10 +13,14 @@ export function currentMonth(now: Date, timezone: string) {
 
 export function monthBoundaries(month: string) {
   const [year, monthNumber] = month.split('-').map(Number);
-  return {
-    start: new Date(Date.UTC(year, monthNumber - 1, 1)),
-    end: new Date(Date.UTC(year, monthNumber, 1)),
-  };
+  // Transaction dates are stored as UTC-midnight date values, so month ranges
+  // use UTC boundaries even when the default month is selected in a local zone.
+  const start = new Date(0);
+  start.setUTCFullYear(year, monthNumber - 1, 1);
+  start.setUTCHours(0, 0, 0, 0);
+  const end = new Date(start);
+  end.setUTCMonth(end.getUTCMonth() + 1);
+  return { start, end };
 }
 
 export class GetTransactionsByMonthService {

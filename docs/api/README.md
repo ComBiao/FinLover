@@ -15,7 +15,7 @@ Open `/api/docs` on the application origin (port 3000 locally). Legacy implement
 | GET, POST | — | `/api/v1/wallets` |
 | GET, PUT, DELETE | — | `/api/v1/wallets/{id}` |
 
-The monthly transaction read returns only the caller's records in newest-first order; omitting `month` uses the current month in `APPLICATION_TIMEZONE`. Wallet updates accept only `name` and `color`; reads and updates are limited to the wallet owner. The legacy API has no wallet operations. Other GET lists, reports, and current-user endpoints remain unimplemented. Existing UI mock screens do not call all of these APIs.
+The monthly transaction read returns all of the caller's records for the selected month in newest-first order; omitting `month` uses the current month in `APPLICATION_TIMEZONE`. This endpoint intentionally has no pagination because its contract returns one complete calendar month. Wallet updates accept only `name` and `color`; reads and updates are limited to the wallet owner. The legacy API has no wallet operations. Other GET lists, reports, and current-user endpoints remain unimplemented. Existing UI mock screens do not call all of these APIs.
 
 ## Authentication and examples
 
