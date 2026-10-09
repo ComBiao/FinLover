@@ -28,7 +28,6 @@ export const auth = {
   login: logged(secure(rawAuth.login, { browserAuth: true })),
   register: logged(secure(rawAuth.register, { browserAuth: true })),
   logout: logged(secure(rawAuth.logout, { browserAuth: true })),
-  deleteAccount: logged(secure(rawAuth.deleteAccount, { protected: true })),
 };
 export const categories = {
   create: logged(secure(rawCategories.create, { protected: true })),
