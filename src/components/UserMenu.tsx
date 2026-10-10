@@ -24,6 +24,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { useActiveWallet } from "@/features/wallets/store/useActiveWallet";
 import { userName } from "@/mocks/mock-data";
 
 type UserMenuProps = {
@@ -52,6 +53,7 @@ export function UserMenu({ mobileOpen = false, onNavigate }: UserMenuProps) {
   async function handleConfirmLogout() {
     try {
       await logout.mutateAsync();
+      useActiveWallet.getState().clear();
       queryClient.clear();
       setLogoutDialogOpen(false);
       toast.success('Logged out');
