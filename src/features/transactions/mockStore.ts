@@ -7,7 +7,7 @@ import { MOCK_TRANSACTIONS } from "./mockTransactions";
 
 /**
  * In-memory "database" backing the mock transactions/wallets/categories
- * service (./transactionsService.ts) — module-scoped state so every caller
+ * services (./transactionsService.ts, ./walletsService.ts, ./categoriesService.ts) — module-scoped state so every caller
  * (Home and Transactions page alike) reads and mutates the same data,
  * keeping both pages in sync without a real backend.
  */
