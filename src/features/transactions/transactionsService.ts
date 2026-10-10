@@ -1,11 +1,8 @@
 import type { MonthKey } from "@/features/homepage/month";
-import { getApi, postApi } from "@/lib/api/client";
+import { deleteApi, getApi, postApi, putApi } from "@/lib/api/client";
 import { toLocalISODate } from "@/lib/utils";
 import type { TransactionType } from "@/types/category";
 import type { Transaction } from "@/types/transaction";
-
-import { delay } from "./mockDelay";
-import { applyDeleteTransaction, applyUpdateTransaction } from "./mockStore";
 
 /** One row of `GET/POST /api/v1/transactions` (see `transactionResponse` in `@/shared/contracts`). */
 type TransactionDto = {
@@ -62,15 +59,22 @@ export async function createTransaction(input: Omit<Transaction, "id">): Promise
   return toTransaction(created);
 }
 
-// TODO(backend): replace with PUT /api/v1/transactions/:id (#102)
-export function updateTransaction(
+/** `PUT` replaces the editable fields; the wallet can't be changed, so it isn't sent. */
+export async function updateTransaction(
   id: string,
   input: Omit<Transaction, "id">
 ): Promise<Transaction> {
-  return delay(applyUpdateTransaction(id, input));
+  const updated = await putApi<TransactionDto>(`/api/v1/transactions/${id}`, {
+    categoryId: input.categoryId ?? null,
+    type: input.type,
+    amount: input.amount,
+    date: toLocalISODate(input.date),
+    title: input.title,
+    note: input.note,
+  });
+  return toTransaction(updated);
 }
 
-// TODO(backend): replace with DELETE /api/v1/transactions/:id (#104)
 export function deleteTransaction(id: string): Promise<void> {
-  return delay(applyDeleteTransaction(id));
+  return deleteApi(`/api/v1/transactions/${id}`);
 }

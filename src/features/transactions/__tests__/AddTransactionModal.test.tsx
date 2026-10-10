@@ -6,6 +6,7 @@ import { AddTransactionModal } from "../components/AddTransactionModal";
 import { useTransactionModal } from "../store/useTransactionModal";
 import { ApiClientError } from "@/lib/api/client";
 import { MOCK_WALLETS } from "@/mocks/mockWallets";
+import type { Transaction } from "@/types/transaction";
 
 beforeEach(() => {
   useTransactionModal.setState({
@@ -93,5 +94,50 @@ describe("AddTransactionModal — US3-1 async create (Add mode only)", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("isn't connected");
     expect(useTransactionModal.getState().isOpen).toBe(true);
+  });
+});
+
+describe("AddTransactionModal — US3-2 async edit", () => {
+  const existing: Transaction = {
+    id: "tx1",
+    title: "Lunch",
+    amount: 50,
+    type: "expense",
+    walletId: MOCK_WALLETS[0].id,
+    date: new Date(2026, 9, 5),
+  };
+  const openEdit = () =>
+    useTransactionModal.setState({ isOpen: true, defaultType: "expense", editingTransaction: existing });
+
+  it("awaits onEdit with the merged row, then closes", async () => {
+    const onEdit = vi.fn().mockResolvedValue(undefined);
+    openEdit();
+    render(<AddTransactionModal onEdit={onEdit} />);
+
+    fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Lunch with team" } });
+    fireEvent.click(screen.getByText("Save changes"));
+
+    await waitFor(() => expect(useTransactionModal.getState().isOpen).toBe(false));
+    expect(onEdit).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "tx1", title: "Lunch with team", amount: 50, walletId: existing.walletId })
+    );
+  });
+
+  it("keeps the modal open and shows the server's message when the update fails", async () => {
+    const onEdit = vi.fn().mockRejectedValue(new ApiClientError("Transaction not found", 404));
+    openEdit();
+    render(<AddTransactionModal onEdit={onEdit} />);
+
+    fireEvent.click(screen.getByText("Save changes"));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Transaction not found");
+    expect(useTransactionModal.getState().isOpen).toBe(true);
+  });
+
+  it("locks the wallet, since the update API can't move a transaction", () => {
+    openEdit();
+    render(<AddTransactionModal onEdit={vi.fn()} />);
+
+    expect(screen.getByLabelText("Pay from wallet")).toBeDisabled();
   });
 });
