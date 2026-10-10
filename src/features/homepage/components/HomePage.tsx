@@ -75,16 +75,14 @@ export function HomePage() {
   const monthLabel = monthKeyLabel(month);
   const selectedWalletName = walletId === "all" ? "All wallets" : wallets.find((w) => w.id === walletId)?.name ?? "Wallet";
 
-  function handleAddTransaction(newTransaction: Transaction) {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- the modal assigns a throwaway client-side id; the mock service assigns its own.
-    const { id: _clientId, ...input } = newTransaction;
-    createTransaction.mutate(input, {
-      onSuccess: (created) => {
-        setMonth(monthKeyOfDate(created.date));
-        toast.success("Transaction added");
-      },
-      onError: () => toast.error("Couldn't save this transaction"),
-    });
+  async function handleAddTransaction(input: Omit<Transaction, "id">) {
+    try {
+      const created = await createTransaction.mutateAsync(input);
+      setMonth(monthKeyOfDate(created.date));
+      toast.success("Transaction added");
+    } catch {
+      toast.error("Couldn't save this transaction");
+    }
   }
 
   function handleEditTransaction(updatedTransaction: Transaction) {
