@@ -459,6 +459,86 @@ describe("v1 wallet API contracts", () => {
         body,
       ),
     ).toBe(true);
+describe('v1 monthly transaction reads', () => {
+  async function transaction(date: string, title: string, owner = user, categoryId: mongoose.Types.ObjectId | null = null) {
+    return seedTransaction(new Transaction({ userId: owner, walletId: wallet, categoryId, type: 'expense', amount: 10, date: new Date(date), title }));
+  }
+
+  it('returns only owned transactions inside the month in deterministic newest-first order', async () => {
+    const categoryId = new mongoose.Types.ObjectId();
+    await transaction('2026-09-30', 'Before');
+    const first = await transaction('2026-10-01', 'First');
+    const sameDateOlder = await transaction('2026-10-15', 'Same date older');
+    const sameDateNewer = await transaction('2026-10-15', 'Same date newer', user, categoryId);
+    const last = await transaction('2026-10-31', 'Last');
+    await transaction('2026-11-01', 'After');
+    await transaction('2026-10-20', 'Foreign', other);
+
+    const response = await v1.listTransactions(request('GET', '/api/v1/transactions?month=2026-10'), context());
+    expect(response.status).toBe(200);
+    const payload = await contract('v1', '/api/v1/transactions', 'get', response);
+
+    expect(payload.data.map((item: { id: string }) => item.id)).toEqual([
+      String(last._id), String(sameDateNewer._id), String(sameDateOlder._id), String(first._id),
+    ]);
+    expect(payload.data[1]).toEqual(expect.objectContaining({ categoryId: String(categoryId), date: '2026-10-15', title: 'Same date newer' }));
+    expect(payload.data[3].categoryId).toBeNull();
+    expect(payload.data[0]).not.toHaveProperty('userId');
+  });
+
+  it('returns an empty collection and rejects invalid months or missing authentication', async () => {
+    const empty = await v1.listTransactions(request('GET', '/api/v1/transactions?month=2024-02'), context());
+    expect(await contract('v1', '/api/v1/transactions', 'get', empty)).toEqual({ status: true, data: [] });
+    for (const month of ['', '2026-00', '2026-13', '26-10', '2026/10']) {
+      const invalid = await v1.listTransactions(request('GET', `/api/v1/transactions?month=${encodeURIComponent(month)}`), context());
+      expect(invalid.status).toBe(400);
+      await contract('v1', '/api/v1/transactions', 'get', invalid);
+    }
+    const unauthorized = await v1.listTransactions(request('GET', '/api/v1/transactions?month=2026-10', undefined, {}), context());
+    expect(unauthorized.status).toBe(401);
+    await contract('v1', '/api/v1/transactions', 'get', unauthorized);
+  });
+
+  it('uses the configured current month while excluding another user when month is omitted', async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date('2026-10-09T12:00:00.000Z'));
+      const owned = await transaction('2026-10-08', 'Owned');
+      await transaction('2026-10-08', 'Foreign', other);
+
+      const response = await v1.listTransactions(request('GET', '/api/v1/transactions'), context());
+      const payload = await contract('v1', '/api/v1/transactions', 'get', response);
+      expect(payload.data.map((item: { id: string }) => item.id)).toEqual([String(owned._id)]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('applies the existing title fallback to legacy documents', async () => {
+    const id = new mongoose.Types.ObjectId();
+    await Transaction.collection.insertOne({
+      _id: id,
+      userId: new mongoose.Types.ObjectId(user),
+      walletId: new mongoose.Types.ObjectId(wallet),
+      categoryId: null,
+      type: 'expense',
+      amount: 10,
+      date: new Date('2026-10-05'),
+      recurrence: { isRecurring: false },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    const response = await v1.listTransactions(request('GET', '/api/v1/transactions?month=2026-10'), context());
+    const payload = await response.json();
+    expect(payload.data).toEqual([expect.objectContaining({ id: String(id), title: '(untitled)' })]);
+  });
+});
+
+describe('v1 wallet API contracts', () => {
+  it('validates the partial update request and wallet response schema', async () => {
+    const body = { name: 'Updated main', color: '#12AB34' };
+    const updateOperation = buildSpec('v1').paths['/api/v1/wallets/{id}'].put as { requestBody: { content: { 'application/json': { schema: object } } } };
+    expect(ajv.validate(updateOperation.requestBody.content['application/json'].schema, body)).toBe(true);
 
     const response = await v1.updateWallet(
       request("PUT", `/api/v1/wallets/${wallet}`, body),

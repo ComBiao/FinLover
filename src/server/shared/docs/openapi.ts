@@ -40,6 +40,7 @@ export const operations = [
   { action: 'listWallets', method: 'get', path: '/wallets', status: 200, errors: [401, 500], versions: ['v1'], description: "List the authenticated user's wallets, with the default wallet first." },
   { action: 'getWallet', method: 'get', path: '/wallets/{id}', status: 200, errors: [400, 401, 404, 500], versions: ['v1'], description: "Get an owned wallet by ID. Invalid IDs return 400; missing or another user's wallet returns 404." },
   { action: 'updateWallet', method: 'put', path: '/wallets/{id}', status: 200, errors: [400, 401, 404, 409, 500], versions: ['v1'], description: 'Partially update an owned wallet name or color. Balance, owner, and saving settings are not editable here.' },
+  { action: 'listTransactions', method: 'get', path: '/transaction', status: 200, errors: [400, 401, 500], versions: ['v1'], description: 'List all owned transactions for an optional YYYY-MM month, defaulting to the current month in APPLICATION_TIMEZONE. Results are newest first; this monthly endpoint intentionally has no pagination.' },
   { action: 'createTransaction', method: 'post', path: '/transaction', status: 201, errors: [400, 401, 404, 422, 500], description: 'Create an owned transaction and adjust wallet balance in one MongoDB transaction. Requires a replica set. Category must belong to the user and match the transaction type. Persisted minimum amount is 0.01.' },
   { action: 'updateTransaction', method: 'put', path: '/transaction/{id}', status: 200, errors: [400, 401, 404, 422, 500], description: 'Replace editable fields of an owned transaction; reverse old and apply new balance atomically. wallet cannot be changed by this API.' },
   { action: 'deleteTransaction', method: 'delete', path: '/transaction/{id}', status: 204, errors: [400, 401, 404, 422, 500], description: 'Delete an owned transaction and reverse its balance atomically. Legacy success has no body.' },
@@ -77,7 +78,8 @@ export function buildSpec(version: 'legacy' | 'v1') {
             : action === 'deleteTransaction' || action === 'deleteWallet' ? { type: 'null' }
               : action === 'createWallet' || action === 'getWallet' || action === 'updateWallet' ? schema(walletResponse)
                 : action === 'listWallets' ? { type: 'array', items: schema(walletResponse) }
-                  : (v1 ? schema(transactionResponse) : legacyTxResponse);
+                  : action === 'listTransactions' ? { type: 'array', items: schema(transactionResponse) }
+                    : (v1 ? schema(transactionResponse) : legacyTxResponse);
     const success = v1 ? obj({ status: { const: true }, data }) : action.includes('Category') || action.includes('Transaction') ? obj({ data }) : data;
     const error = v1 ? obj({ status: { const: false }, error: schema(apiError), timestamp: { type: 'string', format: 'date-time' }, path: { type: 'string' } }) : obj({ error: schema(apiError) });
     const status = v1 && operation.status === 204 ? 200 : operation.status;
@@ -101,6 +103,10 @@ export function buildSpec(version: 'legacy' | 'v1') {
     if (action === 'updateTransaction') { delete example.walletId; delete example.wallet_id; }
     const authDescription = v1 ? ` Authorization takes precedence over cookie.${method === 'get' ? ' Cookie-authenticated GETs do not require an Origin.' : ' Cookie writes require an Origin in PUBLIC_ORIGINS; missing Origin is rejected.'} Implemented.` : ' Legacy response contract; auth is unified with v1. Cookie writes and login/register/logout require an exact trusted Origin; no Origin is rejected. A valid Bearer on protected APIs does not fall back to cookies.';
     const publicOperation = 'public' in operation;
+    const parameters = [
+      ...(path.includes('{id}') ? [{ name: 'id', in: 'path', required: true, schema: { type: 'string', pattern: '^[a-fA-F0-9]{24}$' } }] : []),
+      ...(action === 'listTransactions' ? [{ name: 'month', in: 'query', required: false, schema: { type: 'string', pattern: '^\\d{4}-(0[1-9]|1[0-2])$' }, example: '2026-10' }] : []),
+    ];
     paths[path] ??= {};
     paths[path][method] = {
       operationId: `${version}_${action}`,
@@ -115,7 +121,7 @@ export function buildSpec(version: 'legacy' | 'v1') {
   }
 
   const walletStatus = v1 ? 'Wallet create, list, detail, update and delete operations are available on v1.' : 'The legacy API has no wallet operations.';
-  const unimplemented = v1 ? 'Category/transaction lists, reports and current-user endpoints are not implemented.' : 'Wallet endpoints, remaining GET lists, reports and current-user endpoints are not implemented.';
+  const unimplemented = v1 ? 'Monthly transaction reads are available; category lists, reports and current-user endpoints are not implemented.' : 'Wallet endpoints, remaining GET lists, reports and current-user endpoints are not implemented.';
   return {
     openapi: '3.1.0',
     info: { title: `FinLover ${version} API`, version: '1.0.0', description: `Implemented operations only. ${walletStatus} ${unimplemented} UI mock screens are not API integration.` },
