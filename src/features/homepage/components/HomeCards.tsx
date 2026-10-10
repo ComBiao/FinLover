@@ -1,11 +1,13 @@
-import { ArrowDownRight, ArrowUpRight } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Eye, EyeOff } from "lucide-react";
 
 import { CATEGORY_STYLES, resolveChipTone } from "@/components/chipColor";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { cn, formatBaht } from "@/lib/utils";
 import type { HomeSavingGoal, HomeTopCategory } from "@/features/homepage/services/homeService";
+import { useBalanceVisibility } from "@/features/wallets/store/useBalanceVisibility";
 
 type TotalBalanceCardProps = {
   walletLabel: string;
@@ -24,20 +26,27 @@ export function TotalBalanceCard({
   savingGoal,
   isLoading = false,
 }: TotalBalanceCardProps) {
+  const isVisible = useBalanceVisibility((state) => state.isVisible);
+  const toggleVisibility = useBalanceVisibility((state) => state.toggle);
+
   return (
     <Card className="rounded-2xl bg-gradient-pastel-a shadow-sm">
       <CardContent className="flex h-full flex-col gap-3.5 py-1">
         {isLoading ? (
           <>
-            <div className="text-base font-bold tracking-wide text-muted-foreground uppercase">
-              Total balance
+            <div className="flex items-center justify-between">
+              <span className="text-base font-bold tracking-wide text-muted-foreground uppercase">
+                Total balance
+              </span>
             </div>
             <Skeleton className="h-10 w-40" />
           </>
         ) : !hasWallets ? (
           <>
-            <div className="text-base font-bold tracking-wide text-muted-foreground uppercase">
-              Total balance
+            <div className="flex items-center justify-between">
+              <span className="text-base font-bold tracking-wide text-muted-foreground uppercase">
+                Total balance
+              </span>
             </div>
             <p className="text-sm font-medium text-foreground/70">
               Create a wallet to see your balance
@@ -46,15 +55,27 @@ export function TotalBalanceCard({
         ) : (
           <>
             <div className="flex items-center justify-between gap-2">
-              <span className="text-base font-bold tracking-wide text-muted-foreground uppercase">
-                Total balance
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-base font-bold tracking-wide text-muted-foreground uppercase">
+                  Total balance
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-xs"
+                  aria-label={isVisible ? "Hide balance" : "Show balance"}
+                  onClick={toggleVisibility}
+                  className="size-6 text-muted-foreground hover:text-foreground"
+                >
+                  {isVisible ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
+                </Button>
+              </div>
               <span className="w-fit rounded-full bg-card/70 px-2.5 py-1 text-xs font-semibold text-foreground/70">
                 {walletLabel} · today
               </span>
             </div>
             <div className="text-3xl font-extrabold text-foreground sm:text-4xl">
-              {formatBaht(totalBalance)}
+              {isVisible ? formatBaht(totalBalance) : "••••••"}
             </div>
 
             {savingGoal ? (
@@ -69,8 +90,11 @@ export function TotalBalanceCard({
                 </div>
                 <Progress value={savingGoal.percent} className="[&>div]:bg-card/80" />
                 <span className="text-xs text-foreground/80">
-                  {savingGoal.walletName} · {formatBaht(savingGoal.current)} of{" "}
-                  {formatBaht(savingGoal.goal)} · {savingGoal.percent}%
+                  {savingGoal.walletName} ·{" "}
+                  {isVisible
+                    ? `${formatBaht(savingGoal.current)} of ${formatBaht(savingGoal.goal)}`
+                    : "••••••"}{" "}
+                  · {savingGoal.percent}%
                 </span>
               </div>
             ) : null}
