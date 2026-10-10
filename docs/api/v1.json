@@ -4957,7 +4957,7 @@
           "transaction"
         ],
         "summary": "listTransactions",
-        "description": "List all owned transactions for an optional YYYY-MM month, defaulting to the current month in APPLICATION_TIMEZONE. Results are newest first; this monthly endpoint intentionally has no pagination. Authorization takes precedence over cookie. Cookie-authenticated GETs do not require an Origin. Implemented.",
+        "description": "List all owned transactions for an optional YYYY-MM month, defaulting to the current month in APPLICATION_TIMEZONE, optionally narrowed by a case-insensitive title/note search. Results are newest first; this monthly endpoint intentionally has no pagination. Authorization takes precedence over cookie. Cookie-authenticated GETs do not require an Origin. Implemented.",
         "security": [
           {
             "bearerAuth": []

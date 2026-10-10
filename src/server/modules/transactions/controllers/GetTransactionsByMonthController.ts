@@ -10,13 +10,14 @@ export class GetTransactionsByMonthController {
   constructor(private service: GetTransactionsByMonthService) {}
 
   async handle(request: Request, context: RouteContext) {
-    const parsed = transactionMonthQuery.safeParse({ month: new URL(request.url).searchParams.get('month') ?? undefined });
+    const params = new URL(request.url).searchParams;
+    const parsed = transactionMonthQuery.safeParse({ month: params.get('month') ?? undefined, search: params.get('search') ?? undefined });
     if (!parsed.success) {
       return errorResponse(400, 'VALIDATION_ERROR', 'One or more fields are invalid', validationFields(parsed.error));
     }
 
     await connectDB();
-    const transactions = await this.service.execute(context.principal!.userId, parsed.data.month);
+    const transactions = await this.service.execute(context.principal!.userId, parsed.data.month, parsed.data.search);
     return NextResponse.json({ data: transactions.map(TransactionResponseDTO.v1) });
   }
 }

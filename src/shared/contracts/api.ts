@@ -7,6 +7,8 @@ export const transactionUpdate = transactionInput.omit({ walletId: true });
 export const transactionResponse = transactionInput.extend({ id: objectId, categoryId: objectId.nullable() });
 export const transactionMonthQuery = z.object({
   month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'month must use YYYY-MM format').optional(),
+  // Case-insensitive substring match on title or note; blank means no search.
+  search: z.string().trim().max(100).optional().transform(value => value || undefined),
 });
 export const categoryResponse = categoryInput.extend({ id: objectId, isSystem: z.boolean(), createdAt: z.iso.datetime(), updatedAt: z.iso.datetime() });
 export const walletInput = z.object({ name: z.string().trim().min(1).max(50), color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(), isSaving: z.boolean().optional(), goalAmount: z.number().min(0).optional()});

@@ -1,4 +1,5 @@
 import "server-only";
+import type { QueryFilter } from 'mongoose';
 import type { TransactionContext } from '@/server/shared/ports/unit-of-work';
 import { sessionOf } from '@/server/db/unit-of-work';
 import Transaction, { type ITransaction } from '@/server/db/models/Transaction';
@@ -14,8 +15,14 @@ function record(doc: ITransaction): TransactionRecord {
   return { id: String(doc._id), userId: String(doc.userId), walletId: String(doc.walletId), categoryId: doc.categoryId ? String(doc.categoryId) : null, type: doc.type, amount: Number(doc.amount), date: doc.date, title: doc.title ?? '(untitled)', note: doc.note };
 }
 export class TransactionRepository implements TransactionRepositoryPort {
-  async findByDateRange(userId: string, start: Date, end: Date) {
-    const docs = await Transaction.find({ userId, date: { $gte: start, $lt: end } }).sort({ date: -1, _id: -1 });
+  async findByDateRange(userId: string, start: Date, end: Date, search?: string) {
+    const filter: QueryFilter<ITransaction> = { userId, date: { $gte: start, $lt: end } };
+    if (search) {
+      // Escaped so the user's text is matched literally, never as a regex (also avoids ReDoS).
+      const pattern = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      filter.$or = [{ title: pattern }, { note: pattern }];
+    }
+    const docs = await Transaction.find(filter).sort({ date: -1, _id: -1 });
     return docs.map(record);
   }
   async clearCategory(categoryId: string, userId: string, context: TransactionContext) {
