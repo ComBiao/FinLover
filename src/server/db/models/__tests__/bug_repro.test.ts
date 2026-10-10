@@ -29,8 +29,8 @@ describe('Transaction categoryId validation bug', () => {
     const user = await User.create({ email: 'test@test.com', passwordHash: 'hash', dataPrivacyConsent: true });
     const wallet = await Wallet.create({ userId: user._id, name: 'Main', balance: 0 });
     
-    const incomeCat = await Category.create({ userId: user._id, name: 'Salary', type: 'income', icon: 'money' });
-    const expenseCat = await Category.create({ userId: user._id, name: 'Food', type: 'expense', icon: 'food' });
+    const incomeCat = await Category.create({ userId: user._id, name: 'Salary', type: 'income', icon: 'Banknote' });
+    const expenseCat = await Category.create({ userId: user._id, name: 'Food', type: 'expense', icon: 'Utensils' });
 
     // Create an income transaction
     const tx = await seedTransaction(new Transaction({

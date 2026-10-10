@@ -1,11 +1,12 @@
 import mongoose, { Schema, Document } from 'mongoose';
+import { CATEGORY_ICON_NAMES, type CategoryIcon } from '@/shared/contracts';
 
 export interface ICategory extends Document {
   userId: mongoose.Types.ObjectId;
   name: string;
   type: 'income' | 'expense'; 
   color?: string;
-  icon?: string;
+  icon?: CategoryIcon;
   isSystem: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -16,7 +17,7 @@ const CategorySchema: Schema = new Schema({
   name: { type: String, required: true, maxlength: 50 },
   type: { type: String, enum: ['income', 'expense'], required: true },
   color: { type: String },
-  icon: { type: String },
+  icon: { type: String, enum: CATEGORY_ICON_NAMES },
   isSystem: { type: Boolean, default: false }
 }, { 
   timestamps: true 
