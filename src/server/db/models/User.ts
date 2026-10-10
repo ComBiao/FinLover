@@ -2,6 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IUser extends Document {
   email: string;
+  name?: string;
   passwordHash: string;
   dataPrivacyConsent: boolean;
   createdAt: Date;
@@ -16,6 +17,7 @@ const UserSchema: Schema = new Schema({
     lowercase: true, 
     trim: true 
   },
+  name: { type: String, trim: true, maxlength: 100 },
   passwordHash: { 
     type: String, 
     required: true 

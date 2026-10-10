@@ -33,8 +33,9 @@ const requestSchema = (value: z.ZodType, constraint?: Record<string, unknown>) =
   ...constraint,
 });
 const obj = (properties: Record<string, unknown>, required = Object.keys(properties)) => ({ type: 'object', properties, required });
-const publicUser = obj({ id: { type: 'string' }, email: { type: 'string', format: 'email' }, dataPrivacyConsent: { const: true }, createdAt: { type: 'string', format: 'date-time' } });
+const publicUser = obj({ id: { type: 'string' }, email: { type: 'string', format: 'email' }, name: { type: 'string' }, dataPrivacyConsent: { const: true }, createdAt: { type: 'string', format: 'date-time' } }, ['id', 'email', 'dataPrivacyConsent', 'createdAt']);
 const loginUser = obj({ id: { type: 'string' }, email: { type: 'string', format: 'email' } });
+const currentUser = obj({ id: { type: 'string' }, email: { type: 'string', format: 'email' }, name: { type: 'string' } }, ['id', 'email']);
 const legacyCategory = obj({ _id: { type: 'string' }, userId: { type: 'string' }, name: { type: 'string' }, type: { enum: ['income', 'expense'] }, isSystem: { type: 'boolean' }, createdAt: { type: 'string' }, updatedAt: { type: 'string' }, color: { type: 'string' }, icon: { type: 'string' }, __v: { type: 'integer' } }, ['_id', 'userId', 'name', 'type', 'isSystem', 'createdAt', 'updatedAt']);
 const legacyTxResponse = obj({ id: { type: 'string' }, wallet_id: { type: 'string' }, category_id: { type: ['string', 'null'] }, type: { enum: ['income', 'expense'] }, amount: { type: 'number' }, date: { type: 'string', format: 'date' }, title: { type: 'string' }, note: { type: 'string' } }, ['id', 'wallet_id', 'category_id', 'type', 'amount', 'date', 'title']);
 
@@ -42,7 +43,9 @@ export const operations = [
   { action: 'register', method: 'post', path: '/auth/register', status: 201, errors: [400, 409, 500], public: true, description: 'Create a user with explicit privacy consent. confirmPassword must match password; password is limited to 72 UTF-8 bytes. Never returns passwordHash.' },
   { action: 'login', method: 'post', path: '/auth/login', status: 200, errors: [400, 401, 500], public: true, description: 'Set HttpOnly session_token for seven days. Missing user and wrong password produce the same credentials error. Password is limited to 72 UTF-8 bytes.' },
   { action: 'logout', method: 'post', path: '/auth/logout', status: 200, errors: [], public: true, description: 'Clear the cookie. Idempotent. Does not revoke previously issued JWTs.' },
+  { action: 'getCurrentUser', method: 'get', path: '/auth/me', status: 200, errors: [401, 404, 500], versions: ['v1'], description: 'Return the authenticated user (id, email and optional display name). Never returns passwordHash.' },
   { action: 'deleteAccount', method: 'delete', path: '/auth/delete-account', status: 200, errors: [401, 404, 500], v1Only: true, cookieOnly: true, description: 'Permanently delete the authenticated user and cascade-delete their wallets, categories and transactions atomically. Session cookie only: any Authorization header, valid or not, is rejected with 401. No password re-authentication. Clears the session cookie, including when the account is already gone (404).'},
+  { action: 'listCategories', method: 'get', path: '/categories', status: 200, errors: [400, 401, 500], versions: ['v1'], description: "List the authenticated user's categories (the system defaults seeded at registration plus custom ones), oldest first, optionally narrowed by type." },
   { action: 'createCategory', method: 'post', path: '/categories', status: 201, errors: [400, 401, 409, 500], description: 'Create an owned custom category. Names are trimmed; duplicates conflict.' },
   { action: 'updateCategory', method: 'put', path: '/categories/{id}', status: 200, errors: [400, 401, 403, 404, 409, 500], description: 'Partial update of an owned non-system category.' },
   { action: 'deleteCategory', method: 'delete', path: '/categories/{id}', status: 200, errors: [400, 401, 403, 404, 500], description: 'Delete an owned non-system category and clear category references atomically. Transactions and wallet balances remain unchanged.' },
@@ -85,7 +88,9 @@ export function buildSpec(version: 'legacy' | 'v1') {
                     : undefined;
     const data = action === 'register' ? obj({ user: publicUser })
       : action === 'login' ? obj({ user: loginUser })
+        : action === 'getCurrentUser' ? obj({ user: currentUser })
         : action === 'logout' || action === 'deleteAccount' ? obj({ success: { const: true } })
+          : action === 'listCategories' ? { type: 'array', items: schema(categoryResponse) }
           : action.includes('Category') ? (v1 ? schema(categoryResponse) : legacyCategory)
             : action === 'deleteTransaction' || action === 'deleteWallet' ? { type: 'null' }
               : action === 'createWallet' || action === 'getWallet' || action === 'updateWallet' || action === 'updateWalletSaving' ? schema(walletResponse)
@@ -106,7 +111,7 @@ export function buildSpec(version: 'legacy' | 'v1') {
     for (const code of errors) responses[code] = { description: ({ 400: 'Invalid JSON, fields, ID, or missing consent', 401: 'Missing, invalid, or expired credentials', 403: 'Forbidden resource, system category, or untrusted/missing Origin for cookie writes', 404: 'Not found or not owned', 409: v1 ? 'Duplicate email, category, or wallet name' : 'Duplicate email or category name', 415: 'Body-bearing cookie/browser-auth mutation requires application/json', 422: 'Invalid transaction fields, ID, or category', 500: 'Internal server error' } as Record<number, string>)[code], content: { 'application/json': { schema: error } } };
     const id = '507f1f77bcf86cd799439011';
     const transactionExample = v1 ? { walletId: id, categoryId: null, type: 'expense', amount: 42, date: '2026-09-27', title: 'Lunch', note: 'Lunch' } : { wallet_id: id, category_id: null, type: 'Expense', amount: 42, date: '2026-09-27', title: 'Lunch', note: 'Lunch' };
-    const example: Record<string, unknown> = action === 'register' ? { email: 'test@example.com', password: 'Password1', confirmPassword: 'Password1', dataPrivacyConsent: true }
+    const example: Record<string, unknown> = action === 'register' ? { name: 'Test User', email: 'test@example.com', password: 'Password1', confirmPassword: 'Password1', dataPrivacyConsent: true }
       : action === 'login' ? { email: 'test@example.com', password: 'Password1' }
         : action.includes('Category') ? { name: 'Food', type: 'expense', color: '#FF8800', icon: 'Utensils' }
           : action === 'createWallet' ? { name: 'Holiday fund', color: '#3B82F6', isSaving: true, goalAmount: 1200 }
@@ -118,6 +123,7 @@ export function buildSpec(version: 'legacy' | 'v1') {
     const publicOperation = 'public' in operation;
     const parameters = [
       ...(path.includes('{id}') ? [{ name: 'id', in: 'path', required: true, schema: { type: 'string', pattern: '^[a-fA-F0-9]{24}$' } }] : []),
+      ...(action === 'listCategories' ? [{ name: 'type', in: 'query', required: false, description: 'Only return categories of this type.', schema: { type: 'string', enum: ['income', 'expense'] }, example: 'expense' }] : []),
       ...(action === 'listTransactions' ? [{ name: 'month', in: 'query', required: false, schema: { type: 'string', pattern: '^\\d{4}-(0[1-9]|1[0-2])$' }, example: '2026-10' }, { name: 'search', in: 'query', required: false, description: 'Case-insensitive text matched against title or note (max 100 characters); combines with month.', schema: { type: 'string', maxLength: 100 }, example: 'lunch' }] : []),
     ];
     paths[path] ??= {};
@@ -127,14 +133,14 @@ export function buildSpec(version: 'legacy' | 'v1') {
       summary: action,
       description: operation.description + authDescription,
       security: publicOperation ? [] : 'cookieOnly' in operation && operation.cookieOnly ? [{ sessionCookie: [] }] : [{ bearerAuth: [] }, { sessionCookie: [] }],
-      ...(path.includes('{id}') ? { parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', pattern: '^[a-fA-F0-9]{24}$' } }] } : {}),
+      ...(parameters.length ? { parameters } : {}),
       ...(input ? { requestBody: { required: true, content: { 'application/json': { schema: requestSchema(input, 'requestConstraint' in operation ? operation.requestConstraint : undefined), example } } } } : {}),
       responses,
     };
   }
 
   const walletStatus = v1 ? 'Wallet create, list, detail, update, saving-status and delete operations are available on v1.' : 'The legacy API has no wallet operations.';
-  const unimplemented = v1 ? 'Monthly transaction reads are available; category lists, reports and current-user endpoints are not implemented.' : 'Wallet endpoints, remaining GET lists, reports and current-user endpoints are not implemented.';
+  const unimplemented = v1 ? 'Monthly transaction reads, category lists and the current-user endpoint are available; reports are not implemented.' : 'Wallet endpoints, remaining GET lists, reports and the current-user endpoint are not implemented.';
   return {
     openapi: '3.1.0',
     info: { title: `FinLover ${version} API`, version: '1.0.0', description: `Implemented operations only. ${walletStatus} ${unimplemented} UI mock screens are not API integration.` },

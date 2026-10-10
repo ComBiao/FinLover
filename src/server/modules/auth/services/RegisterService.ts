@@ -9,10 +9,10 @@ export class RegisterService {
     private categories: CategoryRepositoryPort,
     private uow: UnitOfWork,
   ) {}
-  async execute(email: string, password: string) {
+  async execute(email: string, password: string, name?: string) {
     const passwordHash = await this.passwords.hash(password);
     return this.uow.run(async (context) => {
-      const user = await this.users.create({ email, passwordHash, dataPrivacyConsent: true }, context);
+      const user = await this.users.create({ email, ...(name ? { name } : {}), passwordHash, dataPrivacyConsent: true }, context);
       await this.categories.createSystemDefaults(String(user._id), DEFAULT_CATEGORIES, context);
       return user;
     });

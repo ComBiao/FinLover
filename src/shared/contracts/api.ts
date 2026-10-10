@@ -29,6 +29,7 @@ export const categoryInput = z.object({
   icon: categoryIcon.optional(),
 });
 export const categoryUpdate = categoryInput.partial();
+export const categoryListQuery = z.object({ type: z.enum(['income', 'expense']).optional() });
 export const transactionInput = z.object({ walletId: objectId, categoryId: objectId.nullable().optional(), type: z.enum(['income', 'expense']), amount: z.number().min(0.01), date: z.iso.date(), title: z.string().trim().min(1).max(100), note: z.string().max(255).optional() });
 export const transactionUpdate = transactionInput.omit({ walletId: true });
 export const transactionResponse = transactionInput.extend({ id: objectId, categoryId: objectId.nullable() });

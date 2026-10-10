@@ -16,13 +16,14 @@ const utf8ByteLength = (value: string) => new TextEncoder().encode(value).length
  * field and an explicit `false` must both be rejected, never read as "no
  * opinion". The route additionally gates on consent before any DB access.
  *
- * Deliberately has no `name` field — the User model doesn't persist one yet.
- * The register *form* validates a richer client-side-only shape (name,
- * confirmPassword, password complexity); see `registerFieldsSchema` /
+ * `name` is optional so API clients that predate it keep working; the register
+ * *form* always sends it. The form validates a richer client-side-only shape
+ * (confirmPassword, password complexity); see `registerFieldsSchema` /
  * `registerFormSchema` below.
  */
 export const registerSchema = z
   .object({
+    name: z.string().trim().min(1, { error: "Name is required" }).max(100, { error: "Name is too long" }).optional(),
     email: z.email({ error: "Email must be a valid email address" }),
     password: z
       .string({ error: "Password is required" })
@@ -87,6 +88,7 @@ export type LoginInput = z.infer<typeof loginSchema>;
 export type PublicUser = {
   id: string;
   email: string;
+  name?: string;
   dataPrivacyConsent: boolean;
   /**
    * Doubles as the data-privacy consent timestamp: a `User` document cannot be
@@ -94,3 +96,6 @@ export type PublicUser = {
    */
   createdAt: string;
 };
+
+/** Response of `GET /api/v1/auth/me`. */
+export type CurrentUser = { id: string; email: string; name?: string };

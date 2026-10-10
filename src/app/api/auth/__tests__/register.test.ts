@@ -80,6 +80,23 @@ describe("POST /api/auth/register", () => {
       expect(await User.countDocuments()).toBe(1);
     });
 
+    it("stores and returns the display name when provided, and works without it", async () => {
+      const { res, json } = await post({ ...VALID_BODY, name: "  Alex Tester  " });
+
+      expect(res.status).toBe(201);
+      expect(json.user.name).toBe("Alex Tester");
+      expect((await User.findById(json.user.id).lean())?.name).toBe("Alex Tester");
+
+      const { res: anonymous, json: anonymousJson } = await post({ ...VALID_BODY, email: "noname@example.com" });
+      expect(anonymous.status).toBe(201);
+      expect(anonymousJson.user).not.toHaveProperty("name");
+    });
+
+    it("rejects a blank or oversized name", async () => {
+      expect((await post({ ...VALID_BODY, name: "   " })).res.status).toBe(400);
+      expect((await post({ ...VALID_BODY, name: "x".repeat(101) })).res.status).toBe(400);
+    });
+
     it("creates the complete income and expense system category set", async () => {
       const { res, json } = await post(VALID_BODY);
 

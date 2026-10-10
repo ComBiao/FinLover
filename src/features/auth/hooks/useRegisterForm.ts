@@ -146,7 +146,7 @@ export function useRegisterForm() {
     setSubmitNotice(null);
     submitLock.current = true;
     try {
-      await mutation.mutateAsync({ email: values.email.trim(), password: values.password, confirmPassword: values.confirmPassword, dataPrivacyConsent: true });
+      await mutation.mutateAsync({ name: values.name.trim(), email: values.email.trim(), password: values.password, confirmPassword: values.confirmPassword, dataPrivacyConsent: true });
       router.replace('/login?registered=1');
     } catch (error) {
       if (error instanceof ApiClientError) {
