@@ -4487,18 +4487,6 @@
             "sessionCookie": []
           }
         ],
-        "parameters": [
-          {
-            "name": "month",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
-            },
-            "example": "2026-10"
-          }
-        ],
         "responses": {
           "200": {
             "description": "Success",
