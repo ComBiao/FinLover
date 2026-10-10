@@ -8,9 +8,10 @@ import { CategoryRepository } from '../modules/categories/repositories/CategoryR
 import { UserRepository } from '../modules/users/repositories/UserRepository';
 import { createAuthRouter } from '../modules/auth/router';
 import { hashPassword, comparePassword } from '@/server/shared/auth/crypto';
-export const rawAuth = createAuthRouter(new UserRepository(), { hash: hashPassword, compare: comparePassword }, new MongoUnitOfWork());
 import { createCategoryRouter } from '../modules/categories/router';
-export const deleteCategoryService = new DeleteCategoryService(new CategoryRepository(), new TransactionRepository(), new MongoUnitOfWork());
+const categoryRepository = new CategoryRepository();
+export const rawAuth = createAuthRouter(new UserRepository(), { hash: hashPassword, compare: comparePassword }, categoryRepository, new MongoUnitOfWork());
+export const deleteCategoryService = new DeleteCategoryService(categoryRepository, new TransactionRepository(), new MongoUnitOfWork());
 export const rawCategories = createCategoryRouter(deleteCategoryService);
 import { createTransactionRouter } from '../modules/transactions/router';
 import { WalletRepository } from '../modules/wallets/repositories/WalletRepository';
@@ -19,7 +20,7 @@ import { DeleteWalletService } from '../modules/wallets/services/DeleteWalletSer
 import { createWalletRouter } from '../modules/wallets/router';
 export const deleteWalletService = new DeleteWalletService(walletRepository, new TransactionRepository(), new MongoUnitOfWork());
 export const rawWallets = createWalletRouter(walletRepository, deleteWalletService);
-export const rawTransactions = createTransactionRouter(walletRepository, new CategoryRepository(), new MongoUnitOfWork());
+export const rawTransactions = createTransactionRouter(walletRepository, categoryRepository, new MongoUnitOfWork());
 import { connectDB } from '@/server/db/index';
 
 const userRepository = new UserRepository();
