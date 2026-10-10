@@ -23,7 +23,7 @@ const CategorySchema: Schema = new Schema({
   timestamps: true 
 });
 
-CategorySchema.index({ userId: 1, name: 1 }, { unique: true });
+CategorySchema.index({ userId: 1, type: 1, name: 1 }, { unique: true });
 
 /**
  * Pre-save guard that prevents modification of existing system categories.
