@@ -45,6 +45,7 @@ export const wallets = {
   list: logged(secure(rawWallets.list, { protected: true })),
   get: logged(secure(rawWallets.get, { protected: true })),
   update: logged(secure(rawWallets.update, { protected: true })),
+  updateSaving: logged(secure(rawWallets.updateSaving, { protected: true })),
   remove: logged(secure(rawWallets.remove, { protected: true })),
 };
 export const accountExists = async (userId: string) => {

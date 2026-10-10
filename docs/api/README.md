@@ -1,6 +1,6 @@
 # API guide
 
-Open `/api/docs` on the application origin (port 3000 locally). Legacy implements the nine shared operations; v1 also supports monthly transaction reads plus wallet create, list, detail, update, and delete operations. Specs are served at `/api/openapi/legacy.json` and `/api/openapi/v1.json`; committed artifacts are [legacy.json](legacy.json) and [v1.json](v1.json). Relative server `/` keeps requests on the current origin without doubling `/api`.
+Open `/api/docs` on the application origin (port 3000 locally). Legacy implements the nine shared operations; v1 also supports monthly transaction reads plus wallet create, list, detail, update, saving-status, and delete operations. Specs are served at `/api/openapi/legacy.json` and `/api/openapi/v1.json`; committed artifacts are [legacy.json](legacy.json) and [v1.json](v1.json). Relative server `/` keeps requests on the current origin without doubling `/api`.
 
 | Method | Legacy | v1 |
 | --- | --- | --- |
@@ -14,8 +14,9 @@ Open `/api/docs` on the application origin (port 3000 locally). Legacy implement
 | PUT, DELETE | `/api/transaction/{id}` | `/api/v1/transactions/{id}` |
 | GET, POST | — | `/api/v1/wallets` |
 | GET, PUT, DELETE | — | `/api/v1/wallets/{id}` |
+| PATCH | — | `/api/v1/wallets/{id}/saving` |
 
-The monthly transaction read returns all of the caller's records for the selected month in newest-first order; omitting `month` uses the current month in `APPLICATION_TIMEZONE`. This endpoint intentionally has no pagination because its contract returns one complete calendar month. Wallet updates accept only `name` and `color`; reads and updates are limited to the wallet owner. The legacy API has no wallet operations. Other GET lists, reports, and current-user endpoints remain unimplemented. Existing UI mock screens do not call all of these APIs.
+The monthly transaction read returns all of the caller's records for the selected month in newest-first order; omitting `month` uses the current month in `APPLICATION_TIMEZONE`. This endpoint intentionally has no pagination because its contract returns one complete calendar month. Wallet updates accept only `name` and `color`; `PATCH /api/v1/wallets/{id}/saving` with `{"isSaving":true,"goalAmount":10000}` turns Saving Wallet on (`goalAmount` must be greater than 0, otherwise 400) and `{"isSaving":false}` turns it off and clears the goal, never changing the balance; reads and updates are limited to the wallet owner. The legacy API has no wallet operations. Other GET lists, reports, and current-user endpoints remain unimplemented. Existing UI mock screens do not call all of these APIs.
 
 ## Authentication and examples
 
@@ -56,5 +57,7 @@ Shared schemas live in `src/shared/contracts/`; operation metadata lives in `src
 Swagger serves local assets under `/api/docs/assets/` and are included in the single application build. In development, Try it out can create/update/delete test data. In production all submit methods are disabled by the server-rendered configuration; API authentication still applies independently. Use a dedicated test database for manual exploration.
 
 Auth policy changes from the old legacy API: cookie support is now shared with v1; browser-auth and cookie mutations now return 403 for untrusted/missing Origin and 415 for non-JSON bodies. Cookie SameSite alone is not used as CSRF protection. No token is copied into a synthetic Authorization header.
+
+Wallet saving (v1 only): `PATCH /api/v1/wallets/{id}/saving` with `{"isSaving":true,"goalAmount":10000}` turns Saving Wallet on; `goalAmount` must be greater than 0 (missing or 0 returns 400). `{"isSaving":false}` turns it off and clears the goal. The balance is never changed, a wallet owned by another user returns 404, and several wallets may be saving wallets at once.
 
 Delete wallet (v1 only): `DELETE /api/v1/wallets/{id}` returns `{ "status": true, "data": null }`. The wallet and all of its transactions are deleted in one UnitOfWork (MongoDB replica set required); if any step fails nothing is deleted. Other wallets' transactions are untouched, an invalid id returns 400, and a missing wallet or one owned by another user returns 404. Any owned wallet may be deleted, including the default or last wallet (no restriction is defined); deleted data cannot be recovered.

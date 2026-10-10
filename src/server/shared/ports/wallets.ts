@@ -3,6 +3,8 @@ import type { TransactionContext } from './unit-of-work';
 export type WalletCreateInput = { name: string; color?: string; isSaving?: boolean; goalAmount?: number };
 export type WalletUpdateInput = Partial<Pick<WalletCreateInput, 'name' | 'color'>>;
 
+export type WalletSavingInput = { isSaving: boolean; goalAmount?: number };
+
 export interface WalletRecord {
   id: string;
   userId: string;
@@ -22,6 +24,7 @@ export interface WalletRepositoryPort {
   findOwned(id: string, userId: string, context?: TransactionContext): Promise<WalletRecord | null>;
   create(userId: string, input: WalletCreateInput): Promise<WalletRecord>;
   update(id: string, userId: string, input: WalletUpdateInput): Promise<WalletRecord | null>;
+  setSaving(id: string, userId: string, input: WalletSavingInput): Promise<WalletRecord | null>;
   delete(id: string, userId: string, context: TransactionContext): Promise<unknown>;
 }
 

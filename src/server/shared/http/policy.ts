@@ -4,9 +4,9 @@ import { logError } from './logging';
 import { publicOrigins } from '@/server/shared/config/env';
 export interface RouteContext { params: Promise<{ id: string }>; principal?: AuthenticatedPrincipal }
 export type Handler = (request: Request, context: RouteContext) => Promise<Response>;
-export interface Policy { 
-  protected?: boolean; 
-  browserAuth?: boolean; 
+export interface Policy {
+  protected?: boolean;
+  browserAuth?: boolean;
   /**
    * Skips the account-exists check. Only for delete-account, so a stale session
    * gets a 404 and its cookie is cleared instead of a bare 401.

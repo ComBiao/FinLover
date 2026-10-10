@@ -1,4 +1,4 @@
-import { categoryInput, categoryUpdate, transactionInput, transactionUpdate, loginSchema, registerSchema } from '@/shared/contracts';
+import { categoryInput, categoryUpdate, transactionInput, transactionUpdate, walletSavingUpdate, loginSchema, registerSchema } from '@/shared/contracts';
 import { versioned } from '@/server/shared/http/versioned';
 import { rawAuth as auth, rawCategories as categories, rawTransactions as transactions, rawWallets } from '@/server/composition';
 const txInput = (value: Record<string, unknown>) => ({ wallet_id: value.walletId, category_id: value.categoryId, type: value.type === 'income' ? 'Income' : 'Expense', amount: value.amount, date: value.date, title: value.title, note: value.note });
@@ -22,4 +22,5 @@ export const v1 = {
   listWallets: versioned(rawWallets.list, { protected: true, output: walletOutput }),
   getWallet: versioned(rawWallets.get, { protected: true, output: walletOutput }),
   updateWallet: versioned(rawWallets.update, { protected: true, output: walletOutput }),
+  updateWalletSaving: versioned(rawWallets.updateSaving, { protected: true, schema: walletSavingUpdate, output: walletOutput }),
 };
