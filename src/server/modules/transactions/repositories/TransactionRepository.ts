@@ -20,7 +20,7 @@ export class TransactionRepository implements TransactionRepositoryPort {
     if (search) {
       // Escaped so the user's text is matched literally, never as a regex (also avoids ReDoS).
       const pattern = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-      filter.$or = [{ title: pattern }, { note: pattern }];
+      filter.$or = [{ title: pattern }, { notes: pattern }]; // `notes` is the stored path; the `note` alias isn't translated in query filters
     }
     const docs = await Transaction.find(filter).sort({ date: -1, _id: -1 });
     return docs.map(record);
