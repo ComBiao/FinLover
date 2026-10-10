@@ -13,3 +13,15 @@ export function publicOrigins() {
 }
 
 export function jwtSecret() { return z.string().min(1, "Missing JWT_SECRET").parse(process.env.JWT_SECRET); }
+
+let cachedApplicationTimezone: { source: string | undefined; value: string } | undefined;
+export function applicationTimezone() {
+  const source = process.env.APPLICATION_TIMEZONE;
+  const cached = cachedApplicationTimezone;
+  if (cached && cached.source === source) return cached.value;
+  const timezone = source?.trim() || 'Asia/Bangkok';
+  try { new Intl.DateTimeFormat('en', { timeZone: timezone }).format(); }
+  catch { throw new Error('APPLICATION_TIMEZONE must be a valid IANA timezone'); }
+  cachedApplicationTimezone = { source, value: timezone };
+  return timezone;
+}

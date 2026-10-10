@@ -94,7 +94,7 @@ const TransactionSchema: Schema = new Schema({
 // Compound indexes:
 // - list/sum transactions for a user, newest first
 // - list/sum transactions for a specific wallet, newest first (wallet history, balance calc)
-TransactionSchema.index({ userId: 1, date: -1 });
+TransactionSchema.index({ userId: 1, date: -1, _id: -1 });
 TransactionSchema.index({ walletId: 1, date: -1 });
 TransactionSchema.index({ walletId: 1, userId: 1 });
 TransactionSchema.index({ categoryId: 1 });

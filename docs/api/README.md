@@ -1,6 +1,6 @@
 # API guide
 
-Open `/api/docs` on the application origin (port 3000 locally). Legacy implements the nine shared operations; v1 also supports wallet create, list, detail, update, and delete operations. Specs are served at `/api/openapi/legacy.json` and `/api/openapi/v1.json`; committed artifacts are [legacy.json](legacy.json) and [v1.json](v1.json). Relative server `/` keeps requests on the current origin without doubling `/api`.
+Open `/api/docs` on the application origin (port 3000 locally). Legacy implements the nine shared operations; v1 also supports monthly transaction reads plus wallet create, list, detail, update, and delete operations. Specs are served at `/api/openapi/legacy.json` and `/api/openapi/v1.json`; committed artifacts are [legacy.json](legacy.json) and [v1.json](v1.json). Relative server `/` keeps requests on the current origin without doubling `/api`.
 
 | Method | Legacy | v1 |
 | --- | --- | --- |
@@ -10,11 +10,12 @@ Open `/api/docs` on the application origin (port 3000 locally). Legacy implement
 | POST | `/api/categories` | `/api/v1/categories` |
 | PUT, DELETE | `/api/categories/{id}` | `/api/v1/categories/{id}` |
 | POST | `/api/transaction` | `/api/v1/transactions` |
+| GET | — | `/api/v1/transactions?month=YYYY-MM` |
 | PUT, DELETE | `/api/transaction/{id}` | `/api/v1/transactions/{id}` |
 | GET, POST | — | `/api/v1/wallets` |
 | GET, PUT, DELETE | — | `/api/v1/wallets/{id}` |
 
-Wallet updates accept only `name` and `color`; reads and updates are limited to the wallet owner. The legacy API has no wallet operations. Other GET lists, reports, and current-user endpoints remain unimplemented. Existing UI mock screens do not call all of these APIs.
+The monthly transaction read returns all of the caller's records for the selected month in newest-first order; omitting `month` uses the current month in `APPLICATION_TIMEZONE`. This endpoint intentionally has no pagination because its contract returns one complete calendar month. Wallet updates accept only `name` and `color`; reads and updates are limited to the wallet owner. The legacy API has no wallet operations. Other GET lists, reports, and current-user endpoints remain unimplemented. Existing UI mock screens do not call all of these APIs.
 
 ## Authentication and examples
 

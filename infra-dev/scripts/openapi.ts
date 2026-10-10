@@ -32,7 +32,6 @@ await mkdir(dir, { recursive: true });
 for (const version of ['legacy', 'v1'] as const) {
   const versionOperations = operationsFor(version);
   const spec = buildSpec(version);
-  const operations = operationsFor(version);
   const text = JSON.stringify(spec, null, 2) + '\n';
   const file = path.join(dir, `${version}.json`);
   await SwaggerParser.validate(JSON.parse(text));
