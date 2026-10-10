@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { secure, type RouteContext } from '../policy';
+import { configureAccountCheck, secure, type RouteContext } from '../policy';
 import { signToken } from '@/server/shared/auth/crypto';
 const id = '507f1f77bcf86cd799439011';
 const token = signToken({ userId: id });
@@ -13,6 +13,7 @@ beforeEach(() => {
   vi.unstubAllEnvs(); vi.clearAllMocks();
   vi.stubEnv('PUBLIC_ORIGINS', origin);
   vi.stubEnv('VERCEL_ENV', 'development');
+  configureAccountCheck(async () => true);
 });
 describe('shared principal and mutation policy', () => {
   it('accepts cookie and returns one principal without synthesizing Authorization', async () => {

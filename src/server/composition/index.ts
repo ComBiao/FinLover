@@ -1,5 +1,5 @@
 import { logged } from '@/server/shared/http/logging';
-import { secure } from '@/server/shared/http/policy';
+import { secure, configureAccountCheck } from '@/server/shared/http/policy';
 import "server-only";
 import { TransactionRepository } from '../modules/transactions/repositories/TransactionRepository';
 import { DeleteCategoryService } from '../modules/categories/services/DeleteCategoryService';
@@ -8,7 +8,7 @@ import { CategoryRepository } from '../modules/categories/repositories/CategoryR
 import { UserRepository } from '../modules/users/repositories/UserRepository';
 import { createAuthRouter } from '../modules/auth/router';
 import { hashPassword, comparePassword } from '@/server/shared/auth/crypto';
-export const rawAuth = createAuthRouter(new UserRepository(), { hash: hashPassword, compare: comparePassword });
+export const rawAuth = createAuthRouter(new UserRepository(), { hash: hashPassword, compare: comparePassword }, new MongoUnitOfWork());
 import { createCategoryRouter } from '../modules/categories/router';
 export const deleteCategoryService = new DeleteCategoryService(new CategoryRepository(), new TransactionRepository(), new MongoUnitOfWork());
 export const rawCategories = createCategoryRouter(deleteCategoryService);
@@ -20,8 +20,9 @@ import { createWalletRouter } from '../modules/wallets/router';
 export const deleteWalletService = new DeleteWalletService(walletRepository, new TransactionRepository(), new MongoUnitOfWork());
 export const rawWallets = createWalletRouter(walletRepository, deleteWalletService);
 export const rawTransactions = createTransactionRouter(walletRepository, new CategoryRepository(), new MongoUnitOfWork());
+import { connectDB } from '@/server/db/index';
 
-
+const userRepository = new UserRepository();
 
 export const auth = {
   login: logged(secure(rawAuth.login, { browserAuth: true })),
@@ -46,3 +47,8 @@ export const wallets = {
   update: logged(secure(rawWallets.update, { protected: true })),
   remove: logged(secure(rawWallets.remove, { protected: true })),
 };
+export const accountExists = async (userId: string) => {
+  await connectDB();
+  return userRepository.existsById(userId);
+};
+configureAccountCheck(accountExists);
