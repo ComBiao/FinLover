@@ -58,7 +58,7 @@ function computeSavingGoal(wallet: Wallet | undefined): HomeSavingGoal | null {
 // TODO(backend): replace with fetch(`/api/home/summary?month=${month}&walletId=${walletId}`)
 export async function getHomeSummary(month: MonthKey, walletId: string): Promise<HomeSummary> {
   const [transactions, wallets, categories] = await Promise.all([
-    getTransactions(),
+    getTransactions([month]),
     getWallets(),
     getCategories(),
   ]);

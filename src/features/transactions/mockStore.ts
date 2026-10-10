@@ -38,13 +38,6 @@ export function readCategories() {
   return MOCK_CATEGORIES;
 }
 
-export function applyCreateTransaction(input: Omit<Transaction, "id">): Transaction {
-  const created: Transaction = { ...input, id: crypto.randomUUID() };
-  transactions = [created, ...transactions];
-  adjustWalletBalance(created.walletId, signedAmount(created.type, created.amount));
-  return created;
-}
-
 export function applyUpdateTransaction(id: string, input: Omit<Transaction, "id">): Transaction {
   const previous = transactions.find((transaction) => transaction.id === id);
   if (!previous) {

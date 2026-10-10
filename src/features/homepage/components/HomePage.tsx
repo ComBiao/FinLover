@@ -46,7 +46,8 @@ export function HomePage() {
   const [walletId, setWalletId] = React.useState<string>("all");
 
   const { data: wallets = [] } = useWallets();
-  const { data: transactions = [], isPending: isTransactionsPending } = useTransactions();
+  const months = React.useMemo(() => [month], [month]);
+  const { data: transactions = [], isPending: isTransactionsPending } = useTransactions(months);
   const { data: summary, isPending: isSummaryPending } = useHomeSummary(month, walletId);
 
   const createTransaction = useCreateTransaction();
