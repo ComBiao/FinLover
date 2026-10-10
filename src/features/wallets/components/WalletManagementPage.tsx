@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatBaht } from "@/lib/utils";
 import type { Wallet } from "@/types/wallet";
 import { useWallets } from "@/features/wallets/hooks/useWallets";
+import { useActiveWallet } from "@/features/wallets/store/useActiveWallet";
 import { useBalanceVisibility } from "@/features/wallets/store/useBalanceVisibility";
 import { CreateWalletDialog } from "./CreateWalletDialog";
 import { EditWalletDialog } from "./EditWalletDialog";
@@ -22,6 +23,9 @@ export function WalletManagementPage() {
   const isVisible = useBalanceVisibility((state) => state.isVisible);
   const toggleVisibility = useBalanceVisibility((state) => state.toggle);
   const onError = useBalanceVisibility((state) => state.onError);
+
+  const activeWalletId = useActiveWallet((state) => state.activeWalletId);
+  const setActiveWalletId = useActiveWallet((state) => state.setActiveWalletId);
 
   const [createOpen, setCreateOpen] = React.useState(false);
   const [editingWallet, setEditingWallet] = React.useState<Wallet | null>(null);
@@ -38,6 +42,11 @@ export function WalletManagementPage() {
   const totalBalance = React.useMemo(
     () => wallets.reduce((sum, w) => sum + w.balance, 0),
     [wallets]
+  );
+
+  const activeWallet = React.useMemo(
+    () => wallets.find((w) => w.id === activeWalletId),
+    [wallets, activeWalletId]
   );
 
   return (
@@ -99,8 +108,13 @@ export function WalletManagementPage() {
               <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 Total Wallets
               </span>
-              <div className="text-3xl font-extrabold text-foreground">
-                {wallets.length}
+              <div className="flex items-baseline gap-2">
+                <div className="text-3xl font-extrabold text-foreground">
+                  {wallets.length}
+                </div>
+                <div className="text-sm font-semibold text-primary">
+                  ({wallets.filter((w) => w.isSaving).length} saving)
+                </div>
               </div>
               <span className="text-xs text-muted-foreground">
                 Active accounts
@@ -111,14 +125,22 @@ export function WalletManagementPage() {
           <Card className="rounded-2xl shadow-sm">
             <CardContent className="flex flex-col gap-1.5 p-5">
               <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Saving Wallets
+                Active Wallet
               </span>
-              <div className="text-3xl font-extrabold text-primary">
-                {wallets.filter((w) => w.isSaving).length}
+              <div className="truncate text-xl font-bold text-foreground">
+                {activeWalletId === "all" ? "All Wallets (Combined)" : activeWallet?.name ?? "None"}
               </div>
-              <span className="text-xs text-muted-foreground">
-                With active savings goals
-              </span>
+              <div className="mt-1 flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                  onClick={() => setActiveWalletId("all")}
+                >
+                  Switch to All
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
