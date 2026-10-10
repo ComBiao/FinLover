@@ -39,6 +39,7 @@ export function useRegisterForm() {
   const router = useRouter();
   const mutation = useMutation({ mutationFn: (input: RegisterInput) => postApi('/api/v1/auth/register', input) });
   const isSubmitting = mutation.isPending;
+  const submitLock = React.useRef(false);
   const [submitNotice, setSubmitNotice] = React.useState<string | null>(null);
 
   function setFieldError(field: keyof RegisterFieldErrors, error: string | undefined) {
@@ -125,6 +126,8 @@ export function useRegisterForm() {
    */
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitLock.current) return;
+    const form = event.currentTarget;
 
     const { fieldErrors, firstInvalidField } = validateAll();
     setErrors(fieldErrors);
@@ -132,7 +135,7 @@ export function useRegisterForm() {
     if (Object.keys(fieldErrors).length > 0) {
       // Invalid: every offending field is now highlighted above. Don't submit.
       if (firstInvalidField) {
-        const firstInvalidInput = event.currentTarget.elements.namedItem(firstInvalidField);
+        const firstInvalidInput = form.elements.namedItem(firstInvalidField);
         if (firstInvalidInput instanceof HTMLElement) {
           firstInvalidInput.focus();
         }
@@ -141,6 +144,7 @@ export function useRegisterForm() {
     }
 
     setSubmitNotice(null);
+    submitLock.current = true;
     try {
       await mutation.mutateAsync({ email: values.email.trim(), password: values.password, confirmPassword: values.confirmPassword, dataPrivacyConsent: true });
       router.replace('/login?registered=1');
@@ -148,7 +152,12 @@ export function useRegisterForm() {
       if (error instanceof ApiClientError) {
         setErrors(error.fields ?? {});
         setSubmitNotice(error.message);
+        const firstField = Object.keys(error.fields ?? {})[0];
+        const input = form.elements.namedItem(firstField);
+        if (input instanceof HTMLElement) input.focus();
       } else setSubmitNotice('Unable to connect. Please try again.');
+    } finally {
+      submitLock.current = false;
     }
   }
 
