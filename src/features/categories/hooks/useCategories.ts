@@ -1,57 +1,62 @@
-import { useState } from "react";
+import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
-export type CategoryType = "expense" | "income";
+import {
+  createCategory,
+  deleteCategory,
+  getCategories,
+  updateCategory,
+  type CreateCategoryInput,
+  type UpdateCategoryInput,
+} from "@/features/categories/categoriesService";
+import type { TransactionType } from "@/types/category";
 
-export interface Category {
-  id: number;
-  name: string;
-  iconName: string;
-  color: string;
-  isDefault?: boolean;
-  isFallback?: boolean;
+export const CATEGORIES_QUERY_KEY = ["categories"] as const;
+
+/** All of the signed-in user's categories (system defaults + custom), optionally narrowed by type. */
+export function useCategories(type?: TransactionType) {
+  return useQuery({
+    queryKey: type ? [...CATEGORIES_QUERY_KEY, type] : CATEGORIES_QUERY_KEY,
+    queryFn: () => getCategories(type),
+  });
 }
 
-function otherLast(categories: Category[]) {
-  return [...categories].sort((a, b) => Number(Boolean(a.isFallback)) - Number(Boolean(b.isFallback)));
+/**
+ * Deleting a category clears it from its transactions (balances untouched) and
+ * Home's top-categories card is derived from it, so those caches go stale too.
+ * "home-summary" stays a plain string to match `useHomeSummary`'s key prefix.
+ */
+function invalidateCategoryQueries(queryClient: QueryClient, { alsoDerived }: { alsoDerived: boolean }) {
+  queryClient.invalidateQueries({ queryKey: CATEGORIES_QUERY_KEY });
+  if (alsoDerived) {
+    queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    queryClient.invalidateQueries({ queryKey: ["home-summary"] });
+  }
 }
 
-export function useCategories(initialExpenses: Category[], initialIncomes: Category[]) {
-  const [expenses, setExpenses] = useState<Category[]>(() => otherLast(initialExpenses));
-  const [incomes, setIncomes] = useState<Category[]>(() => otherLast(initialIncomes));
+export function useCreateCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateCategoryInput) => createCategory(input),
+    onSuccess: () => invalidateCategoryQueries(queryClient, { alsoDerived: false }),
+  });
+}
 
-  const deleteCategory = (type: CategoryType, id: number) => {
-    if (type === "expense") {
-      setExpenses((prev) => prev.filter((cat) => cat.id !== id || cat.isDefault));
-    } else {
-      setIncomes((prev) => prev.filter((cat) => cat.id !== id || cat.isDefault));
-    }
-  };
+export function useUpdateCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: UpdateCategoryInput }) => updateCategory(id, input),
+    onSuccess: () => invalidateCategoryQueries(queryClient, { alsoDerived: true }),
+  });
+}
 
-  const editCategory = (type: CategoryType, id: number, updatedData: Pick<Category, "name" | "iconName" | "color">) => {
-    if (type === "expense") {
-      setExpenses((prev) =>
-        prev.map((cat) => (cat.id === id && !cat.isDefault ? { ...cat, ...updatedData } : cat))
-      );
-    } else {
-      setIncomes((prev) =>
-        prev.map((cat) => (cat.id === id && !cat.isDefault ? { ...cat, ...updatedData } : cat))
-      );
-    }
-  };
-
-  const addCategory = (type: CategoryType, category: Category) => {
-    if (type === "expense") {
-      setExpenses((prev) => otherLast([...prev, category]));
-    } else {
-      setIncomes((prev) => otherLast([...prev, category]));
-    }
-  };
-
-  return {
-    expenses,
-    incomes,
-    deleteCategory,
-    editCategory,
-    addCategory,
-  };
+export function useDeleteCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteCategory(id),
+    onSuccess: () => invalidateCategoryQueries(queryClient, { alsoDerived: true }),
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Couldn't delete category");
+    },
+  });
 }

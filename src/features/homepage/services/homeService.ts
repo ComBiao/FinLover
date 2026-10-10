@@ -1,4 +1,4 @@
-import { getCategories } from "@/features/transactions/categoriesService";
+import { getCategories } from "@/features/categories/categoriesService";
 import { getTransactions } from "@/features/transactions/transactionsService";
 import { getWallets } from "@/features/wallets/walletsService";
 import { isDateInMonth, type MonthKey } from "@/features/homepage/month";

@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getHomeSummary } from "../services/homeService";
 import * as walletsService from "@/features/wallets/walletsService";
 import * as transactionsService from "@/features/transactions/transactionsService";
-import * as categoriesService from "@/features/transactions/categoriesService";
+import * as categoriesService from "@/features/categories/categoriesService";
 import type { Wallet } from "@/types/wallet";
 import type { Transaction } from "@/types/transaction";
 import type { Category } from "@/types/category";

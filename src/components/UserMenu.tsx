@@ -24,7 +24,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { userName } from "@/mocks/mock-data";
+import { displayName, useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
 
 type UserMenuProps = {
   /** Forces the name label visible even without hover — the sidebar's hover-to-expand only applies on desktop, so mobile needs this to show the label when the rail is toggled open. */
@@ -43,6 +43,8 @@ type UserMenuProps = {
 export function UserMenu({ mobileOpen = false, onNavigate }: UserMenuProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { data: currentUser } = useCurrentUser();
+  const userName = displayName(currentUser);
   const logout = useMutation({ mutationFn: () => postApi('/api/v1/auth/logout') });
   const deleteAccount = useMutation({ mutationFn: () => deleteApi('/api/v1/auth/delete-account') });
   const [logoutDialogOpen, setLogoutDialogOpen] = React.useState(false);
@@ -98,7 +100,7 @@ export function UserMenu({ mobileOpen = false, onNavigate }: UserMenuProps) {
         <DropdownMenuTrigger className="mx-2 flex h-11 shrink-0 items-center gap-3 rounded-lg px-3.5 text-sm font-semibold text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50">
           <Avatar className="size-7 shrink-0">
             <AvatarFallback className="bg-gradient-avatar font-bold text-white">
-              {userName.charAt(0)}
+              {userName.charAt(0).toUpperCase() || "?"}
             </AvatarFallback>
           </Avatar>
           <span

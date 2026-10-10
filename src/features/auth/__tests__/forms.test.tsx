@@ -45,13 +45,13 @@ describe('auth forms use the server', () => {
     expect(await screen.findByText('Unable to connect. Please try again.')).toBeInTheDocument();
     expect(router.replace).not.toHaveBeenCalled();
   });
-  it('registers matching passwords and consent without silently persisting client-only name', async () => {
+  it('registers matching passwords and consent and sends the display name', async () => {
     fetchMock.mockResolvedValue(Response.json({ status: true, data: { user: { id: 'user' } } }, { status: 201 }));
     mount(<Register />);
     for (const [field, value] of Object.entries({ name: 'Test Person', email: 'test@example.com', password: 'Password1', confirmPassword: 'Password1' })) fireEvent.change(screen.getByLabelText(field), { target: { value } });
     fireEvent.click(screen.getByLabelText('consent')); fireEvent.click(screen.getByText('Submit'));
     await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/login?registered=1'));
-    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ email: 'test@example.com', password: 'Password1', confirmPassword: 'Password1', dataPrivacyConsent: true });
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ name: 'Test Person', email: 'test@example.com', password: 'Password1', confirmPassword: 'Password1', dataPrivacyConsent: true });
   });
   it('keeps duplicate-email API errors on the register page and focuses email', async () => {
     fetchMock.mockResolvedValue(Response.json({ status: false, error: { message: 'Unable to create account', fields: { email: 'An account with this email already exists' } } }, { status: 409 }));

@@ -1,4 +1,5 @@
 import { PiggyBank, Wallet as WalletIcon } from "lucide-react";
+import { ApiClientError } from "@/lib/api/client";
 import type { Wallet } from "@/types/wallet";
 
 export type WalletApiRecord = {
@@ -56,7 +57,7 @@ export async function getWallets(): Promise<Wallet[]> {
   const payload = await response.json();
 
   if (!response.ok || payload.status !== true) {
-    throw new Error(payload.error?.message ?? "Failed to fetch wallets");
+    throw new ApiClientError(payload.error?.message ?? "Failed to fetch wallets", response.status, payload.error?.fields);
   }
 
   const list = Array.isArray(payload.data) ? payload.data : [];
@@ -76,7 +77,7 @@ export async function createWallet(input: CreateWalletInput): Promise<Wallet> {
   const payload = await response.json();
 
   if (!response.ok || payload.status !== true) {
-    throw new Error(payload.error?.message ?? "Failed to create wallet");
+    throw new ApiClientError(payload.error?.message ?? "Failed to create wallet", response.status, payload.error?.fields);
   }
 
   return mapWalletRecord(payload.data);
@@ -95,7 +96,7 @@ export async function updateWallet(id: string, input: UpdateWalletInput): Promis
   const payload = await response.json();
 
   if (!response.ok || payload.status !== true) {
-    throw new Error(payload.error?.message ?? "Failed to update wallet");
+    throw new ApiClientError(payload.error?.message ?? "Failed to update wallet", response.status, payload.error?.fields);
   }
 
   return mapWalletRecord(payload.data);
@@ -117,7 +118,7 @@ export async function updateWalletSaving(
   const payload = await response.json();
 
   if (!response.ok || payload.status !== true) {
-    throw new Error(payload.error?.message ?? "Failed to update wallet saving status");
+    throw new ApiClientError(payload.error?.message ?? "Failed to update wallet saving status", response.status, payload.error?.fields);
   }
 
   return mapWalletRecord(payload.data);
@@ -134,7 +135,7 @@ export async function deleteWallet(id: string): Promise<void> {
   const payload = await response.json();
 
   if (!response.ok || payload.status !== true) {
-    throw new Error(payload.error?.message ?? "Failed to delete wallet");
+    throw new ApiClientError(payload.error?.message ?? "Failed to delete wallet", response.status, payload.error?.fields);
   }
 }
 

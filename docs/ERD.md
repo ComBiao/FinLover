@@ -10,6 +10,7 @@ erDiagram
 
   User {
     String email
+    String name
     String passwordHash
     Boolean dataPrivacyConsent
     ObjectId _id

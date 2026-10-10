@@ -1,3 +1,8 @@
+"use client";
+
+import * as React from "react";
+import { QueryClientContext } from "@tanstack/react-query";
+
 import { UNCATEGORIZED_VALUE } from "@/features/transactions/constants";
 import { CATEGORY_STYLES, resolveChipTone } from "@/components/chipColor";
 import { ALL_VALUE, decodeOptionValue, encodeOptionValue } from "@/components/optionValue";
@@ -11,7 +16,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import type { Category, TransactionType } from "@/types/category";
-import { MOCK_CATEGORIES } from "@/mocks/mockCategories";
+import { useCategories } from "@/features/categories/hooks/useCategories";
 
 function categoryTone(category: Category) {
   return resolveChipTone(category.color, CATEGORY_STYLES, category.id);
@@ -63,13 +68,13 @@ type CategorySelectorProps = {
  * `UNCATEGORIZED_VALUE` isn't shaped like a real slug) case where its id
  * collides with the sentinel's value.
  */
-export function CategorySelector({
+function CategorySelectorBase({
   id,
   name,
   type,
   value = "",
   onValueChange,
-  categories = MOCK_CATEGORIES,
+  categories = [],
   placeholder = "Select a category",
   disabled,
   className,
@@ -167,4 +172,22 @@ export function CategorySelector({
       </SelectContent>
     </Select>
   );
+}
+
+function CategorySelectorWithQuery(props: CategorySelectorProps) {
+  const { data: categories = [] } = useCategories();
+  return <CategorySelectorBase {...props} categories={categories} />;
+}
+
+/**
+ * Dropdown for picking a category. Uses the real categories from `useCategories()`
+ * when inside a QueryClientProvider and no `categories` prop is supplied.
+ */
+export function CategorySelector(props: CategorySelectorProps) {
+  const hasQueryClient = Boolean(React.useContext(QueryClientContext));
+
+  if (props.categories !== undefined || !hasQueryClient) {
+    return <CategorySelectorBase {...props} />;
+  }
+  return <CategorySelectorWithQuery {...props} />;
 }

@@ -6,7 +6,7 @@ One modular Next.js application, one root package.json/lockfile, npm only, Node.
 - Base controls MUST use shadcn/ui in `src/components/ui`; add from root via `npx shadcn add <name>`.
 - Icons MUST use lucide-react unless explicitly requested otherwise.
 - External input uses Zod. Shared HTTP contracts: `src/shared/contracts`; client-only form schemas stay in features/types.
-- Zustand holds UI state; TanStack Query holds real server data/mutations. Auth forms/logout use APIs, while category/transaction/dashboard screens and profile display remain mock data.
+- Zustand holds UI state; TanStack Query holds real server data/mutations. Every screen (auth, wallets, transactions, categories, dashboard, profile) uses the real `/api/v1` APIs; no mock data remains. Reports and Settings (sidebar links) have no pages yet.
 
 ## Architecture
 - `src/app` composes pages/layouts and thin HTTP entries. Feature UI/hooks/stores live in `src/features`.
