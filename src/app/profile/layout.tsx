@@ -1,6 +1,6 @@
 import { ProtectedLayout } from "@/app/_components/ProtectedLayout";
 
-export default function WalletsLayout({
+export default function ProfileLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;

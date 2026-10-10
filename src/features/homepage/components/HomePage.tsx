@@ -14,7 +14,7 @@ import {
   useDeleteTransaction,
   useUpdateTransaction,
 } from "@/features/transactions/hooks/useTransactionMutations";
-import { useWallets } from "@/features/transactions/hooks/useWallets";
+import { useWallets } from "@/features/wallets/hooks/useWallets";
 import { useTransactionModal } from "@/features/transactions/store/useTransactionModal";
 import type { Transaction } from "@/types/transaction";
 
@@ -35,7 +35,7 @@ import {
   monthKeyLabel,
   type MonthKey,
 } from "@/features/homepage/month";
-import { userName } from "@/mocks/mock-data";
+import { displayName, useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
 
 import { useActiveWallet } from "@/features/wallets/store/useActiveWallet";
 import { useBalanceVisibility } from "@/features/wallets/store/useBalanceVisibility";
@@ -50,6 +50,7 @@ export function HomePage() {
   const setWalletId = useActiveWallet((state) => state.setActiveWalletId);
 
   const { data: wallets = [] } = useWallets();
+  const { data: currentUser } = useCurrentUser();
   // Memoized so the query key stays stable between renders (avoids refetch loops)
   const months = React.useMemo(() => [month], [month]);
   const { data: transactions = [], isPending: isTransactionsPending } = useTransactions(months);
@@ -123,7 +124,7 @@ export function HomePage() {
           <div className="flex flex-col gap-3.5">
             <div>
               <div suppressHydrationWarning className="text-2xl font-extrabold text-foreground sm:text-3xl">
-                {new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening'}, {userName}
+                {new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening'}{currentUser ? `, ${displayName(currentUser)}` : ''}
               </div>
               <div className="mt-1 text-sm text-muted-foreground">
                 Here&apos;s your money at a glance.

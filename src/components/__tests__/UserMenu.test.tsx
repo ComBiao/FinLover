@@ -13,6 +13,15 @@ vi.mock("sonner", () => ({ toast }));
 
 const fetchMock = vi.fn();
 
+/** `UserMenu` also loads the current user, so route by URL and leave the logout response to each test. */
+function mockApi(logoutResponse: Response) {
+  fetchMock.mockImplementation(async (url: string) =>
+    String(url).endsWith("/api/v1/auth/me")
+      ? Response.json({ status: true, data: { user: { id: "u1", email: "alex@example.com", name: "Alex" } } })
+      : logoutResponse
+  );
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   vi.stubGlobal("fetch", fetchMock);
@@ -32,7 +41,7 @@ function mount() {
 
 describe("logout", () => {
   it("clears client state and returns to login only after the API succeeds", async () => {
-    fetchMock.mockResolvedValue(Response.json({ status: true, data: null }));
+    mockApi(Response.json({ status: true, data: null }));
     mount();
     fireEvent.click(screen.getByRole("button"));
     fireEvent.click(await screen.findByText("Log out"));
@@ -47,7 +56,7 @@ describe("logout", () => {
   });
 
   it("reports a failed logout and keeps the user on the current page", async () => {
-    fetchMock.mockResolvedValue(
+    mockApi(
       Response.json({ status: false, error: { message: "Request failed" } }, { status: 500 })
     );
     mount();

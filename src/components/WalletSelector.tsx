@@ -16,7 +16,6 @@ import {
 import { cn } from "@/lib/utils";
 import type { Wallet } from "@/types/wallet";
 import { useWallets } from "@/features/wallets/hooks/useWallets";
-import { MOCK_WALLETS } from "@/mocks/mockWallets";
 
 function walletTone(wallet: Wallet) {
   return resolveChipTone(wallet.color, WALLET_TYPE_STYLES, wallet.type ?? wallet.id);
@@ -128,6 +127,6 @@ export function WalletSelector(props: WalletSelectorProps) {
     return <WalletSelectorWithQuery {...props} />;
   }
 
-  // Fallback for tests rendered outside QueryClientProvider
-  return <WalletSelectorBase {...props} wallets={MOCK_WALLETS} />;
+  // Rendered outside QueryClientProvider (e.g. isolated tests) with no wallets supplied.
+  return <WalletSelectorBase {...props} wallets={[]} />;
 }
