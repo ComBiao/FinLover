@@ -67,15 +67,11 @@ export default function TransactionsPage() {
     toast.success("Transaction added successfully");
   }
 
-  function handleEditTransaction(updatedTransaction: Transaction) {
+  /** US3-2: persists via `PUT /api/v1/transactions/:id`; a rejection is shown inside the modal. */
+  async function handleEditTransaction(updatedTransaction: Transaction) {
     const { id, ...input } = updatedTransaction;
-    updateTransaction.mutate(
-      { id, input },
-      {
-        onSuccess: () => toast.success("Transaction updated"),
-        onError: () => toast.error("Couldn't update this transaction"),
-      }
-    );
+    await updateTransaction.mutateAsync({ id, input });
+    toast.success("Transaction updated");
   }
 
   return (

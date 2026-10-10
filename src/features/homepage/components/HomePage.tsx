@@ -86,18 +86,11 @@ export function HomePage() {
     }
   }
 
-  function handleEditTransaction(updatedTransaction: Transaction) {
+  async function handleEditTransaction(updatedTransaction: Transaction) {
     const { id, ...input } = updatedTransaction;
-    updateTransaction.mutate(
-      { id, input },
-      {
-        onSuccess: (updated) => {
-          setMonth(monthKeyOfDate(updated.date));
-          toast.success("Transaction updated");
-        },
-        onError: () => toast.error("Couldn't update this transaction"),
-      }
-    );
+    const updated = await updateTransaction.mutateAsync({ id, input });
+    setMonth(monthKeyOfDate(updated.date));
+    toast.success("Transaction updated");
   }
 
   function handleDeleteTransaction(id: string) {
