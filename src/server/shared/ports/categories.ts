@@ -1,5 +1,6 @@
 import type { TransactionContext } from './unit-of-work';
-export type CategoryInput = { name?: string; type?: 'income' | 'expense'; color?: string };
+import type { CategoryIcon } from '@/shared/contracts';
+export type CategoryInput = { name?: string; type?: 'income' | 'expense'; color?: string; icon?: CategoryIcon };
 export interface CategoryRecord { id: string; isSystem: boolean; type: 'income' | 'expense'; [key: string]: unknown }
 export interface CategoryRepositoryPort {
   findOwned(id: string, userId: string, context?: TransactionContext): Promise<CategoryRecord | null>;
