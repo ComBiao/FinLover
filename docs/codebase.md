@@ -39,9 +39,9 @@ FinLover/
 ├── docs/
 └── src/
     ├── app/                       # page/layout composition and thin API entries
-    ├── features/                  # auth, categories, transactions, homepage UI
+    ├── features/                  # auth, categories, transactions, wallets, homepage, profile UI
     ├── components/                # shared UI, ui/ = shadcn base components
-    ├── lib/ / types/ / mocks/      # browser-safe helpers, UI types, demo data
+    ├── lib/ / types/               # browser-safe helpers, UI types
     ├── shared/contracts/          # shared HTTP schemas/types, source imports
     ├── server/
     │   ├── composition/           # constructor injection and public handlers
@@ -61,7 +61,7 @@ FinLover/
 | Feature UI/hooks/store | `src/features/<feature>/` |
 | Shared controls | `src/components/`; shadcn in `src/components/ui/` |
 | Shared HTTP schema/type | `src/shared/contracts/` |
-| Client-only types/mocks | frontend feature or `src/types/`, `src/mocks/` |
+| Client-only types | frontend feature or `src/types/` |
 | HTTP method entry | `src/app/api/**/route.ts` |
 | Transport/DTO mapping | module controllers and `src/server/shared/http/` adapters |
 | Business use case | module services with `execute()` |
@@ -78,11 +78,11 @@ Transaction services own balance deltas and validate references. Repositories re
 
 Use shadcn/ui base controls and lucide-react icons. Add shadcn components from root using `npx shadcn add <name>`. Validate external data with Zod. Keep client-only form validation separate from persisted HTTP schemas. Zustand holds UI state; TanStack Query handles actual API mutations through the root QueryClientProvider.
 
-Login/register/logout now use `/api/v1/auth/*`. `/` redirects to `/login`. Login and registration are public only while no valid session exists; authenticated users are redirected to `/homepage`. The `/homepage`, `/category` and `/transactions` layouts share a server-side session guard, so invalid, expired, tampered or missing cookies redirect before private UI renders. Registration sends matching passwords and consent; the existing User schema does not persist the form's name. User creation and the 14 default system categories run in one MongoDB transaction, so a seed failure rolls back the new account. Successful login redirects to the homepage; logout clears the cookie and query cache before redirecting. Errors remain visible rather than reporting fake success. The auth forms contain no inactive Google OAuth control or password-reset dead link.
+Login/register/logout now use `/api/v1/auth/*`. `/` redirects to `/login`. Login and registration are public only while no valid session exists; authenticated users are redirected to `/homepage`. The `/homepage`, `/category`, `/transactions`, `/wallets` and `/profile` layouts share a server-side session guard, so invalid, expired, tampered or missing cookies redirect before private UI renders. Registration sends the display name (optional on the API, stored on the User), matching passwords and consent. User creation and the 14 default system categories run in one MongoDB transaction, so a seed failure rolls back the new account. Successful login redirects to the homepage; logout clears the cookie and query cache before redirecting. Errors remain visible rather than reporting fake success. The auth forms contain no inactive Google OAuth control or password-reset dead link.
 
-Category/transaction/homepage screens and displayed profile details remain mock/demo data. The v1 API provides monthly transaction reads through `GET /api/v1/transactions?month=YYYY-MM` (defaulting with `APPLICATION_TIMEZONE`) with an optional case-insensitive `search` over title and note (max 100 characters). The v1 wallet API supports `GET` and `POST /api/v1/wallets`, `GET`, `PUT` and `DELETE /api/v1/wallets/{id}` (delete removes the wallet's transactions in the same UnitOfWork), and `PATCH /api/v1/wallets/{id}/saving` (saving on needs a goal above 0; off clears it); legacy has no wallet operations, and the wallet screen is not integrated. Wallet creation currently has no per-user limit. Other category/transaction lists, reports and current-user APIs remain unimplemented. Existing browser routes remain `/`, `/login`, `/register`, `/homepage`, `/category`, `/transactions`.
+Every screen now uses the real API; no mock data remains. A 401 from any query or mutation redirects the browser to `/login` (see `src/app/providers.tsx`). `GET /api/v1/auth/me` returns `{ user: { id, email, name? } }` for the session principal, and `GET /api/v1/categories` (optional `?type=income|expense`) lists the caller's categories, system defaults included. The v1 API provides monthly transaction reads through `GET /api/v1/transactions?month=YYYY-MM` (defaulting with `APPLICATION_TIMEZONE`) with an optional case-insensitive `search` over title and note (max 100 characters). The v1 wallet API supports `GET` and `POST /api/v1/wallets`, `GET`, `PUT` and `DELETE /api/v1/wallets/{id}` (delete removes the wallet's transactions in the same UnitOfWork), and `PATCH /api/v1/wallets/{id}/saving` (saving on needs a goal above 0; off clears it); legacy has no wallet operations. Wallet creation currently has no per-user limit. Reports are unimplemented, and the sidebar's Reports and Settings links have no pages yet. Browser routes are `/`, `/login`, `/register`, `/homepage`, `/category`, `/transactions`, `/wallets`, `/profile`.
 
-The Category screen defines 11 built-in expense categories and 6 built-in income categories. `isDefault` prevents editing/deleting built-ins in both the cards and the local state hook. `isFallback` identifies Other, which stays last when custom categories are added. These categories remain local UI state and do not change server category data or transaction classification.
+The Category screen is driven by `GET /api/v1/categories` and the category create/update/delete endpoints through TanStack Query hooks in `src/features/categories`. `isSystem` categories (the 14 seeded at registration) are read-only in the UI and on the server; the seeded Others stays last per type. Category colors are stored as `#RRGGBB` and icons as one of `CATEGORY_ICON_NAMES`. Deleting a category clears it from its transactions without touching balances. The Profile screen (`/profile`) shows the user from `GET /api/v1/auth/me` and calls `DELETE /api/v1/auth/delete-account`.
 
 ## 5. Auth and CSRF
 
