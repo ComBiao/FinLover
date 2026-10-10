@@ -2,6 +2,7 @@ import type { TransactionContext } from './unit-of-work';
 export interface TransactionInput { walletId?: string; categoryId?: string | null; type: 'income' | 'expense'; amount: number; date: Date; title: string; note?: string }
 export interface TransactionRecord extends TransactionInput { id: string; walletId: string; userId: string }
 export interface TransactionRepositoryPort {
+  findByDateRange(userId: string, start: Date, end: Date): Promise<TransactionRecord[]>;
   findOwned(id: string, userId: string, context: TransactionContext): Promise<TransactionRecord | null>;
   create(userId: string, input: TransactionInput, context: TransactionContext): Promise<TransactionRecord>;
   update(id: string, userId: string, input: TransactionInput, context: TransactionContext): Promise<TransactionRecord | null>;

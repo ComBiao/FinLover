@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 
@@ -9,9 +10,10 @@ import { DeleteTransactionDialog } from "@/features/transactions/components/Dele
 import { TransactionFilterBar } from "@/features/transactions/components/TransactionFilterBar";
 import { TransactionTable } from "@/features/transactions/components/TransactionTable";
 import { Button } from "@/components/ui/button";
+import { postApi } from "@/lib/api/client";
+import { toLocalISODate } from "@/lib/utils";
 import { useTransactions } from "@/features/transactions/hooks/useTransactions";
 import {
-  useCreateTransaction,
   useDeleteTransaction,
   useUpdateTransaction,
 } from "@/features/transactions/hooks/useTransactionMutations";
@@ -29,8 +31,8 @@ import { SummaryCards } from "./SummaryCards";
  * reads/mutates), so a change made from either page is visible in both.
  */
 export default function TransactionsPage() {
+  const queryClient = useQueryClient();
   const { data: transactions = [] } = useTransactions();
-  const createTransaction = useCreateTransaction();
   const updateTransaction = useUpdateTransaction();
   const deleteTransaction = useDeleteTransaction();
   const filters = useTransactionFilters((state) => state.filters);
@@ -58,13 +60,31 @@ export default function TransactionsPage() {
     });
   }
 
-  function handleAddTransaction(newTransaction: Transaction) {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- the modal assigns a throwaway client-side id; the mock service assigns its own.
-    const { id: _clientId, ...input } = newTransaction;
-    createTransaction.mutate(input, {
-      onSuccess: () => toast.success("Transaction added"),
-      onError: () => toast.error("Couldn't save this transaction"),
-    });
+  const createTransactionMutation = useMutation({
+    mutationFn: (input: Omit<Transaction, "id">) =>
+      postApi<{ id: string }>("/api/v1/transactions", {
+        walletId: input.walletId,
+        categoryId: input.categoryId ?? null,
+        type: input.type,
+        amount: input.amount,
+        date: toLocalISODate(input.date),
+        title: input.title,
+        note: input.note,
+      }),
+  });
+
+  /**
+   * US3-1: persists via `POST /api/v1/transactions`. `useTransactions()`
+   * (and the Home summary it shares a cache with) still read from the mock
+   * service — same limitation as #101's category list — so invalidating
+   * them here is forward-compatible with the real `GET` list (#94) rather
+   * than something that already shows the new row today.
+   */
+  async function handleAddTransaction(input: Omit<Transaction, "id">) {
+    await createTransactionMutation.mutateAsync(input);
+    queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    queryClient.invalidateQueries({ queryKey: ["home-summary"] });
+    toast.success("Transaction added successfully");
   }
 
   function handleEditTransaction(updatedTransaction: Transaction) {

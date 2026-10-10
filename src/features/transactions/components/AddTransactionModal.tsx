@@ -19,7 +19,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { WalletSelector } from "@/components/WalletSelector";
-import { cn, todayISODate } from "@/lib/utils";
+import { ApiClientError } from "@/lib/api/client";
+import { cn, todayISODate, toLocalISODate } from "@/lib/utils";
 import { MOCK_CATEGORIES } from "@/mocks/mockCategories";
 import { useTransactionModal } from "@/features/transactions/store/useTransactionModal";
 import type { TransactionType } from "@/types/category";
@@ -48,8 +49,18 @@ type AddTransactionFormValues = z.infer<typeof addTransactionFormSchema>;
 type AddTransactionModalProps = {
   /** Row to edit, populating the form and switching the modal into edit mode. Omit (or `null`) for Add mode. */
   initialData?: Transaction | null;
-  /** Called with the newly created transaction when submitting in Add mode. */
-  onAdd?: (transaction: Transaction) => void;
+  /**
+   * Called with the new transaction's data (no `id` yet — the server
+   * assigns it) when submitting in Add mode. Awaited: the modal stays open
+   * and disabled until this resolves, and shows the rejection's message
+   * instead of closing if it throws.
+   *
+   * Optional only because `src/app/dashboard/page.tsx` still renders this
+   * modal with no props at all (its own quick-add flow isn't wired —
+   * tracked separately, #95/US2-9) — `onSubmit` below checks for this and
+   * shows an error instead of silently closing as if the create succeeded.
+   */
+  onAdd?: (transaction: Omit<Transaction, "id">) => Promise<void>;
   /** Called with the updated transaction when submitting in Edit mode. */
   onEdit?: (transaction: Transaction) => void;
 };
@@ -134,14 +145,6 @@ function sanitizeAmountInput(raw: string) {
   return wholePart + decimalPart;
 }
 
-/** Formats a `Date` as a local `YYYY-MM-DD` string, matching what an `<input type="date">` expects — using `toISOString()` here would shift the date across midnight for any timezone ahead of UTC. */
-function toLocalISODate(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
 /** Parses a `YYYY-MM-DD` string (from `<input type="date">`) as a local date — `new Date(value)` would parse it as UTC midnight, which can render as the previous day in timezones behind UTC. */
 function parseLocalISODate(value: string) {
   const [year, month, day] = value.split("-").map(Number);
@@ -198,13 +201,16 @@ export function AddTransactionModal({
     handleSubmit,
     reset,
     setValue,
-    formState: { errors },
+    setError,
+    clearErrors,
+    formState: { errors, isSubmitting },
   } = useForm<AddTransactionFormValues>({
     resolver: zodResolver(addTransactionFormSchema),
     defaultValues: toFormValues(effectiveInitialData, defaultType, defaultWalletId),
   });
 
   const type = useWatch({ control, name: "type" });
+  const watchedValues = useWatch({ control });
   const categoryIdValue = useWatch({ control, name: "categoryId" });
   const mode = MODE_STYLES[type];
 
@@ -215,18 +221,27 @@ export function AddTransactionModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
+  // `root` isn't tied to a field, so react-hook-form never clears it on its
+  // own — a rejected submit (e.g. "wallet not found") would otherwise keep
+  // showing after the user picks a different wallet and looks fixed.
+  React.useEffect(() => {
+    clearErrors("root");
+  }, [watchedValues, clearErrors]);
+
   function handleTypeChange(nextType: TransactionType) {
     setValue("type", nextType);
     setValue("categoryId", "");
   }
 
   /**
-   * Validates the form with react-hook-form + zod, then updates client-side
-   * state via `onAdd`/`onEdit` so the list reflects the change immediately.
-   * TODO: also POST /api/transactions (create) or PUT /api/transactions/:id
-   * (edit) once the endpoint exists.
+   * Validates the form with react-hook-form + zod, then either updates
+   * client-side state directly (Edit mode — still local-only, see #102) or
+   * awaits the real `POST /api/v1/transactions` call (Add mode, #100).
+   * Only closes the modal after a create actually succeeds; a rejection
+   * surfaces as a form-level error instead, and the modal (and submit
+   * button) stays disabled for the whole await via `isSubmitting`.
    */
-  function onSubmit(values: AddTransactionFormValues) {
+  async function onSubmit(values: AddTransactionFormValues) {
     const shared = {
       type: values.type,
       title: values.title,
@@ -239,11 +254,26 @@ export function AddTransactionModal({
 
     if (isEditMode && effectiveInitialData) {
       onEdit?.({ ...effectiveInitialData, ...shared });
-    } else {
-      onAdd?.({ id: crypto.randomUUID(), ...shared });
+      closeModal();
+      return;
     }
 
-    closeModal();
+    if (!onAdd) {
+      setError("root", { message: "Can't save: this form isn't connected yet." });
+      return;
+    }
+
+    try {
+      await onAdd(shared);
+      closeModal();
+    } catch (error) {
+      setError("root", {
+        message:
+          error instanceof ApiClientError
+            ? error.message
+            : "Unable to connect. Please try again.",
+      });
+    }
   }
 
   const categoryChips = [
@@ -271,6 +301,11 @@ export function AddTransactionModal({
     <Dialog
       open={isOpen}
       onOpenChange={(open) => {
+        // Block backdrop-click / Escape dismissal while a create is in
+        // flight — closing mid-request would let the user reopen the
+        // modal and have the first request's effects land on a form they
+        // believe is fresh (same race class as #101's category dialog).
+        if (!open && isSubmitting) return;
         if (!open) closeModal();
       }}
     >
@@ -485,6 +520,12 @@ export function AddTransactionModal({
                 {...register("note")}
               />
             </div>
+
+            {errors.root ? (
+              <p className="text-destructive text-sm" role="alert">
+                {errors.root.message}
+              </p>
+            ) : null}
           </div>
 
           <DialogFooter
@@ -510,14 +551,16 @@ export function AddTransactionModal({
                 variant="outline"
                 className="shrink-0 whitespace-nowrap"
                 onClick={closeModal}
+                disabled={isSubmitting}
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 className={cn(mode.solidBgClass, "shrink-0 text-white whitespace-nowrap hover:opacity-90")}
+                disabled={isSubmitting}
               >
-                {isEditMode ? "Save changes" : `Save ${mode.noun}`}
+                {isSubmitting ? "Saving…" : isEditMode ? "Save changes" : `Save ${mode.noun}`}
               </Button>
             </div>
           </DialogFooter>

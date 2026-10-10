@@ -23,10 +23,15 @@ const schema = (value: z.ZodType): Record<string, unknown> => {
   return result;
 };
 const inputSchema = (value: z.ZodType) => ({ ...schema(value), additionalProperties: true });
-/** z.toJSONSchema drops refinements; restate the saving rule (goalAmount > 0 when isSaving is true) so the spec matches the handler. */
-const requestSchema = (action: string, value: z.ZodType) => action === 'updateWalletSaving'
-  ? { ...inputSchema(value), if: { properties: { isSaving: { const: true } }, required: ['isSaving'] }, then: { required: ['goalAmount'], properties: { goalAmount: { exclusiveMinimum: 0 } } } }
-  : inputSchema(value);
+const walletSavingConstraint = {
+  if: { properties: { isSaving: { const: true } }, required: ['isSaving'] },
+  then: { required: ['goalAmount'], properties: { goalAmount: { exclusiveMinimum: 0 } } },
+};
+/** z.toJSONSchema drops refinements; operation metadata can restate constraints that the generated schema cannot express. */
+const requestSchema = (value: z.ZodType, constraint?: Record<string, unknown>) => ({
+  ...inputSchema(value),
+  ...constraint,
+});
 const obj = (properties: Record<string, unknown>, required = Object.keys(properties)) => ({ type: 'object', properties, required });
 const publicUser = obj({ id: { type: 'string' }, email: { type: 'string', format: 'email' }, dataPrivacyConsent: { const: true }, createdAt: { type: 'string', format: 'date-time' } });
 const loginUser = obj({ id: { type: 'string' }, email: { type: 'string', format: 'email' } });
@@ -37,6 +42,7 @@ export const operations = [
   { action: 'register', method: 'post', path: '/auth/register', status: 201, errors: [400, 409, 500], public: true, description: 'Create a user with explicit privacy consent. confirmPassword must match password; password is limited to 72 UTF-8 bytes. Never returns passwordHash.' },
   { action: 'login', method: 'post', path: '/auth/login', status: 200, errors: [400, 401, 500], public: true, description: 'Set HttpOnly session_token for seven days. Missing user and wrong password produce the same credentials error. Password is limited to 72 UTF-8 bytes.' },
   { action: 'logout', method: 'post', path: '/auth/logout', status: 200, errors: [], public: true, description: 'Clear the cookie. Idempotent. Does not revoke previously issued JWTs.' },
+  { action: 'deleteAccount', method: 'delete', path: '/auth/delete-account', status: 200, errors: [401, 404, 500], v1Only: true, cookieOnly: true, description: 'Permanently delete the authenticated user and cascade-delete their wallets, categories and transactions atomically. Session cookie only: any Authorization header, valid or not, is rejected with 401. No password re-authentication. Clears the session cookie, including when the account is already gone (404).'},
   { action: 'createCategory', method: 'post', path: '/categories', status: 201, errors: [400, 401, 409, 500], description: 'Create an owned custom category. Names are trimmed; duplicates conflict.' },
   { action: 'updateCategory', method: 'put', path: '/categories/{id}', status: 200, errors: [400, 401, 403, 404, 409, 500], description: 'Partial update of an owned non-system category.' },
   { action: 'deleteCategory', method: 'delete', path: '/categories/{id}', status: 200, errors: [400, 401, 403, 404, 500], description: 'Delete an owned non-system category and clear category references atomically. Transactions and wallet balances remain unchanged.' },
@@ -44,14 +50,20 @@ export const operations = [
   { action: 'listWallets', method: 'get', path: '/wallets', status: 200, errors: [401, 500], versions: ['v1'], description: "List the authenticated user's wallets, with the default wallet first." },
   { action: 'getWallet', method: 'get', path: '/wallets/{id}', status: 200, errors: [400, 401, 404, 500], versions: ['v1'], description: "Get an owned wallet by ID. Invalid IDs return 400; missing or another user's wallet returns 404." },
   { action: 'updateWallet', method: 'put', path: '/wallets/{id}', status: 200, errors: [400, 401, 404, 409, 500], versions: ['v1'], description: 'Partially update an owned wallet name or color. Balance, owner, and saving settings are not editable here.' },
-  { action: 'updateWalletSaving', method: 'patch', path: '/wallets/{id}/saving', status: 200, errors: [400, 401, 404, 500], versions: ['v1'], description: 'Turn Saving Wallet on or off for an owned wallet. Saving on requires goalAmount greater than 0; saving off clears the goal. The balance is never changed.' },
+  { action: 'updateWalletSaving', method: 'patch', path: '/wallets/{id}/saving', status: 200, errors: [400, 401, 404, 500], versions: ['v1'], requestConstraint: walletSavingConstraint, description: 'Turn Saving Wallet on or off for an owned wallet. Saving on requires goalAmount greater than 0; saving off clears the goal. The balance is never changed.' },
+  { action: 'listTransactions', method: 'get', path: '/transaction', status: 200, errors: [400, 401, 500], versions: ['v1'], description: 'List all owned transactions for an optional YYYY-MM month, defaulting to the current month in APPLICATION_TIMEZONE. Results are newest first; this monthly endpoint intentionally has no pagination.' },
   { action: 'createTransaction', method: 'post', path: '/transaction', status: 201, errors: [400, 401, 404, 422, 500], description: 'Create an owned transaction and adjust wallet balance in one MongoDB transaction. Requires a replica set. Category must belong to the user and match the transaction type. Persisted minimum amount is 0.01.' },
   { action: 'updateTransaction', method: 'put', path: '/transaction/{id}', status: 200, errors: [400, 401, 404, 422, 500], description: 'Replace editable fields of an owned transaction; reverse old and apply new balance atomically. wallet cannot be changed by this API.' },
   { action: 'deleteTransaction', method: 'delete', path: '/transaction/{id}', status: 204, errors: [400, 401, 404, 422, 500], description: 'Delete an owned transaction and reverse its balance atomically. Legacy success has no body.' },
+  { action: 'deleteWallet', method: 'delete', path: '/wallets/{id}', status: 204, errors: [400, 401, 404, 500], versions: ['v1'], description: 'Delete an owned wallet and all of its transactions atomically in one UnitOfWork; nothing is deleted if any step fails. Other wallets and their transactions are untouched. Any owned wallet may be deleted, including the default or last wallet. Data cannot be recovered.' },
 ] as const;
 
 export function operationsFor(version: 'legacy' | 'v1') {
-  return operations.filter(operation => !('versions' in operation) || operation.versions.some(value => value === version));
+  return operations.filter(operation => {
+    if ('v1Only' in operation && operation.v1Only) return version === 'v1';
+    if ('versions' in operation) return operation.versions.some(value => value === version);
+    return true; // Operations without versions restriction appear in both
+  });
 }
 
 export function buildSpec(version: 'legacy' | 'v1') {
@@ -73,12 +85,13 @@ export function buildSpec(version: 'legacy' | 'v1') {
                     : undefined;
     const data = action === 'register' ? obj({ user: publicUser })
       : action === 'login' ? obj({ user: loginUser })
-        : action === 'logout' ? obj({ success: { const: true } })
+        : action === 'logout' || action === 'deleteAccount' ? obj({ success: { const: true } })
           : action.includes('Category') ? (v1 ? schema(categoryResponse) : legacyCategory)
-            : action === 'deleteTransaction' ? { type: 'null' }
+            : action === 'deleteTransaction' || action === 'deleteWallet' ? { type: 'null' }
               : action === 'createWallet' || action === 'getWallet' || action === 'updateWallet' || action === 'updateWalletSaving' ? schema(walletResponse)
                 : action === 'listWallets' ? { type: 'array', items: schema(walletResponse) }
-                  : (v1 ? schema(transactionResponse) : legacyTxResponse);
+                  : action === 'listTransactions' ? { type: 'array', items: schema(transactionResponse) }
+                    : (v1 ? schema(transactionResponse) : legacyTxResponse);
     const success = v1 ? obj({ status: { const: true }, data }) : action.includes('Category') || action.includes('Transaction') ? obj({ data }) : data;
     const error = v1 ? obj({ status: { const: false }, error: schema(apiError), timestamp: { type: 'string', format: 'date-time' }, path: { type: 'string' } }) : obj({ error: schema(apiError) });
     const status = v1 && operation.status === 204 ? 200 : operation.status;
@@ -103,21 +116,25 @@ export function buildSpec(version: 'legacy' | 'v1') {
     if (action === 'updateTransaction') { delete example.walletId; delete example.wallet_id; }
     const authDescription = v1 ? ` Authorization takes precedence over cookie.${method === 'get' ? ' Cookie-authenticated GETs do not require an Origin.' : ' Cookie writes require an Origin in PUBLIC_ORIGINS; missing Origin is rejected.'} Implemented.` : ' Legacy response contract; auth is unified with v1. Cookie writes and login/register/logout require an exact trusted Origin; no Origin is rejected. A valid Bearer on protected APIs does not fall back to cookies.';
     const publicOperation = 'public' in operation;
+    const parameters = [
+      ...(path.includes('{id}') ? [{ name: 'id', in: 'path', required: true, schema: { type: 'string', pattern: '^[a-fA-F0-9]{24}$' } }] : []),
+      ...(action === 'listTransactions' ? [{ name: 'month', in: 'query', required: false, schema: { type: 'string', pattern: '^\\d{4}-(0[1-9]|1[0-2])$' }, example: '2026-10' }] : []),
+    ];
     paths[path] ??= {};
     paths[path][method] = {
       operationId: `${version}_${action}`,
       tags: [operation.path.split('/')[1]],
       summary: action,
       description: operation.description + authDescription,
-      security: publicOperation ? [] : [{ bearerAuth: [] }, { sessionCookie: [] }],
+      security: publicOperation ? [] : 'cookieOnly' in operation && operation.cookieOnly ? [{ sessionCookie: [] }] : [{ bearerAuth: [] }, { sessionCookie: [] }],
       ...(path.includes('{id}') ? { parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', pattern: '^[a-fA-F0-9]{24}$' } }] } : {}),
-      ...(input ? { requestBody: { required: true, content: { 'application/json': { schema: requestSchema(action, input), example } } } } : {}),
+      ...(input ? { requestBody: { required: true, content: { 'application/json': { schema: requestSchema(input, 'requestConstraint' in operation ? operation.requestConstraint : undefined), example } } } } : {}),
       responses,
     };
   }
 
-  const walletStatus = v1 ? 'Wallet create, list, detail, update and saving-status operations are available on v1.' : 'The legacy API has no wallet operations.';
-  const unimplemented = v1 ? 'Category/transaction lists, reports and current-user endpoints are not implemented.' : 'Wallet endpoints, remaining GET lists, reports and current-user endpoints are not implemented.';
+  const walletStatus = v1 ? 'Wallet create, list, detail, update, saving-status and delete operations are available on v1.' : 'The legacy API has no wallet operations.';
+  const unimplemented = v1 ? 'Monthly transaction reads are available; category lists, reports and current-user endpoints are not implemented.' : 'Wallet endpoints, remaining GET lists, reports and current-user endpoints are not implemented.';
   return {
     openapi: '3.1.0',
     info: { title: `FinLover ${version} API`, version: '1.0.0', description: `Implemented operations only. ${walletStatus} ${unimplemented} UI mock screens are not API integration.` },

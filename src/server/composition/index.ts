@@ -1,5 +1,5 @@
 import { logged } from '@/server/shared/http/logging';
-import { secure } from '@/server/shared/http/policy';
+import { secure, configureAccountCheck } from '@/server/shared/http/policy';
 import "server-only";
 import { TransactionRepository } from '../modules/transactions/repositories/TransactionRepository';
 import { DeleteCategoryService } from '../modules/categories/services/DeleteCategoryService';
@@ -8,18 +8,21 @@ import { CategoryRepository } from '../modules/categories/repositories/CategoryR
 import { UserRepository } from '../modules/users/repositories/UserRepository';
 import { createAuthRouter } from '../modules/auth/router';
 import { hashPassword, comparePassword } from '@/server/shared/auth/crypto';
-export const rawAuth = createAuthRouter(new UserRepository(), { hash: hashPassword, compare: comparePassword });
+export const rawAuth = createAuthRouter(new UserRepository(), { hash: hashPassword, compare: comparePassword }, new MongoUnitOfWork());
 import { createCategoryRouter } from '../modules/categories/router';
 export const deleteCategoryService = new DeleteCategoryService(new CategoryRepository(), new TransactionRepository(), new MongoUnitOfWork());
 export const rawCategories = createCategoryRouter(deleteCategoryService);
 import { createTransactionRouter } from '../modules/transactions/router';
 import { WalletRepository } from '../modules/wallets/repositories/WalletRepository';
 export const walletRepository = new WalletRepository();
+import { DeleteWalletService } from '../modules/wallets/services/DeleteWalletService';
 import { createWalletRouter } from '../modules/wallets/router';
-export const rawWallets = createWalletRouter(walletRepository);
+export const deleteWalletService = new DeleteWalletService(walletRepository, new TransactionRepository(), new MongoUnitOfWork());
+export const rawWallets = createWalletRouter(walletRepository, deleteWalletService);
 export const rawTransactions = createTransactionRouter(walletRepository, new CategoryRepository(), new MongoUnitOfWork());
+import { connectDB } from '@/server/db/index';
 
-
+const userRepository = new UserRepository();
 
 export const auth = {
   login: logged(secure(rawAuth.login, { browserAuth: true })),
@@ -32,6 +35,7 @@ export const categories = {
   remove: logged(secure(rawCategories.remove, { protected: true })),
 };
 export const transactions = {
+  list: logged(secure(rawTransactions.list, { protected: true })),
   create: logged(secure(rawTransactions.create, { protected: true })),
   update: logged(secure(rawTransactions.update, { protected: true })),
   remove: logged(secure(rawTransactions.remove, { protected: true })),
@@ -42,4 +46,10 @@ export const wallets = {
   get: logged(secure(rawWallets.get, { protected: true })),
   update: logged(secure(rawWallets.update, { protected: true })),
   updateSaving: logged(secure(rawWallets.updateSaving, { protected: true })),
+  remove: logged(secure(rawWallets.remove, { protected: true })),
 };
+export const accountExists = async (userId: string) => {
+  await connectDB();
+  return userRepository.existsById(userId);
+};
+configureAccountCheck(accountExists);

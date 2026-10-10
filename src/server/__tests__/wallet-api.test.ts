@@ -4,6 +4,8 @@ import mongoose from 'mongoose';
 import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import Wallet from '@/server/db/models/Wallet';
 import { signToken } from '@/server/shared/auth/crypto';
+import User from '@/server/db/models/User';
+import { seedUser } from '@/test/user-fixture';
 import { GET as listWalletRoute, POST as postWalletRoute } from '@/app/api/v1/wallets/route';
 import { GET as getWalletRoute, PUT as updateWalletRoute } from '@/app/api/v1/wallets/[id]/route';
 
@@ -57,6 +59,8 @@ afterAll(async () => {
 
 beforeEach(async () => {
   await Wallet.deleteMany({});
+  await User.deleteMany({});
+  await seedUser(userId);
 });
 
 //=============== POST Method tests ===============//

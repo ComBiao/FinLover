@@ -1,4 +1,5 @@
 import { seedTransaction } from '@/test/transaction-fixture';
+import { seedUser } from '@/test/user-fixture';
 // @vitest-environment node
 /**
  * Integration tests for the Category API endpoints.
@@ -83,6 +84,7 @@ beforeEach(async () => {
   for (const key in collections) {
     await collections[key].deleteMany({});
   }
+  await seedUser(MOCK_USER_ID);
 });
 
 // ---------------------------------------------------------------------------

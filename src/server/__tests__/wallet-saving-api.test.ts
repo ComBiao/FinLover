@@ -5,8 +5,10 @@ import mongoose from 'mongoose';
 import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import { NextRequest } from 'next/server';
 import Wallet from '@/server/db/models/Wallet';
+import User from '@/server/db/models/User';
 import { signToken } from '@/server/shared/auth/crypto';
 import { WalletRepository } from '@/server/modules/wallets/repositories/WalletRepository';
+import { seedUser } from '@/test/user-fixture';
 
 vi.mock('server-only', () => ({}));
 vi.mock('@/server/db/index', () => ({
@@ -28,7 +30,10 @@ beforeAll(async () => {
   PATCH = (await import('@/app/api/v1/wallets/[id]/saving/route')).PATCH;
 }, 60_000);
 afterAll(async () => { await mongoose.disconnect(); await replSet?.stop(); }, 60_000);
-beforeEach(async () => { await Wallet.deleteMany({}); });
+beforeEach(async () => {
+  await Promise.all([Wallet.deleteMany({}), User.deleteMany({})]);
+  await seedUser(USER);
+});
 
 const seed = (overrides: Record<string, unknown> = {}) => Wallet.create({ userId: USER, name: 'Main', balance: 1234.5, ...overrides });
 function call(id: string, body?: unknown, { token = TOKEN, raw }: { token?: string; raw?: string } = {}) {
