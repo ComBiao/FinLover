@@ -1,12 +1,41 @@
 import { z } from 'zod';
 export const objectId = z.string().regex(/^[a-f0-9]{24}$/i);
-export const categoryInput = z.object({ name: z.string().trim().min(1).max(50), type: z.enum(['income', 'expense']), color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional() });
+export const CATEGORY_ICON_NAMES = [
+  'Utensils',
+  'Car',
+  'Home',
+  'ShoppingCart',
+  'Zap',
+  'HeartPulse',
+  'Film',
+  'Wallet',
+  'Banknote',
+  'Gift',
+  'Award',
+  'PieChart',
+  'MoreHorizontal',
+  'Star',
+  'Smile',
+  'GraduationCap',
+  'Briefcase',
+  'CreditCard',
+] as const;
+export const categoryIcon = z.enum(CATEGORY_ICON_NAMES);
+export type CategoryIcon = z.infer<typeof categoryIcon>;
+export const categoryInput = z.object({
+  name: z.string().trim().min(1).max(50),
+  type: z.enum(['income', 'expense']),
+  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+  icon: categoryIcon.optional(),
+});
 export const categoryUpdate = categoryInput.partial();
 export const transactionInput = z.object({ walletId: objectId, categoryId: objectId.nullable().optional(), type: z.enum(['income', 'expense']), amount: z.number().min(0.01), date: z.iso.date(), title: z.string().trim().min(1).max(100), note: z.string().max(255).optional() });
 export const transactionUpdate = transactionInput.omit({ walletId: true });
 export const transactionResponse = transactionInput.extend({ id: objectId, categoryId: objectId.nullable() });
 export const transactionMonthQuery = z.object({
   month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'month must use YYYY-MM format').optional(),
+  // Case-insensitive substring match on title or note; blank means no search.
+  search: z.string().trim().max(100).optional().transform(value => value || undefined),
 });
 export const categoryResponse = categoryInput.extend({ id: objectId, isSystem: z.boolean(), createdAt: z.iso.datetime(), updatedAt: z.iso.datetime() });
 export const walletInput = z.object({ name: z.string().trim().min(1).max(50), color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(), isSaving: z.boolean().optional(), goalAmount: z.number().min(0).optional()});

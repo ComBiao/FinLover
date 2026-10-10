@@ -51,7 +51,7 @@ export const operations = [
   { action: 'getWallet', method: 'get', path: '/wallets/{id}', status: 200, errors: [400, 401, 404, 500], versions: ['v1'], description: "Get an owned wallet by ID. Invalid IDs return 400; missing or another user's wallet returns 404." },
   { action: 'updateWallet', method: 'put', path: '/wallets/{id}', status: 200, errors: [400, 401, 404, 409, 500], versions: ['v1'], description: 'Partially update an owned wallet name or color. Balance, owner, and saving settings are not editable here.' },
   { action: 'updateWalletSaving', method: 'patch', path: '/wallets/{id}/saving', status: 200, errors: [400, 401, 404, 500], versions: ['v1'], requestConstraint: walletSavingConstraint, description: 'Turn Saving Wallet on or off for an owned wallet. Saving on requires goalAmount greater than 0; saving off clears the goal. The balance is never changed.' },
-  { action: 'listTransactions', method: 'get', path: '/transaction', status: 200, errors: [400, 401, 500], versions: ['v1'], description: 'List all owned transactions for an optional YYYY-MM month, defaulting to the current month in APPLICATION_TIMEZONE. Results are newest first; this monthly endpoint intentionally has no pagination.' },
+  { action: 'listTransactions', method: 'get', path: '/transaction', status: 200, errors: [400, 401, 500], versions: ['v1'], description: 'List all owned transactions for an optional YYYY-MM month, defaulting to the current month in APPLICATION_TIMEZONE, optionally narrowed by a case-insensitive title/note search. Results are newest first; this monthly endpoint intentionally has no pagination.' },
   { action: 'createTransaction', method: 'post', path: '/transaction', status: 201, errors: [400, 401, 404, 422, 500], description: 'Create an owned transaction and adjust wallet balance in one MongoDB transaction. Requires a replica set. Category must belong to the user and match the transaction type. Persisted minimum amount is 0.01.' },
   { action: 'updateTransaction', method: 'put', path: '/transaction/{id}', status: 200, errors: [400, 401, 404, 422, 500], description: 'Replace editable fields of an owned transaction; reverse old and apply new balance atomically. wallet cannot be changed by this API.' },
   { action: 'deleteTransaction', method: 'delete', path: '/transaction/{id}', status: 204, errors: [400, 401, 404, 422, 500], description: 'Delete an owned transaction and reverse its balance atomically. Legacy success has no body.' },
@@ -108,7 +108,7 @@ export function buildSpec(version: 'legacy' | 'v1') {
     const transactionExample = v1 ? { walletId: id, categoryId: null, type: 'expense', amount: 42, date: '2026-09-27', title: 'Lunch', note: 'Lunch' } : { wallet_id: id, category_id: null, type: 'Expense', amount: 42, date: '2026-09-27', title: 'Lunch', note: 'Lunch' };
     const example: Record<string, unknown> = action === 'register' ? { email: 'test@example.com', password: 'Password1', confirmPassword: 'Password1', dataPrivacyConsent: true }
       : action === 'login' ? { email: 'test@example.com', password: 'Password1' }
-        : action.includes('Category') ? { name: 'Food', type: 'expense', color: '#FF8800' }
+        : action.includes('Category') ? { name: 'Food', type: 'expense', color: '#FF8800', icon: 'Utensils' }
           : action === 'createWallet' ? { name: 'Holiday fund', color: '#3B82F6', isSaving: true, goalAmount: 1200 }
             : action === 'updateWallet' ? { name: 'Holiday fund', color: '#3B82F6' }
               : action === 'updateWalletSaving' ? { isSaving: true, goalAmount: 10000 }
@@ -118,7 +118,7 @@ export function buildSpec(version: 'legacy' | 'v1') {
     const publicOperation = 'public' in operation;
     const parameters = [
       ...(path.includes('{id}') ? [{ name: 'id', in: 'path', required: true, schema: { type: 'string', pattern: '^[a-fA-F0-9]{24}$' } }] : []),
-      ...(action === 'listTransactions' ? [{ name: 'month', in: 'query', required: false, schema: { type: 'string', pattern: '^\\d{4}-(0[1-9]|1[0-2])$' }, example: '2026-10' }] : []),
+      ...(action === 'listTransactions' ? [{ name: 'month', in: 'query', required: false, schema: { type: 'string', pattern: '^\\d{4}-(0[1-9]|1[0-2])$' }, example: '2026-10' }, { name: 'search', in: 'query', required: false, description: 'Case-insensitive text matched against title or note (max 100 characters); combines with month.', schema: { type: 'string', maxLength: 100 }, example: 'lunch' }] : []),
     ];
     paths[path] ??= {};
     paths[path][method] = {

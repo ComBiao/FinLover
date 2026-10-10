@@ -62,7 +62,7 @@ function computeSavingGoal(wallet: Wallet | undefined): HomeSavingGoal | null {
  */
 export async function getHomeSummary(month: MonthKey, walletId: string): Promise<HomeSummary> {
   const [transactions, wallets, categories] = await Promise.all([
-    (getTransactions as (m?: string) => Promise<Transaction[]>)(month),
+    getTransactions([month]),
     getWallets(),
     getCategories(),
   ]);

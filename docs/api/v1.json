@@ -1287,6 +1287,29 @@
                   "color": {
                     "type": "string",
                     "pattern": "^#[0-9A-Fa-f]{6}$"
+                  },
+                  "icon": {
+                    "type": "string",
+                    "enum": [
+                      "Utensils",
+                      "Car",
+                      "Home",
+                      "ShoppingCart",
+                      "Zap",
+                      "HeartPulse",
+                      "Film",
+                      "Wallet",
+                      "Banknote",
+                      "Gift",
+                      "Award",
+                      "PieChart",
+                      "MoreHorizontal",
+                      "Star",
+                      "Smile",
+                      "GraduationCap",
+                      "Briefcase",
+                      "CreditCard"
+                    ]
                   }
                 },
                 "required": [
@@ -1298,7 +1321,8 @@
               "example": {
                 "name": "Food",
                 "type": "expense",
-                "color": "#FF8800"
+                "color": "#FF8800",
+                "icon": "Utensils"
               }
             }
           }
@@ -1332,6 +1356,29 @@
                         "color": {
                           "type": "string",
                           "pattern": "^#[0-9A-Fa-f]{6}$"
+                        },
+                        "icon": {
+                          "type": "string",
+                          "enum": [
+                            "Utensils",
+                            "Car",
+                            "Home",
+                            "ShoppingCart",
+                            "Zap",
+                            "HeartPulse",
+                            "Film",
+                            "Wallet",
+                            "Banknote",
+                            "Gift",
+                            "Award",
+                            "PieChart",
+                            "MoreHorizontal",
+                            "Star",
+                            "Smile",
+                            "GraduationCap",
+                            "Briefcase",
+                            "CreditCard"
+                          ]
                         },
                         "id": {
                           "type": "string",
@@ -1740,6 +1787,29 @@
                   "color": {
                     "type": "string",
                     "pattern": "^#[0-9A-Fa-f]{6}$"
+                  },
+                  "icon": {
+                    "type": "string",
+                    "enum": [
+                      "Utensils",
+                      "Car",
+                      "Home",
+                      "ShoppingCart",
+                      "Zap",
+                      "HeartPulse",
+                      "Film",
+                      "Wallet",
+                      "Banknote",
+                      "Gift",
+                      "Award",
+                      "PieChart",
+                      "MoreHorizontal",
+                      "Star",
+                      "Smile",
+                      "GraduationCap",
+                      "Briefcase",
+                      "CreditCard"
+                    ]
                   }
                 },
                 "additionalProperties": true
@@ -1747,7 +1817,8 @@
               "example": {
                 "name": "Food",
                 "type": "expense",
-                "color": "#FF8800"
+                "color": "#FF8800",
+                "icon": "Utensils"
               }
             }
           }
@@ -1781,6 +1852,29 @@
                         "color": {
                           "type": "string",
                           "pattern": "^#[0-9A-Fa-f]{6}$"
+                        },
+                        "icon": {
+                          "type": "string",
+                          "enum": [
+                            "Utensils",
+                            "Car",
+                            "Home",
+                            "ShoppingCart",
+                            "Zap",
+                            "HeartPulse",
+                            "Film",
+                            "Wallet",
+                            "Banknote",
+                            "Gift",
+                            "Award",
+                            "PieChart",
+                            "MoreHorizontal",
+                            "Star",
+                            "Smile",
+                            "GraduationCap",
+                            "Briefcase",
+                            "CreditCard"
+                          ]
                         },
                         "id": {
                           "type": "string",
@@ -2247,6 +2341,29 @@
                         "color": {
                           "type": "string",
                           "pattern": "^#[0-9A-Fa-f]{6}$"
+                        },
+                        "icon": {
+                          "type": "string",
+                          "enum": [
+                            "Utensils",
+                            "Car",
+                            "Home",
+                            "ShoppingCart",
+                            "Zap",
+                            "HeartPulse",
+                            "Film",
+                            "Wallet",
+                            "Banknote",
+                            "Gift",
+                            "Award",
+                            "PieChart",
+                            "MoreHorizontal",
+                            "Star",
+                            "Smile",
+                            "GraduationCap",
+                            "Briefcase",
+                            "CreditCard"
+                          ]
                         },
                         "id": {
                           "type": "string",
@@ -4957,7 +5074,7 @@
           "transaction"
         ],
         "summary": "listTransactions",
-        "description": "List all owned transactions for an optional YYYY-MM month, defaulting to the current month in APPLICATION_TIMEZONE. Results are newest first; this monthly endpoint intentionally has no pagination. Authorization takes precedence over cookie. Cookie-authenticated GETs do not require an Origin. Implemented.",
+        "description": "List all owned transactions for an optional YYYY-MM month, defaulting to the current month in APPLICATION_TIMEZONE, optionally narrowed by a case-insensitive title/note search. Results are newest first; this monthly endpoint intentionally has no pagination. Authorization takes precedence over cookie. Cookie-authenticated GETs do not require an Origin. Implemented.",
         "security": [
           {
             "bearerAuth": []

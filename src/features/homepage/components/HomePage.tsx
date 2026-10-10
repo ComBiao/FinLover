@@ -50,7 +50,9 @@ export function HomePage() {
   const setWalletId = useActiveWallet((state) => state.setActiveWalletId);
 
   const { data: wallets = [] } = useWallets();
-  const { data: transactions = [], isPending: isTransactionsPending } = useTransactions();
+  // Memoized so the query key stays stable between renders (avoids refetch loops)
+  const months = React.useMemo(() => [month], [month]);
+  const { data: transactions = [], isPending: isTransactionsPending } = useTransactions(months);
   const {
     data: summary,
     isPending: isSummaryPending,
@@ -100,18 +102,11 @@ export function HomePage() {
     }
   }
 
-  function handleEditTransaction(updatedTransaction: Transaction) {
+  async function handleEditTransaction(updatedTransaction: Transaction) {
     const { id, ...input } = updatedTransaction;
-    updateTransaction.mutate(
-      { id, input },
-      {
-        onSuccess: (updated) => {
-          setMonth(monthKeyOfDate(updated.date));
-          toast.success("Transaction updated");
-        },
-        onError: () => toast.error("Couldn't update this transaction"),
-      }
-    );
+    const updated = await updateTransaction.mutateAsync({ id, input });
+    setMonth(monthKeyOfDate(updated.date));
+    toast.success("Transaction updated");
   }
 
   function handleDeleteTransaction(id: string) {
