@@ -62,7 +62,7 @@ type AddTransactionModalProps = {
    */
   onAdd?: (transaction: Omit<Transaction, "id">) => Promise<void>;
   /** Called with the updated transaction when submitting in Edit mode. */
-  onEdit?: (transaction: Transaction) => void;
+  onEdit?: (transaction: Transaction) => Promise<void>;
 };
 
 /**
@@ -252,19 +252,17 @@ export function AddTransactionModal({
       note: values.note ? values.note : undefined,
     };
 
-    if (isEditMode && effectiveInitialData) {
-      onEdit?.({ ...effectiveInitialData, ...shared });
-      closeModal();
-      return;
-    }
-
-    if (!onAdd) {
+    const submit =
+      isEditMode && effectiveInitialData
+        ? onEdit && (() => onEdit({ ...effectiveInitialData, ...shared }))
+        : onAdd && (() => onAdd(shared));
+    if (!submit) {
       setError("root", { message: "Can't save: this form isn't connected yet." });
       return;
     }
 
     try {
-      await onAdd(shared);
+      await submit();
       closeModal();
     } catch (error) {
       setError("root", {
@@ -471,6 +469,8 @@ export function AddTransactionModal({
                       id="transaction-wallet"
                       value={field.value}
                       onValueChange={(nextWalletId) => field.onChange(nextWalletId ?? "")}
+                      // The update API can't move a transaction between wallets.
+                      disabled={isEditMode}
                     />
                   )}
                 />

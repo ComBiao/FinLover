@@ -1,7 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { periodMonthKeys } from "@/features/transactions/period";
-import { createTransaction, getTransactions } from "@/features/transactions/transactionsService";
+import {
+  createTransaction,
+  deleteTransaction,
+  getTransactions,
+  updateTransaction,
+} from "@/features/transactions/transactionsService";
 
 const row = (id: string, date: string, overrides: Record<string, unknown> = {}) => ({
   id,
@@ -90,5 +95,58 @@ describe("createTransaction", () => {
       title: "Lunch",
     });
     expect(created.id).toBe("new");
+  });
+});
+
+describe("updateTransaction", () => {
+  it("PUTs the editable fields without the wallet and returns the updated row", async () => {
+    const fetchMock = mockFetch(() => ({
+      body: { status: true, data: row("abc", "2026-10-05", { title: "Edited", amount: 90 }) },
+    }));
+
+    const updated = await updateTransaction("abc", {
+      walletId: "507f1f77bcf86cd799439011",
+      categoryId: "507f1f77bcf86cd799439022",
+      type: "expense",
+      amount: 90,
+      date: new Date(2026, 9, 5),
+      title: "Edited",
+    });
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("/api/v1/transactions/abc");
+    expect(init?.method).toBe("PUT");
+    expect(JSON.parse(String(init?.body))).toEqual({
+      categoryId: "507f1f77bcf86cd799439022",
+      type: "expense",
+      amount: 90,
+      date: "2026-10-05",
+      title: "Edited",
+    });
+    expect(updated).toMatchObject({ id: "abc", title: "Edited", amount: 90 });
+  });
+
+  it("rejects with the server's message", async () => {
+    mockFetch(() => ({ status: 404, body: { status: false, error: { message: "Transaction not found" } } }));
+    await expect(
+      updateTransaction("abc", { walletId: "w", type: "expense", amount: 1, date: new Date(), title: "t" })
+    ).rejects.toThrow("Transaction not found");
+  });
+});
+
+describe("deleteTransaction", () => {
+  it("sends DELETE and resolves on the v1 null-data success envelope", async () => {
+    const fetchMock = mockFetch(() => ({ body: { status: true, data: null } }));
+
+    await expect(deleteTransaction("abc")).resolves.toBeUndefined();
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("/api/v1/transactions/abc");
+    expect(init?.method).toBe("DELETE");
+  });
+
+  it("rejects instead of reporting success when the server refuses", async () => {
+    mockFetch(() => ({ status: 404, body: { status: false, error: { message: "Transaction not found" } } }));
+    await expect(deleteTransaction("abc")).rejects.toThrow("Transaction not found");
   });
 });
