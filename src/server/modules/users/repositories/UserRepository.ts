@@ -6,7 +6,9 @@ import { sessionOf } from '@/server/db/unit-of-work';
 
 export class UserRepository implements UserRepositoryPort {
   async findByEmail(email: string) { return User.findOne({ email }); }
-  async create(input: { email: string; passwordHash: string; dataPrivacyConsent: true }) { return User.create(input); }
+  async create(input: { email: string; passwordHash: string; dataPrivacyConsent: true }, context?: TransactionContext) {
+    return new User(input).save({ session: sessionOf(context) });
+  }
   /**
    * Permanently deletes the user and cascades to their wallets, categories, and
    * transactions. Uses the session in context when supplied; this method does
