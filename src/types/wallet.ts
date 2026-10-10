@@ -15,4 +15,8 @@ export type Wallet = {
   isSaving?: boolean;
   /** Target amount for a saving wallet; `null`/absent means no goal is set. */
   savingGoal?: number | null;
+  /** Goal amount matching backend API property name. */
+  goalAmount?: number | null;
+  /** Whether this is the user's default wallet. */
+  isDefault?: boolean;
 };

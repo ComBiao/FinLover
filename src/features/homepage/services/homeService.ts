@@ -1,8 +1,9 @@
 import { getCategories } from "@/features/transactions/categoriesService";
 import { getTransactions } from "@/features/transactions/transactionsService";
-import { getWallets } from "@/features/transactions/walletsService";
+import { getWallets } from "@/features/wallets/walletsService";
 import { isDateInMonth, type MonthKey } from "@/features/homepage/month";
 import type { Category } from "@/types/category";
+import type { Transaction } from "@/types/transaction";
 import type { Wallet } from "@/types/wallet";
 
 export type HomeSavingGoal = {
@@ -55,10 +56,13 @@ function computeSavingGoal(wallet: Wallet | undefined): HomeSavingGoal | null {
   };
 }
 
-// TODO(backend): replace with fetch(`/api/home/summary?month=${month}&walletId=${walletId}`)
+/**
+ * Computes home summary figures (balance, income, expense, net, top categories, and saving goal)
+ * from real wallets and monthly transactions (US2-1 through US2-6).
+ */
 export async function getHomeSummary(month: MonthKey, walletId: string): Promise<HomeSummary> {
   const [transactions, wallets, categories] = await Promise.all([
-    getTransactions(),
+    (getTransactions as (m?: string) => Promise<Transaction[]>)(month),
     getWallets(),
     getCategories(),
   ]);

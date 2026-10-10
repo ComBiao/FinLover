@@ -37,17 +37,32 @@ import {
 } from "@/features/homepage/month";
 import { userName } from "@/mocks/mock-data";
 
+import { useActiveWallet } from "@/features/wallets/store/useActiveWallet";
+import { useBalanceVisibility } from "@/features/wallets/store/useBalanceVisibility";
+
 function monthKeyOfDate(date: Date): MonthKey {
   return formatMonthKey(date.getFullYear(), date.getMonth() + 1);
 }
 
 export function HomePage() {
   const [month, setMonth] = React.useState<MonthKey>(() => currentMonthKey());
-  const [walletId, setWalletId] = React.useState<string>("all");
+  const walletId = useActiveWallet((state) => state.activeWalletId);
+  const setWalletId = useActiveWallet((state) => state.setActiveWalletId);
 
   const { data: wallets = [] } = useWallets();
   const { data: transactions = [], isPending: isTransactionsPending } = useTransactions();
-  const { data: summary, isPending: isSummaryPending } = useHomeSummary(month, walletId);
+  const {
+    data: summary,
+    isPending: isSummaryPending,
+    isError: isSummaryError,
+  } = useHomeSummary(month, walletId);
+
+  // If fetching summary encounters an error, revert balance visibility to hidden (#78)
+  React.useEffect(() => {
+    if (isSummaryError) {
+      useBalanceVisibility.getState().onError();
+    }
+  }, [isSummaryError]);
 
   const createTransaction = useCreateTransaction();
   const updateTransaction = useUpdateTransaction();

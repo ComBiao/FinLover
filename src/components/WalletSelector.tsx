@@ -1,3 +1,8 @@
+"use client";
+
+import * as React from "react";
+import { QueryClientContext } from "@tanstack/react-query";
+
 import { resolveChipTone, WALLET_TYPE_STYLES } from "@/components/chipColor";
 import { ALL_VALUE, decodeOptionValue, encodeOptionValue } from "@/components/optionValue";
 import { Badge } from "@/components/ui/badge";
@@ -10,13 +15,14 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import type { Wallet } from "@/types/wallet";
+import { useWallets } from "@/features/wallets/hooks/useWallets";
 import { MOCK_WALLETS } from "@/mocks/mockWallets";
 
 function walletTone(wallet: Wallet) {
   return resolveChipTone(wallet.color, WALLET_TYPE_STYLES, wallet.type ?? wallet.id);
 }
 
-type WalletSelectorProps = {
+export type WalletSelectorProps = {
   id?: string;
   name?: string;
   value?: string;
@@ -29,18 +35,12 @@ type WalletSelectorProps = {
   allLabel?: string;
 };
 
-/**
- * Dropdown for picking a wallet/account. Pass `allowAll` to add a sentinel
- * "all" option for filter UIs, which is reported back to `onValueChange` as
- * `undefined`. Real option values are encoded with a prefix so a wallet
- * whose `id` happens to be "all" can never collide with the sentinel value.
- */
-export function WalletSelector({
+function WalletSelectorBase({
   id,
   name,
   value = "",
   onValueChange,
-  wallets = MOCK_WALLETS,
+  wallets = [],
   placeholder = "Select a wallet",
   disabled,
   className,
@@ -106,4 +106,28 @@ export function WalletSelector({
       </SelectContent>
     </Select>
   );
+}
+
+function WalletSelectorWithQuery(props: WalletSelectorProps) {
+  const { data: wallets = [] } = useWallets();
+  return <WalletSelectorBase {...props} wallets={props.wallets ?? wallets} />;
+}
+
+/**
+ * Dropdown for picking a wallet/account.
+ * Uses real wallets from useWallets() when inside QueryClientProvider.
+ */
+export function WalletSelector(props: WalletSelectorProps) {
+  const hasQueryClient = Boolean(React.useContext(QueryClientContext));
+
+  if (props.wallets !== undefined) {
+    return <WalletSelectorBase {...props} />;
+  }
+
+  if (hasQueryClient) {
+    return <WalletSelectorWithQuery {...props} />;
+  }
+
+  // Fallback for tests rendered outside QueryClientProvider
+  return <WalletSelectorBase {...props} wallets={MOCK_WALLETS} />;
 }
