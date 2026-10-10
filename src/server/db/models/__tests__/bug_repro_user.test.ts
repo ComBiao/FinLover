@@ -24,8 +24,8 @@ describe('User cascade delete bug', () => {
     const user1 = await User.create({ email: 'u1@test.com', passwordHash: 'hash', dataPrivacyConsent: true });
     const user2 = await User.create({ email: 'u2@test.com', passwordHash: 'hash', dataPrivacyConsent: true });
     
-    await Category.create({ userId: user1._id, name: 'C1', type: 'expense', icon: 'i' });
-    await Category.create({ userId: user2._id, name: 'C2', type: 'expense', icon: 'i' });
+    await Category.create({ userId: user1._id, name: 'C1', type: 'expense', icon: 'Star' });
+    await Category.create({ userId: user2._id, name: 'C2', type: 'expense', icon: 'Star' });
 
     // delete u1 by email
     await User.findOneAndDelete({ email: 'u1@test.com' });

@@ -102,7 +102,7 @@ describe('Mongoose Schema Validations', () => {
       expect(err?.errors.userId).toBeDefined();
     });
 
-    it('should enforce unique compound index on userId + name', async () => {
+    it('should enforce unique compound index on userId + type + name', async () => {
       await new Wallet({ userId: validUserId, name: 'Savings' }).save();
 
       let err: any = null;
@@ -114,6 +114,13 @@ describe('Mongoose Schema Validations', () => {
 
       expect(err).toBeDefined();
       expect(err.code).toBe(11000); // MongoDB duplicate key error code
+    });
+
+    it('should allow the same category name across income and expense', async () => {
+      await new Category({ userId: validUserId, name: 'Others', type: 'expense' }).save();
+
+      const incomeCategory = await new Category({ userId: validUserId, name: 'Others', type: 'income' }).save();
+      expect(incomeCategory._id).toBeDefined();
     });
 
     it('should allow same wallet name for different users', async () => {
