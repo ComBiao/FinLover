@@ -30,9 +30,9 @@ export class GetTransactionsByMonthService {
     private timezone: () => string,
   ) {}
 
-  async execute(userId: string, requestedMonth?: string) {
+  async execute(userId: string, requestedMonth?: string, search?: string) {
     const month = requestedMonth ?? currentMonth(this.now(), this.timezone());
     const { start, end } = monthBoundaries(month);
-    return this.repo.findByDateRange(userId, start, end);
+    return this.repo.findByDateRange(userId, start, end, search);
   }
 }
