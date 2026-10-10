@@ -20,10 +20,12 @@ afterEach(() => cleanup());
 /** Fills every required field (title, amount, date, wallet) via the real UI. */
 async function fillRequiredFields() {
   fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Grab ride" } });
-  fireEvent.change(screen.getByLabelText("Amount"), { target: { value: "120" } });
+  // Field label follows the expense/income theme ("Money out" for the test's default expense type), not a literal "Amount".
+  fireEvent.change(screen.getByLabelText("Money out"), { target: { value: "120" } });
   fireEvent.change(screen.getByLabelText("Date"), { target: { value: "2026-10-03" } });
 
-  fireEvent.click(screen.getByLabelText("Wallet"));
+  // Field label follows the expense/income theme ("Pay from wallet" for the test's default expense type), not a literal "Wallet".
+  fireEvent.click(screen.getByLabelText("Pay from wallet"));
   const option = await screen.findByText(MOCK_WALLETS[0].name);
   fireEvent.click(option);
 }
@@ -41,7 +43,7 @@ describe("AddTransactionModal — US3-1 async create (Add mode only)", () => {
     render(<AddTransactionModal onAdd={onAdd} />);
 
     await fillRequiredFields();
-    fireEvent.click(screen.getByText("Save transaction"));
+    fireEvent.click(screen.getByText("Save expense"));
 
     // Pending: onAdd was called, the modal is still open and the submit
     // button is disabled — can't double-submit or dismiss mid-request.
@@ -62,7 +64,7 @@ describe("AddTransactionModal — US3-1 async create (Add mode only)", () => {
     render(<AddTransactionModal onAdd={onAdd} />);
 
     await fillRequiredFields();
-    fireEvent.click(screen.getByText("Save transaction"));
+    fireEvent.click(screen.getByText("Save expense"));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Wallet not found");
     expect(useTransactionModal.getState().isOpen).toBe(true);
@@ -74,7 +76,7 @@ describe("AddTransactionModal — US3-1 async create (Add mode only)", () => {
     render(<AddTransactionModal onAdd={onAdd} />);
 
     await fillRequiredFields();
-    fireEvent.click(screen.getByText("Save transaction"));
+    fireEvent.click(screen.getByText("Save expense"));
     expect(await screen.findByRole("alert")).toHaveTextContent("Wallet not found");
 
     fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Grab ride (retry)" } });
@@ -87,7 +89,7 @@ describe("AddTransactionModal — US3-1 async create (Add mode only)", () => {
     render(<AddTransactionModal />);
 
     await fillRequiredFields();
-    fireEvent.click(screen.getByText("Save transaction"));
+    fireEvent.click(screen.getByText("Save expense"));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("isn't connected");
     expect(useTransactionModal.getState().isOpen).toBe(true);

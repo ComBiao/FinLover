@@ -14,8 +14,15 @@ function record(doc: ITransaction): TransactionRecord {
   return { id: String(doc._id), userId: String(doc.userId), walletId: String(doc.walletId), categoryId: doc.categoryId ? String(doc.categoryId) : null, type: doc.type, amount: Number(doc.amount), date: doc.date, title: doc.title ?? '(untitled)', note: doc.note };
 }
 export class TransactionRepository implements TransactionRepositoryPort {
+  async findByDateRange(userId: string, start: Date, end: Date) {
+    const docs = await Transaction.find({ userId, date: { $gte: start, $lt: end } }).sort({ date: -1, _id: -1 });
+    return docs.map(record);
+  }
   async clearCategory(categoryId: string, userId: string, context: TransactionContext) {
     await authorizeTransactionWrite(Transaction.updateMany({ categoryId, userId }, { $set: { categoryId: null } }, { session: sessionOf(context) }), context);
+  }
+  async removeByWallet(walletId: string, userId: string, context: TransactionContext) {
+    await authorizeTransactionWrite(Transaction.deleteMany({ walletId, userId }, { session: sessionOf(context) }), context);
   }
   async findOwned(id: string, userId: string, context: TransactionContext) {
     const doc = await Transaction.findOne({ _id: id, userId }).session(sessionOf(context)!); return doc ? record(doc) : null;

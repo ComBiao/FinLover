@@ -39,7 +39,7 @@ FinLover/
 ├── docs/
 └── src/
     ├── app/                       # page/layout composition and thin API entries
-    ├── features/                  # auth, categories, transactions, dashboard UI
+    ├── features/                  # auth, categories, transactions, homepage UI
     ├── components/                # shared UI, ui/ = shadcn base components
     ├── lib/ / types/ / mocks/      # browser-safe helpers, UI types, demo data
     ├── shared/contracts/          # shared HTTP schemas/types, source imports
@@ -72,15 +72,17 @@ FinLover/
 
 Requests flow through auth/CSRF guards, controller.handle, service.execute, repository and MongoDB. Controllers do not query models; services do not know Next.js/HTTP. API versions share business services and auth policy; only input/output contracts differ. Cross-module dependencies are passed through ports. Repositories/composition/production DB entry use `server-only`; ESLint prohibits frontend/shared-contract imports of server code.
 
-Transaction services own balance deltas and validate references. Repositories recheck wallet/category ownership and type compatibility immediately before create/update. Each model write needs a repository-issued, single-use capability bound to an active transaction session; save, query mutations, insertMany and bulkWrite otherwise reject. Create/update/delete and balance changes share a UnitOfWork. Use services for application writes. Raw collection access bypasses middleware and is reserved for migrations, explicit test fixtures and internal cascades that delete the owning wallet(s). Category deletion clears references without changing balances. System-category guards and user/wallet persistence cascades remain for internal compatibility and propagate caller sessions. Migrations are operational source and never run during installation/build/startup.
+Transaction services own balance deltas and validate references. Repositories recheck wallet/category ownership and type compatibility immediately before create/update. Each model write needs a repository-issued, single-use capability bound to an active transaction session; save, query mutations, insertMany and bulkWrite otherwise reject. Create/update/delete and balance changes share a UnitOfWork. Use services for application writes. Raw collection access bypasses middleware and is reserved for migrations, explicit test fixtures and internal cascades that delete the owning wallet(s). Category deletion clears references without changing balances. Wallet deletion removes the wallet's transactions through `TransactionRepository.removeByWallet` (guarded) and the wallet cascade in the same UnitOfWork. System-category guards and user/wallet persistence cascades remain for internal compatibility and propagate caller sessions. Migrations are operational source and never run during installation/build/startup.
 
 ## 4. UI rules and integration status
 
 Use shadcn/ui base controls and lucide-react icons. Add shadcn components from root using `npx shadcn add <name>`. Validate external data with Zod. Keep client-only form validation separate from persisted HTTP schemas. Zustand holds UI state; TanStack Query handles actual API mutations through the root QueryClientProvider.
 
-Login/register/logout now use `/api/v1/auth/*`. Registration sends matching passwords and consent; the existing User schema does not persist the form's name. Successful login redirects to dashboard; logout clears the cookie and query cache before redirecting. Errors remain visible rather than reporting fake success.
+Login/register/logout now use `/api/v1/auth/*`. Registration sends matching passwords and consent; the existing User schema does not persist the form's name. Successful login redirects to the homepage; logout clears the cookie and query cache before redirecting. Errors remain visible rather than reporting fake success.
 
-Category/transaction/dashboard screens and displayed profile details remain mock/demo data. List/wallet/report/current-user APIs and full UI integration are not implemented by this refactor. Existing browser routes remain `/`, `/login`, `/register`, `/dashboard`, `/category`, `/transactions`.
+Category/transaction/homepage screens and displayed profile details remain mock/demo data. The v1 API provides monthly transaction reads through `GET /api/v1/transactions?month=YYYY-MM` (defaulting with `APPLICATION_TIMEZONE`). The v1 wallet API supports `GET` and `POST /api/v1/wallets` plus `GET`, `PUT` and `DELETE /api/v1/wallets/{id}` (delete removes the wallet's transactions in the same UnitOfWork); legacy has no wallet operations, and the wallet screen is not integrated. Wallet creation currently has no per-user limit. Other category/transaction lists, reports and current-user APIs remain unimplemented. Existing browser routes remain `/`, `/login`, `/register`, `/homepage`, `/category`, `/transactions`.
+
+The Category screen defines 11 built-in expense categories and 6 built-in income categories. `isDefault` prevents editing/deleting built-ins in both the cards and the local state hook. `isFallback` identifies Other, which stays last when custom categories are added. These categories remain local UI state and do not change server category data or transaction classification.
 
 ## 5. Auth and CSRF
 
@@ -133,4 +135,4 @@ Generators work without DB/secrets and resolve paths relative to their files. Ne
 
 Production builds explicitly use `next build --webpack`; this environment rejected Turbopack worker port creation (EPERM). Development still uses `next dev`.
 
-HTTP errors share one mapper and first-issue Zod field mapping. Unknown failures return `INTERNAL_ERROR`; server diagnostics include request ID, error type, numeric driver code and stack frames, excluding error messages and attached private payloads. Legacy transaction validation remains 422; malformed JSON is 400 in both versions. Category create/update reuse the shared Zod schemas. The v1 transaction response is mapped only in `versioned-handlers.ts`; the transaction DTO exposes only the legacy representation. Category HTTP and compatibility callers share one delete service instance.
+HTTP errors share one mapper and first-issue Zod field mapping. Unknown failures return `INTERNAL_ERROR`; server diagnostics include request ID, error type, numeric driver code and stack frames, excluding error messages and attached private payloads. Legacy transaction validation remains 422; malformed JSON is 400 in both versions. Category create/update reuse the shared Zod schemas. `TransactionResponseDTO` provides legacy and v1 mappings for transaction responses. Category HTTP and compatibility callers share one delete service instance.

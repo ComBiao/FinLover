@@ -8,3 +8,18 @@ export async function postApi<T>(path: string, body?: unknown): Promise<T> {
   if (!response.ok || payload.status !== true) throw new ApiClientError(payload.error?.message ?? 'Request failed', response.status, payload.error?.fields);
   return payload.data as T;
 }
+
+export async function getApi<T>(path: string): Promise<T> {
+  const response = await fetch(path, { credentials: 'same-origin' });
+  let payload: unknown;
+  try {
+    payload = await response.json();
+  } catch (error) {
+    if (!response.ok) throw new ApiClientError('Request failed', response.status);
+    throw error;
+  }
+  if (typeof payload !== 'object' || payload === null) throw new ApiClientError('Invalid API response', response.status);
+  const result = payload as { status?: boolean; data?: unknown; error?: { message?: string; fields?: Record<string, string> } };
+  if (!response.ok || result.status !== true) throw new ApiClientError(result.error?.message ?? 'Request failed', response.status, result.error?.fields);
+  return result.data as T;
+}

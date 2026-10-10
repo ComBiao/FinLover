@@ -26,12 +26,21 @@ function expandShortHex(hex: string) {
     : hex;
 }
 
-function hexToRgba(hex: string, alpha: number) {
+export function hexToRgba(hex: string, alpha: number) {
   const normalized = expandShortHex(hex);
   const r = parseInt(normalized.slice(1, 3), 16);
   const g = parseInt(normalized.slice(3, 5), 16);
   const b = parseInt(normalized.slice(5, 7), 16);
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+/** Darkens a hex color toward black by `factor` (e.g. 0.6 keeps 60% of each channel) — used to derive a readable text/icon shade from a color meant for a soft background tint. */
+export function shadeHex(hex: string, factor: number) {
+  const normalized = expandShortHex(hex);
+  const r = Math.round(parseInt(normalized.slice(1, 3), 16) * factor);
+  const g = Math.round(parseInt(normalized.slice(3, 5), 16) * factor);
+  const b = Math.round(parseInt(normalized.slice(5, 7), 16) * factor);
+  return `rgb(${r}, ${g}, ${b})`;
 }
 
 /** Deterministic string -> [0, modulo) index, so the same key always lands on the same slot. */
@@ -64,10 +73,10 @@ export const CATEGORY_STYLES: Record<string, ChipPreset> = {
   "food-drink": { chip: "bg-chart-1/15 text-chart-1", dot: "bg-chart-1" },
   transport: { chip: "bg-chart-2/15 text-chart-2", dot: "bg-chart-2" },
   shopping: { chip: "bg-chart-3/15 text-chart-3", dot: "bg-chart-3" },
-  gifts: { chip: "bg-chart-4/15 text-chart-4", dot: "bg-chart-4" },
+  bills: { chip: "bg-chart-4/15 text-chart-4", dot: "bg-chart-4" },
   salary: { chip: "bg-success-bg text-success", dot: "bg-success" },
   freelance: { chip: "bg-primary/10 text-primary", dot: "bg-primary" },
-  investment: { chip: "bg-accent/10 text-accent", dot: "bg-accent" },
+  saving: { chip: "bg-accent/10 text-accent", dot: "bg-accent" },
 };
 
 /**

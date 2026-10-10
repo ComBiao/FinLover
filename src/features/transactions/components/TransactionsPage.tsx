@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMemo } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 
@@ -12,7 +12,11 @@ import { TransactionTable } from "@/features/transactions/components/Transaction
 import { Button } from "@/components/ui/button";
 import { postApi } from "@/lib/api/client";
 import { toLocalISODate } from "@/lib/utils";
-import { MOCK_TRANSACTIONS } from "@/features/transactions/mockTransactions";
+import { useTransactions } from "@/features/transactions/hooks/useTransactions";
+import {
+  useDeleteTransaction,
+  useUpdateTransaction,
+} from "@/features/transactions/hooks/useTransactionMutations";
 import { filterTransactions } from "@/features/transactions/transactions";
 import { useTransactionFilters } from "@/features/transactions/store/useTransactionFilters";
 import { useTransactionModal } from "@/features/transactions/store/useTransactionModal";
@@ -22,12 +26,20 @@ import { SummaryCards } from "./SummaryCards";
 
 /**
  * Transaction management page: filterable/searchable list of every
- * transaction with edit/delete actions per row.
+ * transaction with edit/delete actions per row. The transaction list itself
+ * comes from the shared `useTransactions` query (same mock data source Home
+ * reads/mutates), so a change made from either page is visible in both.
  */
 export default function TransactionsPage() {
-  const [transactions, setTransactions] = useState<Transaction[]>(MOCK_TRANSACTIONS);
+  const queryClient = useQueryClient();
+  const { data: transactions = [] } = useTransactions();
+  const updateTransaction = useUpdateTransaction();
+  const deleteTransaction = useDeleteTransaction();
   const filters = useTransactionFilters((state) => state.filters);
   const setFilters = useTransactionFilters((state) => state.setFilters);
+  const period = useTransactionFilters((state) => state.period);
+  const setPeriod = useTransactionFilters((state) => state.setPeriod);
+  const setPeriodMode = useTransactionFilters((state) => state.setMode);
   const resetFilters = useTransactionFilters((state) => state.resetFilters);
   const openModal = useTransactionModal((state) => state.openModal);
   const openEditModal = useTransactionModal((state) => state.openEditModal);
@@ -41,12 +53,11 @@ export default function TransactionsPage() {
     [transactions, filters]
   );
 
-  /**
-   * TODO: integrate the v1 transaction API when replacing mock data with server data.
-   */
   function handleDeleteTransaction(id: string) {
-    setTransactions((prev) => prev.filter((transaction) => transaction.id !== id));
-    toast.success("Transaction deleted successfully");
+    deleteTransaction.mutate(id, {
+      onSuccess: () => toast.success("Transaction deleted successfully"),
+      onError: () => toast.error("Couldn't delete this transaction"),
+    });
   }
 
   const createTransactionMutation = useMutation({
@@ -63,23 +74,27 @@ export default function TransactionsPage() {
   });
 
   /**
-   * US3-1: persists via `POST /api/v1/transactions`, then prepends the
-   * server-assigned id to local state. There is no `GET` list endpoint yet
-   * (same limitation as #101's category list — tracked separately), so a
-   * hard refresh still reloads `MOCK_TRANSACTIONS`; the create itself is
-   * real.
+   * US3-1: persists via `POST /api/v1/transactions`. `useTransactions()`
+   * (and the Home summary it shares a cache with) still read from the mock
+   * service — same limitation as #101's category list — so invalidating
+   * them here is forward-compatible with the real `GET` list (#94) rather
+   * than something that already shows the new row today.
    */
   async function handleAddTransaction(input: Omit<Transaction, "id">) {
-    const created = await createTransactionMutation.mutateAsync(input);
-    setTransactions((prev) => [{ ...input, id: created.id }, ...prev]);
+    await createTransactionMutation.mutateAsync(input);
+    queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    queryClient.invalidateQueries({ queryKey: ["home-summary"] });
     toast.success("Transaction added successfully");
   }
 
   function handleEditTransaction(updatedTransaction: Transaction) {
-    setTransactions((prev) =>
-      prev.map((transaction) =>
-        transaction.id === updatedTransaction.id ? updatedTransaction : transaction
-      )
+    const { id, ...input } = updatedTransaction;
+    updateTransaction.mutate(
+      { id, input },
+      {
+        onSuccess: () => toast.success("Transaction updated"),
+        onError: () => toast.error("Couldn't update this transaction"),
+      }
     );
   }
 
@@ -101,7 +116,14 @@ export default function TransactionsPage() {
 
         <SummaryCards transactions={filteredTransactions} />
 
-        <TransactionFilterBar value={filters} onValueChange={setFilters} onReset={resetFilters} />
+        <TransactionFilterBar
+          value={filters}
+          onValueChange={setFilters}
+          period={period}
+          onPeriodChange={setPeriod}
+          onPeriodModeChange={setPeriodMode}
+          onReset={resetFilters}
+        />
 
         <div className="flex items-baseline justify-between gap-3">
           <h2 className="text-lg font-semibold text-foreground">All Transaction</h2>
