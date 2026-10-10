@@ -517,6 +517,31 @@ describe('v1 monthly transaction reads', () => {
     expect(payload.data[0]).not.toHaveProperty('userId');
   });
 
+  it('searches title or note case-insensitively, literally, within the month and for the owner only', async () => {
+    const byTitle = await transaction('2026-10-02', 'Lunch with Ann');
+    const byNote = await seedTransaction(new Transaction({ userId: user, walletId: wallet, categoryId: null, type: 'expense', amount: 10, date: new Date('2026-10-03'), title: 'Groceries', note: 'weekly LUNCH prep' }));
+    await transaction('2026-10-04', 'Taxi');
+    await transaction('2026-09-30', 'Lunch last month');
+    await transaction('2026-10-05', 'Lunch for someone else', other);
+    await transaction('2026-10-06', 'Fee (50% off) a.b');
+
+    const ids = async (query: string) => {
+      const response = await v1.listTransactions(request('GET', `/api/v1/transactions?month=2026-10${query}`), context());
+      expect(response.status).toBe(200);
+      return (await contract('v1', '/api/v1/transactions', 'get', response)).data.map((item: { id: string }) => item.id);
+    };
+
+    expect(await ids('&search=lunch')).toEqual([String(byNote._id), String(byTitle._id)]);
+    expect(await ids('&search=%20%20')).toHaveLength(4); // blank search = no filter (4 owned October rows)
+    expect(await ids('&search=a.b')).toHaveLength(1);
+    expect(await ids('&search=.*')).toHaveLength(0); // metacharacters are not interpreted as a regex
+    expect(await ids('&search=%2850%25')).toHaveLength(1);
+    expect(await ids('&search=nothing-matches')).toEqual([]);
+
+    const tooLong = await v1.listTransactions(request('GET', `/api/v1/transactions?month=2026-10&search=${'x'.repeat(101)}`), context());
+    expect(tooLong.status).toBe(400);
+  });
+
   it('returns an empty collection and rejects invalid months or missing authentication', async () => {
     const empty = await v1.listTransactions(request('GET', '/api/v1/transactions?month=2024-02'), context());
     expect(await contract('v1', '/api/v1/transactions', 'get', empty)).toEqual({ status: true, data: [] });

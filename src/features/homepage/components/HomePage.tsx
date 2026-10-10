@@ -46,7 +46,8 @@ export function HomePage() {
   const [walletId, setWalletId] = React.useState<string>("all");
 
   const { data: wallets = [] } = useWallets();
-  const { data: transactions = [], isPending: isTransactionsPending } = useTransactions();
+  const months = React.useMemo(() => [month], [month]);
+  const { data: transactions = [], isPending: isTransactionsPending } = useTransactions(months);
   const { data: summary, isPending: isSummaryPending } = useHomeSummary(month, walletId);
 
   const createTransaction = useCreateTransaction();
@@ -85,18 +86,11 @@ export function HomePage() {
     }
   }
 
-  function handleEditTransaction(updatedTransaction: Transaction) {
+  async function handleEditTransaction(updatedTransaction: Transaction) {
     const { id, ...input } = updatedTransaction;
-    updateTransaction.mutate(
-      { id, input },
-      {
-        onSuccess: (updated) => {
-          setMonth(monthKeyOfDate(updated.date));
-          toast.success("Transaction updated");
-        },
-        onError: () => toast.error("Couldn't update this transaction"),
-      }
-    );
+    const updated = await updateTransaction.mutateAsync({ id, input });
+    setMonth(monthKeyOfDate(updated.date));
+    toast.success("Transaction updated");
   }
 
   function handleDeleteTransaction(id: string) {

@@ -1,8 +1,6 @@
-import {
-  getCategories,
-  getTransactions,
-  getWallets,
-} from "@/features/transactions/transactionsService";
+import { getCategories } from "@/features/transactions/categoriesService";
+import { getTransactions } from "@/features/transactions/transactionsService";
+import { getWallets } from "@/features/transactions/walletsService";
 import { isDateInMonth, type MonthKey } from "@/features/homepage/month";
 import type { Category } from "@/types/category";
 import type { Wallet } from "@/types/wallet";
@@ -60,7 +58,7 @@ function computeSavingGoal(wallet: Wallet | undefined): HomeSavingGoal | null {
 // TODO(backend): replace with fetch(`/api/home/summary?month=${month}&walletId=${walletId}`)
 export async function getHomeSummary(month: MonthKey, walletId: string): Promise<HomeSummary> {
   const [transactions, wallets, categories] = await Promise.all([
-    getTransactions(),
+    getTransactions([month]),
     getWallets(),
     getCategories(),
   ]);
