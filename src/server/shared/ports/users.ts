@@ -6,7 +6,7 @@ export interface UserRecord {
 }
 export interface UserRepositoryPort {
   findByEmail(email: string): Promise<UserRecord | null>;
-  create(input: { email: string; passwordHash: string; dataPrivacyConsent: true }): Promise<UserRecord>;
+  create(input: { email: string; passwordHash: string; dataPrivacyConsent: true }, context?: TransactionContext): Promise<UserRecord>;
   /**
    * Permanently deletes the user by ID using the optional transaction context.
    * Resolves to the deleted record or null if absent; deletion errors propagate.

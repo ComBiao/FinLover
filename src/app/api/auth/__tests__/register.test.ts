@@ -9,7 +9,7 @@ import {
   vi,
 } from "vitest";
 import mongoose from "mongoose";
-import { MongoMemoryServer } from "mongodb-memory-server";
+import { MongoMemoryReplSet } from "mongodb-memory-server";
 import bcrypt from "bcrypt";
 
 // The route talks to the default mongoose connection, which these tests point
@@ -20,6 +20,8 @@ vi.mock("@/server/db/index", () => ({ connectDB: vi.fn(async () => undefined) })
 import { POST } from "@/app/api/auth/register/route";
 import { connectDB } from "@/server/db/index";
 import User from "@/server/db/models/User";
+import Category from "@/server/db/models/Category";
+import { DEFAULT_CATEGORIES } from "@/server/modules/auth/default-categories";
 
 const VALID_BODY = {
   email: "user@example.com",
@@ -28,7 +30,7 @@ const VALID_BODY = {
   dataPrivacyConsent: true,
 };
 
-let mongoServer: MongoMemoryServer;
+let mongoServer: MongoMemoryReplSet;
 
 function request(rawBody: string) {
   return new Request("http://localhost/api/auth/register", {
@@ -47,10 +49,10 @@ beforeAll(async () => {
   // Keeps bcrypt cheap across the suite; cost factor is exercised in auth.test.ts.
   vi.stubEnv("BCRYPT_SALT_ROUNDS", "4");
 
-  mongoServer = await MongoMemoryServer.create();
+  mongoServer = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
   await mongoose.connect(mongoServer.getUri());
   // The 409 path depends on the unique email index actually existing.
-  await User.init();
+  await Promise.all([User.init(), Category.init()]);
 }, 60_000);
 
 afterAll(async () => {
@@ -61,7 +63,7 @@ afterAll(async () => {
 
 beforeEach(async () => {
   vi.clearAllMocks();
-  await User.deleteMany({});
+  await Promise.all([User.deleteMany({}), Category.deleteMany({})]);
 });
 
 describe("POST /api/auth/register", () => {
@@ -76,6 +78,30 @@ describe("POST /api/auth/register", () => {
       });
       expect(json.user.id).toEqual(expect.any(String));
       expect(await User.countDocuments()).toBe(1);
+    });
+
+    it("creates the complete income and expense system category set", async () => {
+      const { res, json } = await post(VALID_BODY);
+
+      expect(res.status).toBe(201);
+      const categories = await Category.find({ userId: json.user.id }).lean();
+      expect(categories).toHaveLength(DEFAULT_CATEGORIES.length);
+      expect(categories.every((category) => category.isSystem)).toBe(true);
+      expect(categories.every((category) => /^#[0-9A-F]{6}$/.test(category.color ?? ""))).toBe(true);
+      expect(categories.map(({ name, type, color, icon }) => ({ name, type, color, icon }))).toEqual(
+        expect.arrayContaining(DEFAULT_CATEGORIES.map((category) => ({ ...category }))),
+      );
+      expect(categories.filter((category) => category.name === "Others")).toHaveLength(2);
+    });
+
+    it("rolls back the user when default category seeding fails", async () => {
+      vi.spyOn(Category, "insertMany").mockRejectedValueOnce(new Error("seed failed"));
+
+      const { res } = await post(VALID_BODY);
+
+      expect(res.status).toBe(500);
+      expect(await User.countDocuments()).toBe(0);
+      expect(await Category.countDocuments()).toBe(0);
     });
 
     it("never exposes the password hash or the plaintext password", async () => {
