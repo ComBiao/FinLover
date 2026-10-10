@@ -730,6 +730,29 @@
                   "color": {
                     "type": "string",
                     "pattern": "^#[0-9A-Fa-f]{6}$"
+                  },
+                  "icon": {
+                    "type": "string",
+                    "enum": [
+                      "Utensils",
+                      "Car",
+                      "Home",
+                      "ShoppingCart",
+                      "Zap",
+                      "HeartPulse",
+                      "Film",
+                      "Wallet",
+                      "Banknote",
+                      "Gift",
+                      "Award",
+                      "PieChart",
+                      "MoreHorizontal",
+                      "Star",
+                      "Smile",
+                      "GraduationCap",
+                      "Briefcase",
+                      "CreditCard"
+                    ]
                   }
                 },
                 "required": [
@@ -741,7 +764,8 @@
               "example": {
                 "name": "Food",
                 "type": "expense",
-                "color": "#FF8800"
+                "color": "#FF8800",
+                "icon": "Utensils"
               }
             }
           }
@@ -1101,6 +1125,29 @@
                   "color": {
                     "type": "string",
                     "pattern": "^#[0-9A-Fa-f]{6}$"
+                  },
+                  "icon": {
+                    "type": "string",
+                    "enum": [
+                      "Utensils",
+                      "Car",
+                      "Home",
+                      "ShoppingCart",
+                      "Zap",
+                      "HeartPulse",
+                      "Film",
+                      "Wallet",
+                      "Banknote",
+                      "Gift",
+                      "Award",
+                      "PieChart",
+                      "MoreHorizontal",
+                      "Star",
+                      "Smile",
+                      "GraduationCap",
+                      "Briefcase",
+                      "CreditCard"
+                    ]
                   }
                 },
                 "additionalProperties": true
@@ -1108,7 +1155,8 @@
               "example": {
                 "name": "Food",
                 "type": "expense",
-                "color": "#FF8800"
+                "color": "#FF8800",
+                "icon": "Utensils"
               }
             }
           }

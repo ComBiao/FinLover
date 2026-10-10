@@ -181,17 +181,18 @@ describe.each(["legacy", "v1"] as const)("%s API contracts", (version) => {
       catPath,
       "post",
       await c.create(
-        request("POST", catPath, { name: "Food", type: "expense" }),
+        request("POST", catPath, { name: "Food", type: "expense", icon: "Utensils" }),
         context(),
       ),
     );
+    expect(cat.data.icon).toBe("Utensils");
     const id = String(cat.data.id ?? cat.data._id);
     await contract(
       version,
       `${catPath}/{id}`,
       "put",
       await c.update(
-        request("PUT", `${catPath}/${id}`, { name: "Groceries" }),
+        request("PUT", `${catPath}/${id}`, { name: "Groceries", icon: "Gift" }),
         context(id),
       ),
     );
@@ -443,6 +444,33 @@ describe("v1 cookie authentication and CSRF", () => {
       context(),
     );
     expect(result.status).toBe(201);
+  });
+});
+
+describe("v1 category icon validation", () => {
+  it("rejects unknown icons on create and update with the standard validation envelope", async () => {
+    const path = "/api/v1/categories";
+    const invalidCreate = await v1.createCategory(
+      request("POST", path, { name: "Invalid", type: "expense", icon: "UnknownIcon" }),
+      context(),
+    );
+    expect(invalidCreate.status).toBe(400);
+    const createPayload = await contract("v1", path, "post", invalidCreate);
+    expect(createPayload.error).toMatchObject({ code: "VALIDATION_ERROR", fields: { icon: expect.any(String) } });
+
+    const created = await v1.createCategory(
+      request("POST", path, { name: "Valid", type: "expense", icon: "Utensils" }),
+      context(),
+    );
+    const createdPayload = await created.json();
+    const id = createdPayload.data.id as string;
+    const invalidUpdate = await v1.updateCategory(
+      request("PUT", `${path}/${id}`, { icon: "UnknownIcon" }),
+      context(id),
+    );
+    expect(invalidUpdate.status).toBe(400);
+    const updatePayload = await contract("v1", `${path}/{id}`, "put", invalidUpdate);
+    expect(updatePayload.error).toMatchObject({ code: "VALIDATION_ERROR", fields: { icon: expect.any(String) } });
   });
 });
 
