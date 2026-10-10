@@ -459,6 +459,9 @@ describe("v1 wallet API contracts", () => {
         body,
       ),
     ).toBe(true);
+  });
+});
+
 describe('v1 monthly transaction reads', () => {
   async function transaction(date: string, title: string, owner = user, categoryId: mongoose.Types.ObjectId | null = null) {
     return seedTransaction(new Transaction({ userId: owner, walletId: wallet, categoryId, type: 'expense', amount: 10, date: new Date(date), title }));
