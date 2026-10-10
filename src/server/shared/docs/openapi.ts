@@ -108,7 +108,7 @@ export function buildSpec(version: 'legacy' | 'v1') {
     const transactionExample = v1 ? { walletId: id, categoryId: null, type: 'expense', amount: 42, date: '2026-09-27', title: 'Lunch', note: 'Lunch' } : { wallet_id: id, category_id: null, type: 'Expense', amount: 42, date: '2026-09-27', title: 'Lunch', note: 'Lunch' };
     const example: Record<string, unknown> = action === 'register' ? { email: 'test@example.com', password: 'Password1', confirmPassword: 'Password1', dataPrivacyConsent: true }
       : action === 'login' ? { email: 'test@example.com', password: 'Password1' }
-        : action.includes('Category') ? { name: 'Food', type: 'expense', color: '#FF8800' }
+        : action.includes('Category') ? { name: 'Food', type: 'expense', color: '#FF8800', icon: 'Utensils' }
           : action === 'createWallet' ? { name: 'Holiday fund', color: '#3B82F6', isSaving: true, goalAmount: 1200 }
             : action === 'updateWallet' ? { name: 'Holiday fund', color: '#3B82F6' }
               : action === 'updateWalletSaving' ? { isSaving: true, goalAmount: 10000 }
