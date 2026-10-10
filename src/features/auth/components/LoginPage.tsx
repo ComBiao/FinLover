@@ -4,13 +4,11 @@ import Link from "next/link";
 import { Mail } from "lucide-react";
 
 import { AuthCard } from "@/components/AuthCard";
-import { GoogleButton } from "@/components/GoogleButton";
 import { IconInput } from "@/components/IconInput";
 import { Logo } from "@/components/Logo";
 import { PasswordInput } from "@/components/PasswordInput";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { useLoginForm } from "@/features/auth/hooks/useLoginForm";
 import { cn } from "@/lib/utils";
 
@@ -23,9 +21,13 @@ const ERROR_INPUT_CLASS =
   "border-destructive focus-within:ring-3 focus-within:ring-destructive/20 [&_[data-slot=input]]:border-0 [&_[data-slot=input]]:shadow-none [&_[data-slot=input]]:ring-0";
 
 /**
- * Login page with email/password form and Google OAuth option.
+ * Login page with the email/password flow backed by the HttpOnly session cookie.
  */
-export default function LoginPage() {
+export default function LoginPage({
+  registrationSucceeded = false,
+}: {
+  registrationSucceeded?: boolean;
+}) {
   const { errors, isSubmitting, submitNotice, handleFieldChange, handleSubmit } = useLoginForm();
 
   return (
@@ -96,6 +98,16 @@ export default function LoginPage() {
           Pick up right where you left off with your budget.
         </p>
 
+        {registrationSucceeded ? (
+          <p
+            role="status"
+            aria-live="polite"
+            className="mt-4 rounded-lg bg-success/10 px-4 py-3 text-sm text-success"
+          >
+            Account created successfully. You can now log in.
+          </p>
+        ) : null}
+
         <form className="mt-6 flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="login-email">Email</Label>
@@ -106,6 +118,7 @@ export default function LoginPage() {
               icon={Mail}
               placeholder="you@example.com"
               autoComplete="email"
+              disabled={isSubmitting}
               onChange={handleFieldChange("email")}
               aria-invalid={Boolean(errors.email)}
               aria-describedby={errors.email ? "login-email-error" : undefined}
@@ -119,20 +132,13 @@ export default function LoginPage() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <div className="flex items-baseline justify-between">
-              <Label htmlFor="login-password">Password</Label>
-              <Link
-                href="#"
-                className="text-sm font-semibold text-accent hover:underline"
-              >
-                Forgot password?
-              </Link>
-            </div>
+            <Label htmlFor="login-password">Password</Label>
             <PasswordInput
               id="login-password"
               name="password"
               placeholder="••••••••"
               autoComplete="current-password"
+              disabled={isSubmitting}
               onChange={handleFieldChange("password")}
               aria-invalid={Boolean(errors.password)}
               aria-describedby={errors.password ? "login-password-error" : undefined}
@@ -155,25 +161,13 @@ export default function LoginPage() {
 
           {submitNotice ? (
             <p
-              role="status"
-              aria-live="polite"
-              className="text-center text-sm text-muted-foreground"
+              role="alert"
+              className="text-center text-sm text-destructive"
             >
               {submitNotice}
             </p>
           ) : null}
         </form>
-
-        <div className="my-6 flex items-center gap-3">
-          <Separator className="flex-1" />
-          <span className="text-xs text-muted-foreground">
-            or continue with
-          </span>
-          <Separator className="flex-1" />
-        </div>
-
-        {/* TODO: wire to a real Google OAuth flow */}
-        <GoogleButton />
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
           Don&apos;t have an account?{" "}
