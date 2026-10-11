@@ -30,7 +30,7 @@ export function useResolvedWalletId() {
 
   // Keep store in sync if fallback was triggered once wallets load
   useEffect(() => {
-    if (wallets && wallets.length > 0) {
+    if (wallets !== undefined) {
       resolveFallback(wallets);
     }
   }, [wallets, resolveFallback]);

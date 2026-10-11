@@ -109,5 +109,21 @@ describe("useResolvedWalletId", () => {
     expect(result.current.walletId).toBe("wallet-other");
     expect(result.current.activeWallet?.name).toBe("Other Wallet");
   });
+
+  it("persists null and clears stale walletId in store when wallets list is empty", async () => {
+    useActiveWallet.getState().setWalletId("stale-wallet-id");
+    vi.spyOn(walletService, "fetchWallets").mockResolvedValue([]);
+
+    const { result } = renderHook(() => useResolvedWalletId(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+    await waitFor(() => expect(result.current.walletId).toBeNull());
+
+    expect(result.current.walletId).toBeNull();
+    expect(result.current.activeWallet).toBeUndefined();
+    expect(useActiveWallet.getState().walletId).toBeNull();
+  });
 });
 
