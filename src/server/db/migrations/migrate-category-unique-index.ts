@@ -30,13 +30,13 @@ async function migrate() {
     const collection = mongoose.connection.db!.collection('categories');
     const indexes = await collection.indexes();
 
-    if (indexes.some((index) => index.name === 'userId_1_name_1')) {
-      await collection.dropIndex('userId_1_name_1');
-    }
     await collection.createIndex(
       { userId: 1, type: 1, name: 1 },
       { unique: true, name: 'userId_1_type_1_name_1' },
     );
+    if (indexes.some((index) => index.name === 'userId_1_name_1')) {
+      await collection.dropIndex('userId_1_name_1');
+    }
 
     console.log('Category unique index migration complete.');
   } finally {
