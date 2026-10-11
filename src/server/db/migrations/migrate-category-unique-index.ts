@@ -28,14 +28,22 @@ async function migrate() {
   try {
     await mongoose.connect(MONGODB_URI as string);
     const collection = mongoose.connection.db!.collection('categories');
-    const indexes = await collection.indexes();
+    const collections = await mongoose.connection.db!.listCollections({ name: 'categories' }).toArray();
 
-    await collection.createIndex(
-      { userId: 1, type: 1, name: 1 },
-      { unique: true, name: 'userId_1_type_1_name_1' },
-    );
-    if (indexes.some((index) => index.name === 'userId_1_name_1')) {
-      await collection.dropIndex('userId_1_name_1');
+    if (collections.length > 0) {
+      const indexes = await collection.indexes();
+      await collection.createIndex(
+        { userId: 1, type: 1, name: 1 },
+        { unique: true, name: 'userId_1_type_1_name_1' },
+      );
+      if (indexes.some((index) => index.name === 'userId_1_name_1')) {
+        await collection.dropIndex('userId_1_name_1');
+      }
+    } else {
+      await collection.createIndex(
+        { userId: 1, type: 1, name: 1 },
+        { unique: true, name: 'userId_1_type_1_name_1' },
+      );
     }
 
     console.log('Category unique index migration complete.');
@@ -44,7 +52,7 @@ async function migrate() {
   }
 }
 
-migrate().catch(() => {
-  console.error('Category unique index migration failed.');
+migrate().catch((err) => {
+  console.error('Category unique index migration failed:', err);
   process.exitCode = 1;
 });
