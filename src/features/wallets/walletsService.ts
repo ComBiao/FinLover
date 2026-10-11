@@ -1,5 +1,5 @@
 import { PiggyBank, Wallet as WalletIcon } from "lucide-react";
-import { ApiClientError } from "@/lib/api/client";
+import { ApiClientError, deleteApi } from "@/lib/api/client";
 import type { Wallet } from "@/types/wallet";
 
 export type WalletApiRecord = {
@@ -128,14 +128,6 @@ export async function updateWalletSaving(
  * Deletes a wallet and all its transactions via DELETE /api/v1/wallets/:id.
  */
 export async function deleteWallet(id: string): Promise<void> {
-  const response = await fetch(`/api/v1/wallets/${id}`, {
-    method: "DELETE",
-    credentials: "same-origin",
-  });
-  const payload = await response.json();
-
-  if (!response.ok || payload.status !== true) {
-    throw new ApiClientError(payload.error?.message ?? "Failed to delete wallet", response.status, payload.error?.fields);
-  }
+  return deleteApi(`/api/v1/wallets/${id}`);
 }
 

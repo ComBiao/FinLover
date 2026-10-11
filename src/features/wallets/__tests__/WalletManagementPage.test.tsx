@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import React from "react";
 
 import { WalletManagementPage } from "../components/WalletManagementPage";
+import { DeleteWalletDialog } from "../components/DeleteWalletDialog";
 import * as walletsService from "../walletsService";
 import { useBalanceVisibility } from "../store/useBalanceVisibility";
 import { useActiveWallet } from "../store/useActiveWallet";
@@ -90,6 +91,16 @@ describe("WalletManagementPage UI", () => {
 
     expect(await screen.findByRole("heading", { name: "Create Wallet" })).toBeInTheDocument();
     expect(screen.getByLabelText("Wallet Name")).toBeInTheDocument();
+  });
+
+  it("renders the delete-wallet description without nesting paragraphs", () => {
+    renderWithClient(
+      <DeleteWalletDialog wallet={testWallets[0]} open onOpenChange={vi.fn()} />
+    );
+
+    const description = document.querySelector('[data-slot="alert-dialog-description"]');
+    expect(description?.tagName).toBe("DIV");
+    expect(description?.querySelectorAll(":scope > p")).toHaveLength(2);
   });
 
   it("renders empty state when there are no wallets", async () => {

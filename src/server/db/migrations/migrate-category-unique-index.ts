@@ -13,7 +13,10 @@ import path from 'path';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 
-dotenv.config({ path: path.resolve(import.meta.dirname, '../../../../.env.local') });
+const root = path.resolve(import.meta.dirname, '../../../..');
+dotenv.config({
+  path: [path.join(root, '.env.local'), path.join(root, '.env')],
+});
 
 const MONGODB_URI = process.env.MONGODB_URI;
 if (!MONGODB_URI) {
@@ -22,20 +25,23 @@ if (!MONGODB_URI) {
 }
 
 async function migrate() {
-  await mongoose.connect(MONGODB_URI as string);
-  const collection = mongoose.connection.db!.collection('categories');
-  const indexes = await collection.indexes();
+  try {
+    await mongoose.connect(MONGODB_URI as string);
+    const collection = mongoose.connection.db!.collection('categories');
+    const indexes = await collection.indexes();
 
-  if (indexes.some((index) => index.name === 'userId_1_name_1')) {
-    await collection.dropIndex('userId_1_name_1');
+    if (indexes.some((index) => index.name === 'userId_1_name_1')) {
+      await collection.dropIndex('userId_1_name_1');
+    }
+    await collection.createIndex(
+      { userId: 1, type: 1, name: 1 },
+      { unique: true, name: 'userId_1_type_1_name_1' },
+    );
+
+    console.log('Category unique index migration complete.');
+  } finally {
+    await mongoose.disconnect();
   }
-  await collection.createIndex(
-    { userId: 1, type: 1, name: 1 },
-    { unique: true, name: 'userId_1_type_1_name_1' },
-  );
-
-  console.log('Category unique index migration complete.');
-  await mongoose.disconnect();
 }
 
 migrate().catch(() => {

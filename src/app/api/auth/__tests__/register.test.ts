@@ -121,6 +121,21 @@ describe("POST /api/auth/register", () => {
       expect(await Category.countDocuments()).toBe(0);
     });
 
+    it("does not report a category duplicate as an existing email", async () => {
+      const categoryDuplicate = Object.assign(new Error("duplicate category"), {
+        code: 11000,
+        keyPattern: { userId: 1, name: 1 },
+      });
+      vi.spyOn(Category, "insertMany").mockRejectedValueOnce(categoryDuplicate);
+
+      const { res, json } = await post(VALID_BODY);
+
+      expect(res.status).toBe(500);
+      expect(json.error.code).toBe("INTERNAL_ERROR");
+      expect(await User.countDocuments()).toBe(0);
+      expect(await Category.countDocuments()).toBe(0);
+    });
+
     it("never exposes the password hash or the plaintext password", async () => {
       const { json } = await post(VALID_BODY);
       const serialized = JSON.stringify(json);

@@ -30,12 +30,8 @@ import {
 import { CATEGORY_STYLES, resolveChipTone, WALLET_TYPE_STYLES } from "@/components/chipColor";
 import { useCategories } from "@/features/categories/hooks/useCategories";
 import { useWallets } from "@/features/wallets/hooks/useWallets";
-import { cn, formatBaht } from "@/lib/utils";
+import { cn, formatBaht, formatEnglishDate } from "@/lib/utils";
 import type { Transaction } from "@/types/transaction";
-
-function formatDate(date: Date) {
-  return date.toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" });
-}
 
 function formatAmount(amount: number, type: Transaction["type"]) {
   return `${type === "income" ? "+" : "-"}${formatBaht(amount)}`;
@@ -99,7 +95,7 @@ export function TransactionTable({
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="truncate font-medium text-foreground">{transaction.title}</p>
-                  <p className="text-xs text-muted-foreground">{formatDate(transaction.date)}</p>
+                  <p className="text-xs text-muted-foreground">{formatEnglishDate(transaction.date)}</p>
                 </div>
                 <span
                   className={cn(
@@ -215,7 +211,7 @@ export function TransactionTable({
                 )}
               >
                 <TableCell className="py-3.5 text-muted-foreground">
-                  {formatDate(transaction.date)}
+                  {formatEnglishDate(transaction.date)}
                 </TableCell>
                 <TableCell className="truncate py-3.5 font-medium text-foreground">
                   {transaction.title}

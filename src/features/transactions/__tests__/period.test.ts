@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useTransactionFilters } from "@/features/transactions/store/useTransactionFilters";
+import { periodLabel } from "@/features/transactions/period";
 
 const store = () => useTransactionFilters.getState();
 
@@ -73,5 +74,28 @@ describe("transaction period anchor", () => {
     const range = store().filters.dateRange;
     expect(ymd(range!.from!)).toEqual([2025, 1, 1]);
     expect(ymd(range!.to!)).toEqual([2025, 12, 31]);
+  });
+});
+
+describe("periodLabel", () => {
+  it("formats a single day in English day-month-year order", () => {
+    expect(periodLabel({
+      mode: "day",
+      from: new Date(2026, 9, 11),
+      to: new Date(2026, 9, 11),
+    })).toBe("11 Oct 2026");
+  });
+
+  it("formats same-year and cross-year ranges in English", () => {
+    expect(periodLabel({
+      mode: "day",
+      from: new Date(2026, 8, 28),
+      to: new Date(2026, 9, 4),
+    })).toBe("28 Sep – 4 Oct 2026");
+    expect(periodLabel({
+      mode: "day",
+      from: new Date(2025, 11, 28),
+      to: new Date(2026, 0, 3),
+    })).toBe("28 Dec 2025 – 3 Jan 2026");
   });
 });

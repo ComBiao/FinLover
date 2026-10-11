@@ -13,7 +13,7 @@ export function errorResponse(status: number, code: string, message: string, fie
 type ErrorOptions = {
   validationStatus?: number;
   validationMessage?: string;
-  duplicate?: { code: string; message: string; fields?: Record<string, string> };
+  duplicate?: { code: string; message: string; fields?: Record<string, string>; key?: string };
 };
 /** One mapper; only documented legacy validation status/messages vary by route. */
 export function apiErrorResponse(error: unknown, options: ErrorOptions = {}) {
@@ -23,7 +23,16 @@ export function apiErrorResponse(error: unknown, options: ErrorOptions = {}) {
     const status = error.code === 'VALIDATION_ERROR' ? validationStatus : ERRORS[error.code as keyof typeof ERRORS];
     if (status && status < 500) return errorResponse(status, error.code, error.message, error.fields);
   }
-  if (options.duplicate && typeof error === 'object' && error !== null && 'code' in error && error.code === 11000) {
+  const duplicateKeyPattern =
+    typeof error === 'object' && error !== null && 'keyPattern' in error &&
+    typeof error.keyPattern === 'object' && error.keyPattern !== null
+      ? error.keyPattern as Record<string, unknown>
+      : undefined;
+  if (
+    options.duplicate &&
+    typeof error === 'object' && error !== null && 'code' in error && error.code === 11000 &&
+    (!options.duplicate.key || duplicateKeyPattern?.[options.duplicate.key] === 1)
+  ) {
     return errorResponse(409, options.duplicate.code, options.duplicate.message, options.duplicate.fields);
   }
   if (error instanceof mongoose.Error.ValidationError) {

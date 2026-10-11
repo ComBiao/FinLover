@@ -9,6 +9,7 @@ npm run infra:up
 npm run dev
 </code></pre>
 <p>App and API share <code>http://localhost:3000</code>; Swagger is <code>/api/docs</code>. <code>infra:up</code> starts only MongoDB. <code>infra:down</code> stops the dev container without removing its named data volume. There are no application Dockerfiles or frontend/backend proxy servers.</p>
+<p>Existing databases created with the old category uniqueness rule must run <code>npm run db:migrate:category-index</code> once. The migration removes the obsolete unique <code>(userId, name)</code> index and ensures the unique <code>(userId, type, name)</code> index exists before registration seeds both income and expense <code>Others</code> categories.</p>
 <h2>2. Stack and layout</h2>
 <table>
 <thead>
@@ -217,6 +218,10 @@ npm run dev
 <tr>
 <td>npm run infra:up / infra:down</td>
 <td>Start dev MongoDB / stop dev compose</td>
+</tr>
+<tr>
+<td>npm run db:migrate:category-index</td>
+<td>Replace the legacy category-name index in an existing database</td>
 </tr>
 </tbody></table>
 <p>Generators work without DB/secrets and resolve paths relative to their files. Never hand-edit generated ERD/HTML/OpenAPI artifacts. Update README, codebase, API docs, manifests, CI and agent instructions together when paths/commands change. See <a href="refactor-validation.md">validation report</a> for actual checks and remaining deployment limits.</p>

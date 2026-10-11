@@ -1,4 +1,4 @@
-import { todayISODate } from "@/lib/utils";
+import { formatEnglishDate, formatEnglishDayMonth, todayISODate } from "@/lib/utils";
 import {
   currentMonthKey,
   formatMonthKey,
@@ -44,21 +44,21 @@ export function periodToDateRange(period: TransactionPeriod): DateRange {
 }
 
 function shortDate(date: Date) {
-  return date.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  return formatEnglishDayMonth(date);
 }
 
-/** "October 2026" / "2026" / "Oct 4, 2026" / "Sep 28 – Oct 4, 2026". */
+/** "October 2026" / "2026" / "4 Oct 2026" / "28 Sep – 4 Oct 2026". */
 export function periodLabel(period: TransactionPeriod): string {
   if (period.mode === "month") return monthKeyLabel(period.monthKey);
   if (period.mode === "year") return String(period.year);
 
   const { from, to } = period;
   if (from.toDateString() === to.toDateString()) {
-    return `${shortDate(from)}, ${from.getFullYear()}`;
+    return formatEnglishDate(from);
   }
   return from.getFullYear() === to.getFullYear()
-    ? `${shortDate(from)} – ${shortDate(to)}, ${to.getFullYear()}`
-    : `${shortDate(from)}, ${from.getFullYear()} – ${shortDate(to)}, ${to.getFullYear()}`;
+    ? `${shortDate(from)} – ${shortDate(to)} ${to.getFullYear()}`
+    : `${shortDate(from)} ${from.getFullYear()} – ${shortDate(to)} ${to.getFullYear()}`;
 }
 
 const MS_PER_DAY = 86_400_000;

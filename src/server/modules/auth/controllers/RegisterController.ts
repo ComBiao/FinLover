@@ -70,6 +70,7 @@ export class RegisterController {
     return apiErrorResponse(err, { duplicate: {
       code: 'EMAIL_ALREADY_EXISTS', message: 'An account with this email already exists',
       fields: { email: 'An account with this email already exists' },
+      key: 'email',
     } });
   }
 }
