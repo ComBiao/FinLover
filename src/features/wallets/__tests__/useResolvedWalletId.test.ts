@@ -6,12 +6,18 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 
 import { useResolvedWalletId } from "../hooks/useResolvedWalletId";
 import { useActiveWallet } from "../store/useActiveWallet";
-import * as walletService from "../walletService";
+import * as walletsService from "../walletsService";
 
-const mockWallets: walletService.WalletDTO[] = [
+
+
+import type { Wallet } from "@/types/wallet";
+
+const mockApiRecords: walletsService.WalletApiRecord[] = [
   { id: "wallet-default", name: "Default Wallet", balance: 100, isDefault: true, isSaving: false },
   { id: "wallet-other", name: "Other Wallet", balance: 200, isDefault: false, isSaving: false },
 ];
+
+const mockWallets: Wallet[] = mockApiRecords.map(walletsService.mapWalletRecord);
 
 function createWrapper() {
   const queryClient = new QueryClient({
@@ -33,7 +39,7 @@ describe("useResolvedWalletId", () => {
   });
 
   it("resolves to default wallet when saved id is empty/null", async () => {
-    vi.spyOn(walletService, "fetchWallets").mockResolvedValue(mockWallets);
+    vi.spyOn(walletsService, "getWallets").mockResolvedValue(mockWallets);
 
     const { result } = renderHook(() => useResolvedWalletId(), {
       wrapper: createWrapper(),
@@ -47,7 +53,7 @@ describe("useResolvedWalletId", () => {
 
   it("resolves to saved id when it exists in wallets", async () => {
     useActiveWallet.getState().setWalletId("wallet-other");
-    vi.spyOn(walletService, "fetchWallets").mockResolvedValue(mockWallets);
+    vi.spyOn(walletsService, "getWallets").mockResolvedValue(mockWallets);
 
     const { result } = renderHook(() => useResolvedWalletId(), {
       wrapper: createWrapper(),
@@ -61,7 +67,7 @@ describe("useResolvedWalletId", () => {
 
   it("falls back to default wallet when saved id is not in the list (e.g. deleted)", async () => {
     useActiveWallet.getState().setWalletId("deleted-wallet-id");
-    vi.spyOn(walletService, "fetchWallets").mockResolvedValue(mockWallets);
+    vi.spyOn(walletsService, "getWallets").mockResolvedValue(mockWallets);
 
     const { result } = renderHook(() => useResolvedWalletId(), {
       wrapper: createWrapper(),
@@ -74,7 +80,7 @@ describe("useResolvedWalletId", () => {
   });
 
   it("selectWallet rejects invalid id and keeps current wallet selected", async () => {
-    vi.spyOn(walletService, "fetchWallets").mockResolvedValue(mockWallets);
+    vi.spyOn(walletsService, "getWallets").mockResolvedValue(mockWallets);
 
     const { result } = renderHook(() => useResolvedWalletId(), {
       wrapper: createWrapper(),
@@ -93,7 +99,7 @@ describe("useResolvedWalletId", () => {
   });
 
   it("selectWallet updates selection when valid id is selected", async () => {
-    vi.spyOn(walletService, "fetchWallets").mockResolvedValue(mockWallets);
+    vi.spyOn(walletsService, "getWallets").mockResolvedValue(mockWallets);
 
     const { result } = renderHook(() => useResolvedWalletId(), {
       wrapper: createWrapper(),
@@ -112,7 +118,7 @@ describe("useResolvedWalletId", () => {
 
   it("persists null and clears stale walletId in store when wallets list is empty", async () => {
     useActiveWallet.getState().setWalletId("stale-wallet-id");
-    vi.spyOn(walletService, "fetchWallets").mockResolvedValue([]);
+    vi.spyOn(walletsService, "getWallets").mockResolvedValue([]);
 
     const { result } = renderHook(() => useResolvedWalletId(), {
       wrapper: createWrapper(),

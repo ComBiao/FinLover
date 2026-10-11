@@ -1,7 +1,20 @@
 "use client";
 import { useState } from "react";
-import { useCategories, type Category } from "@/features/categories/hooks/useCategories";
+import { toast } from "sonner";
+import {
+  useCategories,
+  useCreateCategory,
+  useDeleteCategory,
+  useUpdateCategory,
+} from "@/features/categories/hooks/useCategories";
+import { FALLBACK_CATEGORY_NAME } from "@/features/categories/categoriesService";
+import { ApiClientError } from "@/lib/api/client";
+import { hexToRgba } from "@/components/chipColor";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { CategoryIcon } from "@/shared/contracts";
+import type { Category } from "@/types/category";
 import { z } from "zod";
+import type { LucideIcon } from "lucide-react";
 import { Plus, Utensils, Car, Home, ShoppingCart, Zap, HeartPulse, Film, MoreHorizontal, Wallet, Banknote, Gift, Award, PieChart, Star, Smile, Check, Pencil, GraduationCap, Briefcase, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -19,7 +32,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
-const ICONS = [
+const ICONS: { name: CategoryIcon; icon: LucideIcon }[] = [
   { name: 'Utensils', icon: Utensils },
   { name: 'Car', icon: Car },
   { name: 'Home', icon: Home },
@@ -40,39 +53,27 @@ const ICONS = [
   { name: 'CreditCard', icon: CreditCard },
 ];
 
+/** Same hues as the server's seeded defaults; the API stores colors as `#RRGGBB`. */
 const COLORS = [
-  "bg-blue-100 text-blue-600",
-  "bg-red-100 text-red-600",
-  "bg-green-100 text-green-600",
-  "bg-purple-100 text-purple-600",
-  "bg-orange-100 text-orange-600",
-  "bg-pink-100 text-pink-600",
-  "bg-yellow-100 text-yellow-600",
-  "bg-gray-100 text-gray-600",
+  "#2563EB",
+  "#DC2626",
+  "#16A34A",
+  "#9333EA",
+  "#EA580C",
+  "#DB2777",
+  "#CA8A04",
+  "#4B5563",
 ];
 
-const initialExpenses = [
-  { id: 1, name: "Food", iconName: "Utensils", color: "bg-orange-100 text-orange-600" },
-  { id: 2, name: "Transport & Car", iconName: "Car", color: "bg-blue-100 text-blue-600" },
-  { id: 3, name: "Shopping", iconName: "ShoppingCart", color: "bg-pink-100 text-pink-600" },
-  { id: 4, name: "Entertainment", iconName: "Film", color: "bg-purple-100 text-purple-600" },
-  { id: 5, name: "Home & utilities", iconName: "Home", color: "bg-green-100 text-green-600" },
-  { id: 6, name: "Health & Wellness", iconName: "HeartPulse", color: "bg-red-100 text-red-600" },
-  { id: 7, name: "Education", iconName: "GraduationCap", color: "bg-yellow-100 text-yellow-600" },
-  { id: 8, name: "Work & Business", iconName: "Briefcase", color: "bg-blue-100 text-blue-600" },
-  { id: 9, name: "Save & Invest", iconName: "PieChart", color: "bg-green-100 text-green-600" },
-  { id: 10, name: "Loans & cards", iconName: "CreditCard", color: "bg-purple-100 text-purple-600" },
-  { id: 11, name: "Other", iconName: "MoreHorizontal", color: "bg-gray-100 text-gray-600", isFallback: true },
-].map((category) => ({ ...category, isDefault: true }));
+/** Soft tinted background with a solid foreground, matching the previous bg-*-100 / text-*-600 look. */
+const swatchStyle = (hex: string | undefined) =>
+  hex ? { backgroundColor: hexToRgba(hex, 0.15), color: hex } : undefined;
 
-const initialIncomes = [
-  { id: 1, name: "Salary", iconName: "Wallet", color: "bg-green-100 text-green-600" },
-  { id: 2, name: "Wages", iconName: "Banknote", color: "bg-emerald-100 text-emerald-600" },
-  { id: 3, name: "Gifts", iconName: "Gift", color: "bg-pink-100 text-pink-600" },
-  { id: 4, name: "Trade & Business", iconName: "Briefcase", color: "bg-yellow-100 text-yellow-600" },
-  { id: 5, name: "Cashback", iconName: "Banknote", color: "bg-blue-100 text-blue-600" },
-  { id: 6, name: "Other", iconName: "MoreHorizontal", color: "bg-gray-100 text-gray-600", isFallback: true },
-].map((category) => ({ ...category, isDefault: true }));
+/** Keeps the seeded per-type "Others" catch-all last, like the old fallback ordering. */
+const otherLast = (categories: Category[]) =>
+  [...categories].sort((a, b) => Number(isFallback(a)) - Number(isFallback(b)));
+const isFallback = (category: Category) =>
+  Boolean(category.isSystem) && category.name === FALLBACK_CATEGORY_NAME;
 
 const categorySchema = z.object({
   name: z.string().min(1, "Name is required").max(50, "Name must not exceed 50 characters"),
@@ -80,42 +81,59 @@ const categorySchema = z.object({
 
 export function CategoryClient() {
   const [type, setType] = useState<"expense" | "income">("expense");
-  const { expenses, incomes, deleteCategory, editCategory, addCategory } = useCategories(initialExpenses, initialIncomes);
+  const { data: categories = [], isLoading, isError, refetch } = useCategories();
+  const createMutation = useCreateCategory();
+  const updateMutation = useUpdateCategory();
+  const deleteMutation = useDeleteCategory();
 
   // Modal State
   const [isOpen, setIsOpen] = useState(false);
   const [newName, setNewName] = useState("");
-  const [newIcon, setNewIcon] = useState(ICONS[0].name);
+  const [newIcon, setNewIcon] = useState<CategoryIcon>(ICONS[0].name);
   const [newColor, setNewColor] = useState(COLORS[0]);
   const [errors, setErrors] = useState<Record<string, string[] | undefined>>({});
 
-  const [categoryToDelete, setCategoryToDelete] = useState<number | null>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
 
-  const [categoryToEdit, setCategoryToEdit] = useState<number | null>(null);
+  const [categoryToEdit, setCategoryToEdit] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
-  const [editIcon, setEditIcon] = useState(ICONS[0].name);
+  const [editIcon, setEditIcon] = useState<CategoryIcon>(ICONS[0].name);
   const [editColor, setEditColor] = useState(COLORS[0]);
   const [editErrors, setEditErrors] = useState<Record<string, string[] | undefined>>({});
 
-  const currentCategory = type === "expense" ? expenses : incomes;
+  const currentCategory = otherLast(categories.filter((category) => category.type === type));
 
-  const confirmDelete = () => {
+  /** Shows the server's field/conflict message under the name input, else a toast. */
+  const reportFailure = (error: unknown, setFieldErrors: (errors: Record<string, string[] | undefined>) => void) => {
+    if (error instanceof ApiClientError && (error.fields?.name || error.status === 409)) {
+      setFieldErrors({ name: [error.fields?.name ?? error.message] });
+      return;
+    }
+    toast.error(error instanceof Error ? error.message : "Something went wrong. Please try again.");
+  };
+
+  const confirmDelete = async () => {
     if (categoryToDelete === null) return;
-    deleteCategory(type, categoryToDelete);
-    setCategoryToDelete(null);
-    setCategoryToEdit(null);
+    try {
+      await deleteMutation.mutateAsync(categoryToDelete);
+      toast.success("Category deleted");
+      setCategoryToDelete(null);
+      setCategoryToEdit(null);
+    } catch {
+      // useDeleteCategory already toasts the failure; keep the dialog open to retry.
+    }
   };
 
   const openEditModal = (cat: Category) => {
-    if (cat.isDefault) return;
+    if (cat.isSystem) return;
     setCategoryToEdit(cat.id);
     setEditName(cat.name);
-    setEditIcon(cat.iconName);
-    setEditColor(cat.color);
+    setEditIcon(cat.iconName ?? ICONS[0].name);
+    setEditColor(cat.color ?? COLORS[0]);
     setEditErrors({});
   };
 
-  const handleEdit = () => {
+  const handleEdit = async () => {
     const trimmedName = editName.trim();
     const result = categorySchema.safeParse({ name: trimmedName });
     if (!result.success) {
@@ -123,14 +141,20 @@ export function CategoryClient() {
       return;
     }
 
-    if (categoryToEdit !== null) {
-      editCategory(type, categoryToEdit, { name: trimmedName, iconName: editIcon, color: editColor });
+    if (categoryToEdit === null) return;
+    try {
+      await updateMutation.mutateAsync({
+        id: categoryToEdit,
+        input: { name: trimmedName, icon: editIcon, color: editColor },
+      });
+      toast.success("Category updated");
+      setCategoryToEdit(null);
+    } catch (error) {
+      reportFailure(error, setEditErrors);
     }
-
-    setCategoryToEdit(null);
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     const trimmedName = newName.trim();
     const result = categorySchema.safeParse({ name: trimmedName });
     if (!result.success) {
@@ -140,24 +164,17 @@ export function CategoryClient() {
 
     setErrors({});
 
-    const newCat = {
-      id: Date.now(),
-      name: trimmedName,
-      iconName: newIcon,
-      color: newColor,
-    };
-
-    addCategory(type, newCat);
-
+    try {
+      await createMutation.mutateAsync({ name: trimmedName, type, icon: newIcon, color: newColor });
+    } catch (error) {
+      reportFailure(error, setErrors);
+      return;
+    }
+    toast.success("Category created");
     setIsOpen(false);
     setNewName("");
     setNewIcon(ICONS[0].name);
     setNewColor(COLORS[0]);
-  };
-
-  const getIconComponent = (iconName: string) => {
-    const found = ICONS.find(i => i.name === iconName);
-    return found ? found.icon : MoreHorizontal;
   };
 
   return (
@@ -235,9 +252,9 @@ export function CategoryClient() {
                         onClick={() => setNewColor(color)}
                         aria-label={color}
                         aria-pressed={isSelected}
+                        style={swatchStyle(color)}
                         className={cn(
                           "size-8 rounded-full flex items-center justify-center transition-transform hover:scale-110",
-                          color,
                           isSelected ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "opacity-80 hover:opacity-100"
                         )}
                       >
@@ -253,7 +270,7 @@ export function CategoryClient() {
               <DialogClose render={<Button variant="outline" />}>
                 Cancel
               </DialogClose>
-              <Button onClick={handleCreate}>Create Category</Button>
+              <Button onClick={handleCreate} disabled={createMutation.isPending}>{createMutation.isPending ? "Creating..." : "Create Category"}</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -322,9 +339,9 @@ export function CategoryClient() {
                       onClick={() => setEditColor(color)}
                       aria-label={color}
                       aria-pressed={isSelected}
+                      style={swatchStyle(color)}
                       className={cn(
                         "size-8 rounded-full flex items-center justify-center transition-transform hover:scale-110",
-                        color,
                         isSelected ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "opacity-80 hover:opacity-100"
                       )}
                     >
@@ -346,7 +363,7 @@ export function CategoryClient() {
             </Button>
             <div className="flex flex-col-reverse sm:flex-row gap-2 mt-4 sm:mt-0">
               <Button variant="outline" onClick={() => setCategoryToEdit(null)}>Cancel</Button>
-              <Button onClick={handleEdit}>Save Changes</Button>
+              <Button onClick={handleEdit} disabled={updateMutation.isPending}>{updateMutation.isPending ? "Saving..." : "Save Changes"}</Button>
             </div>
           </DialogFooter>
         </DialogContent>
@@ -363,7 +380,7 @@ export function CategoryClient() {
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCategoryToDelete(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={confirmDelete}>Delete</Button>
+            <Button variant="destructive" onClick={confirmDelete} disabled={deleteMutation.isPending}>{deleteMutation.isPending ? "Deleting..." : "Delete"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -393,16 +410,37 @@ export function CategoryClient() {
         </button>
       </div>
 
+      {isLoading ? (
+        <div
+          className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"
+          aria-busy="true"
+          aria-label="Loading categories"
+        >
+          {Array.from({ length: 10 }, (_, index) => (
+            <Skeleton key={index} className="h-[150px] rounded-xl" />
+          ))}
+        </div>
+      ) : isError ? (
+        <div role="alert" className="flex flex-col items-center gap-3 py-12 text-center">
+          <p className="text-sm text-muted-foreground">Couldn&apos;t load your categories.</p>
+          <Button variant="outline" onClick={() => refetch()}>Try again</Button>
+        </div>
+      ) : currentCategory.length === 0 ? (
+        <p className="py-12 text-center text-sm text-muted-foreground">
+          No {type === "expense" ? "expense" : "income"} categories yet. Add one to get started.
+        </p>
+      ) : (
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
         {currentCategory.map((cat) => {
-          const IconComponent = getIconComponent(cat.iconName);
+          const IconComponent = cat.icon;
+          const readOnly = Boolean(cat.isSystem);
           return (
             <Card
               key={cat.id}
-              role={cat.isDefault ? undefined : "button"}
-              tabIndex={cat.isDefault ? undefined : 0}
-              onClick={cat.isDefault ? undefined : () => openEditModal(cat)}
-              onKeyDown={cat.isDefault ? undefined : (e) => {
+              role={readOnly ? undefined : "button"}
+              tabIndex={readOnly ? undefined : 0}
+              onClick={readOnly ? undefined : () => openEditModal(cat)}
+              onKeyDown={readOnly ? undefined : (e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
                   openEditModal(cat);
@@ -410,17 +448,20 @@ export function CategoryClient() {
               }}
               className={cn(
                 "relative flex flex-col items-center justify-center p-6 gap-4 border-border/50 bg-card",
-                !cat.isDefault && "hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer transition-all hover:shadow-sm group"
+                !readOnly && "hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer transition-all hover:shadow-sm group"
               )}
             >
-              {!cat.isDefault && <div
+              {!readOnly && <div
                 className="absolute top-2 right-2 p-1.5 rounded-full text-muted-foreground group-hover:bg-muted group-hover:text-foreground opacity-0 group-hover:opacity-100 transition-all"
                 title="Edit Category"
               >
                 <Pencil className="size-4" />
               </div>}
 
-              <div className={cn("size-14 rounded-full flex items-center justify-center transition-transform group-hover:scale-110", cat.color)}>
+              <div
+                className="size-14 rounded-full flex items-center justify-center transition-transform group-hover:scale-110"
+                style={swatchStyle(cat.color)}
+              >
                 <IconComponent className="size-7" />
               </div>
               <span className="text-sm font-medium text-foreground text-center">
@@ -430,6 +471,7 @@ export function CategoryClient() {
           );
         })}
       </div>
+      )}
     </main>
   );
 }

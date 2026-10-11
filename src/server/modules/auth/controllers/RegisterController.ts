@@ -49,17 +49,18 @@ export class RegisterController {
     );
   }
 
-  const { email, password } = parsed.data;
+  const { email, password, name } = parsed.data;
 
   try {
     await connectDB();
 
-    const user = await this.service.execute(email, password);
+    const user = await this.service.execute(email, password, name);
 
     // Built field by field so `passwordHash` can never leak into the response.
     const publicUser: PublicUser = {
       id: String(user._id),
       email: user.email,
+      ...(user.name ? { name: user.name } : {}),
       dataPrivacyConsent: user.dataPrivacyConsent,
       createdAt: user.createdAt.toISOString(),
     };

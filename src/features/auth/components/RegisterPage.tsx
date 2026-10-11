@@ -4,7 +4,6 @@ import Link from "next/link";
 import { Mail, User } from "lucide-react";
 
 import { AuthCard } from "@/components/AuthCard";
-import { GoogleButton } from "@/components/GoogleButton";
 import { IconInput } from "@/components/IconInput";
 import { Logo } from "@/components/Logo";
 import { PasswordInput } from "@/components/PasswordInput";
@@ -13,7 +12,6 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
 import { useRegisterForm } from "@/features/auth/hooks/useRegisterForm";
 import { cn } from "@/lib/utils";
 
@@ -26,7 +24,7 @@ const ERROR_INPUT_CLASS =
   "border-destructive focus-within:ring-3 focus-within:ring-destructive/20 [&_[data-slot=input]]:border-0 [&_[data-slot=input]]:shadow-none [&_[data-slot=input]]:ring-0";
 
 /**
- * Registration page for creating a new user account with email/password or Google OAuth.
+ * Registration page for the existing email/password account API.
  */
 export default function RegisterPage() {
   const {
@@ -96,6 +94,7 @@ export default function RegisterPage() {
               icon={User}
               placeholder="Jane Doe"
               autoComplete="name"
+              disabled={isSubmitting}
               value={values.name}
               onChange={handleChange("name")}
               onBlur={handleBlur("name")}
@@ -119,6 +118,7 @@ export default function RegisterPage() {
               icon={Mail}
               placeholder="you@example.com"
               autoComplete="email"
+              disabled={isSubmitting}
               value={values.email}
               onChange={handleChange("email")}
               onBlur={handleBlur("email")}
@@ -140,6 +140,7 @@ export default function RegisterPage() {
               name="password"
               placeholder="••••••••"
               autoComplete="new-password"
+              disabled={isSubmitting}
               value={values.password}
               onChange={handleChange("password")}
               onBlur={handleBlur("password")}
@@ -167,6 +168,7 @@ export default function RegisterPage() {
               name="confirmPassword"
               placeholder="••••••••"
               autoComplete="new-password"
+              disabled={isSubmitting}
               value={values.confirmPassword}
               onChange={handleChange("confirmPassword")}
               onBlur={handleBlur("confirmPassword")}
@@ -193,6 +195,7 @@ export default function RegisterPage() {
                 id="register-privacy-consent"
                 name="dataPrivacyConsent"
                 checked={dataPrivacyConsent}
+                disabled={isSubmitting}
                 onCheckedChange={handleDataPrivacyConsentChange}
                 aria-invalid={Boolean(errors.dataPrivacyConsent)}
                 aria-labelledby="register-privacy-consent-label"
@@ -234,25 +237,13 @@ export default function RegisterPage() {
 
           {submitNotice ? (
             <p
-              role="status"
-              aria-live="polite"
-              className="text-center text-sm text-muted-foreground"
+              role="alert"
+              className="text-center text-sm text-destructive"
             >
               {submitNotice}
             </p>
           ) : null}
         </form>
-
-        <div className="my-6 flex items-center gap-3">
-          <Separator className="flex-1" />
-          <span className="text-xs text-muted-foreground">
-            or continue with
-          </span>
-          <Separator className="flex-1" />
-        </div>
-
-        {/* TODO: wire to a real Google OAuth flow */}
-        <GoogleButton />
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
           Already have an account?{" "}

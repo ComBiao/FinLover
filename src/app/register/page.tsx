@@ -1,2 +1,8 @@
 import RegisterPage from "@/features/auth/components/RegisterPage";
-export default function Page() { return <RegisterPage />; }
+import { getSessionUser } from "@/server/shared/auth/session";
+import { redirect } from "next/navigation";
+
+export default async function Page() {
+  if (await getSessionUser()) redirect("/homepage");
+  return <RegisterPage />;
+}

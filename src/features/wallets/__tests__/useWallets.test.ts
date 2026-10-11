@@ -3,9 +3,11 @@ import * as React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi, afterEach } from "vitest";
+import type { LucideIcon } from "lucide-react";
 
 import { useWallets } from "../hooks/useWallets";
-import * as walletService from "../walletService";
+import * as walletsService from "../walletsService";
+import { Wallet } from "@/types/wallet";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -27,13 +29,14 @@ function createWrapper() {
 
 describe("useWallets", () => {
   it("fetches and returns the user's wallets using TanStack Query", async () => {
-    const mockWallets: walletService.WalletDTO[] = [
+    const mockWallets: Wallet[] = [
       {
         id: "64f1a2b3c4d5e6f7a8b9c0d1",
         name: "Main Wallet",
         balance: 1500,
         isDefault: true,
         isSaving: false,
+        icon: {} as LucideIcon,
       },
       {
         id: "64f1a2b3c4d5e6f7a8b9c0d2",
@@ -42,10 +45,11 @@ describe("useWallets", () => {
         isDefault: false,
         isSaving: true,
         goalAmount: 10000,
+        icon: {} as LucideIcon,
       },
     ];
 
-    vi.spyOn(walletService, "fetchWallets").mockResolvedValue(mockWallets);
+    vi.spyOn(walletsService, "getWallets").mockResolvedValue(mockWallets);
 
     const { result } = renderHook(() => useWallets(), {
       wrapper: createWrapper(),

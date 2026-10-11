@@ -23,6 +23,7 @@ export function useLoginForm() {
   const client = useQueryClient();
   const mutation = useMutation({ mutationFn: (input: LoginInput) => postApi('/api/v1/auth/login', input) });
   const isSubmitting = mutation.isPending;
+  const submitLock = React.useRef(false);
   const [submitNotice, setSubmitNotice] = React.useState<string | null>(null);
 
   /** Clears a field's error as soon as it becomes valid; leaves it untouched otherwise. */
@@ -45,8 +46,10 @@ export function useLoginForm() {
    */
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitLock.current) return;
+    const form = event.currentTarget;
 
-    const formData = new FormData(event.currentTarget);
+    const formData = new FormData(form);
     const result = loginSchema.safeParse({
       email: formData.get("email"),
       password: formData.get("password"),
@@ -63,7 +66,7 @@ export function useLoginForm() {
       setErrors(fieldErrors);
 
       const firstInvalidField = result.error.issues[0]?.path[0];
-      const firstInvalidInput = event.currentTarget.elements.namedItem(
+      const firstInvalidInput = form.elements.namedItem(
         String(firstInvalidField)
       );
       if (firstInvalidInput instanceof HTMLElement) {
@@ -74,6 +77,7 @@ export function useLoginForm() {
 
     setErrors({});
     setSubmitNotice(null);
+    submitLock.current = true;
     try {
       await mutation.mutateAsync(result.data);
       client.clear();
@@ -83,7 +87,12 @@ export function useLoginForm() {
       if (error instanceof ApiClientError) {
         setErrors(error.fields ?? {});
         setSubmitNotice(error.message);
+        const firstField = Object.keys(error.fields ?? {})[0];
+        const input = form.elements.namedItem(firstField);
+        if (input instanceof HTMLElement) input.focus();
       } else setSubmitNotice('Unable to connect. Please try again.');
+    } finally {
+      submitLock.current = false;
     }
   }
 

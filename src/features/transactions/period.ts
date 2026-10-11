@@ -135,3 +135,23 @@ export function anchorFromPeriod(period: TransactionPeriod, previousAnchor: Date
 export function todayAnchor(): Date {
   return today();
 }
+
+/** Every `YYYY-MM` the period touches — the list API is queried one month at a time. */
+export function periodMonthKeys(period: TransactionPeriod): MonthKey[] {
+  if (period.mode === "month") return [period.monthKey];
+  const { from, to } = periodToDateRange(period);
+  if (!from || !to) return [];
+  const keys: MonthKey[] = [];
+  let year = from.getFullYear();
+  let month = from.getMonth() + 1;
+  const lastKey = formatMonthKey(to.getFullYear(), to.getMonth() + 1);
+  for (let key = formatMonthKey(year, month); key <= lastKey; key = formatMonthKey(year, month)) {
+    keys.push(key);
+    month += 1;
+    if (month > 12) {
+      month = 1;
+      year += 1;
+    }
+  }
+  return keys;
+}

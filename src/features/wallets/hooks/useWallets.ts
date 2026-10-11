@@ -1,8 +1,18 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
-import { fetchWallets, type WalletDTO } from "@/features/wallets/walletService";
+import {
+  createWallet,
+  deleteWallet,
+  getWallets,
+  updateWallet,
+  updateWalletSaving,
+  type CreateWalletInput,
+  type UpdateWalletInput,
+  type UpdateWalletSavingInput,
+} from "@/features/wallets/walletsService";
 
 export const WALLETS_QUERY_KEY = ["wallets"] as const;
 
@@ -10,14 +20,81 @@ export const WALLETS_QUERY_KEY = ["wallets"] as const;
  * TanStack Query hook that fetches the authenticated user's wallets from
  * `GET /api/v1/wallets`. Shared across every page via a single cache entry
  * keyed by `["wallets"]`.
- *
- * Returns the API contract (`WalletDTO[]`). Map with `toWallets` when a UI
- * `Wallet` (icon, `savingGoal`) is needed. Pass this hook to screens that
- * still own their own `WalletSelector` wiring.
  */
 export function useWallets() {
-  return useQuery<WalletDTO[]>({
+  return useQuery({
     queryKey: WALLETS_QUERY_KEY,
-    queryFn: fetchWallets,
+    queryFn: getWallets,
+  });
+}
+
+function invalidateWalletQueries(queryClient: ReturnType<typeof useQueryClient>) {
+  queryClient.invalidateQueries({ queryKey: WALLETS_QUERY_KEY });
+  queryClient.invalidateQueries({ queryKey: ["home-summary"] });
+  queryClient.invalidateQueries({ queryKey: ["transactions"] });
+}
+
+export function useCreateWallet() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: CreateWalletInput) => createWallet(input),
+    onSuccess: (created) => {
+      invalidateWalletQueries(queryClient);
+      toast.success(`Wallet "${created.name}" created`);
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Couldn't create wallet");
+    },
+  });
+}
+
+export function useUpdateWallet() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: UpdateWalletInput }) =>
+      updateWallet(id, input),
+    onSuccess: (updated) => {
+      invalidateWalletQueries(queryClient);
+      toast.success(`Wallet "${updated.name}" updated`);
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Couldn't update wallet");
+    },
+  });
+}
+
+export function useUpdateWalletSaving() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: UpdateWalletSavingInput }) =>
+      updateWalletSaving(id, input),
+    onSuccess: (updated) => {
+      invalidateWalletQueries(queryClient);
+      const msg = updated.isSaving
+        ? `Saving goal for "${updated.name}" enabled`
+        : `Saving goal for "${updated.name}" disabled`;
+      toast.success(msg);
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Couldn't update saving status");
+    },
+  });
+}
+
+export function useDeleteWallet() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => deleteWallet(id),
+    onSuccess: () => {
+      invalidateWalletQueries(queryClient);
+      toast.success("Wallet deleted");
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Couldn't delete wallet");
+    },
   });
 }

@@ -1,4 +1,4 @@
-import { Sidebar } from "@/components/Sidebar";
+import { ProtectedLayout } from "@/app/_components/ProtectedLayout";
 
 /**
  * Layout for the homepage: renders the navigation sidebar alongside the
@@ -10,10 +10,5 @@ export default function HomepageLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return (
-    <>
-      <Sidebar />
-      <div className="min-h-screen bg-[#f8f8f6] pl-16">{children}</div>
-    </>
-  );
+  return <ProtectedLayout>{children}</ProtectedLayout>;
 }

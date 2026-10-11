@@ -28,8 +28,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { CATEGORY_STYLES, resolveChipTone, WALLET_TYPE_STYLES } from "@/components/chipColor";
-import { MOCK_CATEGORIES } from "@/mocks/mockCategories";
-import { MOCK_WALLETS } from "@/mocks/mockWallets";
+import { useCategories } from "@/features/categories/hooks/useCategories";
+import { useWallets } from "@/features/wallets/hooks/useWallets";
 import { cn, formatBaht } from "@/lib/utils";
 import type { Transaction } from "@/types/transaction";
 
@@ -62,6 +62,8 @@ export function TransactionTable({
   className,
 }: TransactionTableProps) {
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
+  const { data: categories = [] } = useCategories();
+  const { data: wallets = [] } = useWallets();
 
   if (transactions.length === 0) {
     return (
@@ -81,8 +83,8 @@ export function TransactionTable({
     <div className={cn("overflow-hidden rounded-xl border border-border bg-card", className)}>
       <div className="divide-y divide-border md:hidden">
         {transactions.map((transaction) => {
-          const category = MOCK_CATEGORIES.find(({ id }) => id === transaction.categoryId);
-          const wallet = MOCK_WALLETS.find(({ id }) => id === transaction.walletId);
+          const category = categories.find(({ id }) => id === transaction.categoryId);
+          const wallet = wallets.find(({ id }) => id === transaction.walletId);
           const CategoryIcon = category?.icon;
           const WalletIcon = wallet?.icon;
           const categoryTone = category
@@ -192,8 +194,8 @@ export function TransactionTable({
         </TableHeader>
         <TableBody>
           {transactions.map((transaction) => {
-            const category = MOCK_CATEGORIES.find(({ id }) => id === transaction.categoryId);
-            const wallet = MOCK_WALLETS.find(({ id }) => id === transaction.walletId);
+            const category = categories.find(({ id }) => id === transaction.categoryId);
+            const wallet = wallets.find(({ id }) => id === transaction.walletId);
             const CategoryIcon = category?.icon;
             const WalletIcon = wallet?.icon;
             const isExpanded = expandedRowId === transaction.id;

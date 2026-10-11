@@ -37,7 +37,7 @@ describe('shared error handling', () => {
   });
 });
 describe('category contract and service validation agree', () => {
-  it.each([null, [], {}, { name: '   ', type: 'expense' }, { name: 'x'.repeat(51), type: 'income' }, { name: 'Food', type: 'invalid' }, { name: 'Food', type: 'expense', color: 'red' }, { name: '  Food  ', type: 'expense', color: '#aAbB00', isSystem: true }])('shares create/partial rules for %j', body => {
+  it.each([null, [], {}, { name: '   ', type: 'expense' }, { name: 'x'.repeat(51), type: 'income' }, { name: 'Food', type: 'invalid' }, { name: 'Food', type: 'expense', color: 'red' }, { name: 'Food', type: 'expense', icon: 'UnknownIcon' }, { name: '  Food  ', type: 'expense', color: '#aAbB00', icon: 'Utensils', isSystem: true }])('shares create/partial rules for %j', body => {
     for (const partial of [false, true]) {
       const parsed = (partial ? categoryUpdate : categoryInput).safeParse(body);
       if (parsed.success) expect(validateCategoryInput(body, partial)).toEqual(parsed.data);

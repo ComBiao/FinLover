@@ -482,22 +482,26 @@ describe('EPIC 3 — Category Management', () => {
     });
 
     it('AC1 — saves a category with an icon and retrieves it correctly', async () => {
-      const cat = await makeCategory({ name: 'Groceries', icon: 'shopping-cart' }).save();
-      expect(cat.icon).toBe('shopping-cart');
+      const cat = await makeCategory({ name: 'Groceries', icon: 'ShoppingCart' }).save();
+      expect(cat.icon).toBe('ShoppingCart');
 
       const found = await Category.findById(cat._id);
-      expect(found?.icon).toBe('shopping-cart');
+      expect(found?.icon).toBe('ShoppingCart');
     });
 
     it('AC1 — allows updating the icon on an existing category', async () => {
-      const cat = await makeCategory({ name: 'Groceries', icon: 'cart' }).save();
+      const cat = await makeCategory({ name: 'Groceries', icon: 'ShoppingCart' }).save();
 
       const updated = await Category.findOneAndUpdate(
         { _id: cat._id },
-        { $set: { icon: 'shopping-bag' } },
+        { $set: { icon: 'Gift' } },
         { new: true }
       );
-      expect(updated?.icon).toBe('shopping-bag');
+      expect(updated?.icon).toBe('Gift');
+    });
+
+    it('AC1 — rejects an icon outside the fixed picker list', async () => {
+      await expect(makeCategory({ name: 'Invalid icon', icon: 'UnknownIcon' }).save()).rejects.toThrow();
     });
 
     it('AC2 — icon defaults to undefined when not provided', async () => {

@@ -41,6 +41,21 @@ describe('GetTransactionsByMonthService', () => {
       'user-1',
       new Date('2026-10-01T00:00:00.000Z'),
       new Date('2026-11-01T00:00:00.000Z'),
+      undefined,
+    );
+  });
+
+  it('passes the search text through next to the month boundaries', async () => {
+    const repo = repository();
+    const service = new GetTransactionsByMonthService(repo, () => new Date('2026-01-01T00:00:00.000Z'), () => 'UTC');
+
+    await service.execute('user-1', '2026-10', 'lunch');
+
+    expect(repo.findByDateRange).toHaveBeenCalledWith(
+      'user-1',
+      new Date('2026-10-01T00:00:00.000Z'),
+      new Date('2026-11-01T00:00:00.000Z'),
+      'lunch',
     );
   });
 
@@ -54,6 +69,7 @@ describe('GetTransactionsByMonthService', () => {
       'user-1',
       new Date('2026-10-01T00:00:00.000Z'),
       new Date('2026-11-01T00:00:00.000Z'),
+      undefined,
     );
   });
 });

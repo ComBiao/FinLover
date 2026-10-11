@@ -181,17 +181,18 @@ describe.each(["legacy", "v1"] as const)("%s API contracts", (version) => {
       catPath,
       "post",
       await c.create(
-        request("POST", catPath, { name: "Food", type: "expense" }),
+        request("POST", catPath, { name: "Food", type: "expense", icon: "Utensils" }),
         context(),
       ),
     );
+    expect(cat.data.icon).toBe("Utensils");
     const id = String(cat.data.id ?? cat.data._id);
     await contract(
       version,
       `${catPath}/{id}`,
       "put",
       await c.update(
-        request("PUT", `${catPath}/${id}`, { name: "Groceries" }),
+        request("PUT", `${catPath}/${id}`, { name: "Groceries", icon: "Gift" }),
         context(id),
       ),
     );
@@ -446,6 +447,33 @@ describe("v1 cookie authentication and CSRF", () => {
   });
 });
 
+describe("v1 category icon validation", () => {
+  it("rejects unknown icons on create and update with the standard validation envelope", async () => {
+    const path = "/api/v1/categories";
+    const invalidCreate = await v1.createCategory(
+      request("POST", path, { name: "Invalid", type: "expense", icon: "UnknownIcon" }),
+      context(),
+    );
+    expect(invalidCreate.status).toBe(400);
+    const createPayload = await contract("v1", path, "post", invalidCreate);
+    expect(createPayload.error).toMatchObject({ code: "VALIDATION_ERROR", fields: { icon: expect.any(String) } });
+
+    const created = await v1.createCategory(
+      request("POST", path, { name: "Valid", type: "expense", icon: "Utensils" }),
+      context(),
+    );
+    const createdPayload = await created.json();
+    const id = createdPayload.data.id as string;
+    const invalidUpdate = await v1.updateCategory(
+      request("PUT", `${path}/${id}`, { icon: "UnknownIcon" }),
+      context(id),
+    );
+    expect(invalidUpdate.status).toBe(400);
+    const updatePayload = await contract("v1", `${path}/{id}`, "put", invalidUpdate);
+    expect(updatePayload.error).toMatchObject({ code: "VALIDATION_ERROR", fields: { icon: expect.any(String) } });
+  });
+});
+
 describe("v1 wallet API contracts", () => {
   it("validates the partial update request and wallet response schema", async () => {
     const body = { name: "Updated main", color: "#12AB34" };
@@ -487,6 +515,31 @@ describe('v1 monthly transaction reads', () => {
     expect(payload.data[1]).toEqual(expect.objectContaining({ categoryId: String(categoryId), date: '2026-10-15', title: 'Same date newer' }));
     expect(payload.data[3].categoryId).toBeNull();
     expect(payload.data[0]).not.toHaveProperty('userId');
+  });
+
+  it('searches title or note case-insensitively, literally, within the month and for the owner only', async () => {
+    const byTitle = await transaction('2026-10-02', 'Lunch with Ann');
+    const byNote = await seedTransaction(new Transaction({ userId: user, walletId: wallet, categoryId: null, type: 'expense', amount: 10, date: new Date('2026-10-03'), title: 'Groceries', note: 'weekly LUNCH prep' }));
+    await transaction('2026-10-04', 'Taxi');
+    await transaction('2026-09-30', 'Lunch last month');
+    await transaction('2026-10-05', 'Lunch for someone else', other);
+    await transaction('2026-10-06', 'Fee (50% off) a.b');
+
+    const ids = async (query: string) => {
+      const response = await v1.listTransactions(request('GET', `/api/v1/transactions?month=2026-10${query}`), context());
+      expect(response.status).toBe(200);
+      return (await contract('v1', '/api/v1/transactions', 'get', response)).data.map((item: { id: string }) => item.id);
+    };
+
+    expect(await ids('&search=lunch')).toEqual([String(byNote._id), String(byTitle._id)]);
+    expect(await ids('&search=%20%20')).toHaveLength(4); // blank search = no filter (4 owned October rows)
+    expect(await ids('&search=a.b')).toHaveLength(1);
+    expect(await ids('&search=.*')).toHaveLength(0); // metacharacters are not interpreted as a regex
+    expect(await ids('&search=%2850%25')).toHaveLength(1);
+    expect(await ids('&search=nothing-matches')).toEqual([]);
+
+    const tooLong = await v1.listTransactions(request('GET', `/api/v1/transactions?month=2026-10&search=${'x'.repeat(101)}`), context());
+    expect(tooLong.status).toBe(400);
   });
 
   it('returns an empty collection and rejects invalid months or missing authentication', async () => {

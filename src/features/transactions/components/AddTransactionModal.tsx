@@ -21,7 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { WalletSelector } from "@/components/WalletSelector";
 import { ApiClientError } from "@/lib/api/client";
 import { cn, todayISODate, toLocalISODate } from "@/lib/utils";
-import { MOCK_CATEGORIES } from "@/mocks/mockCategories";
+import { useCategories } from "@/features/categories/hooks/useCategories";
 import { useTransactionModal } from "@/features/transactions/store/useTransactionModal";
 import type { TransactionType } from "@/types/category";
 import type { Transaction } from "@/types/transaction";
@@ -62,7 +62,7 @@ type AddTransactionModalProps = {
    */
   onAdd?: (transaction: Omit<Transaction, "id">) => Promise<void>;
   /** Called with the updated transaction when submitting in Edit mode. */
-  onEdit?: (transaction: Transaction) => void;
+  onEdit?: (transaction: Transaction) => Promise<void>;
 };
 
 /**
@@ -192,6 +192,7 @@ export function AddTransactionModal({
 }: AddTransactionModalProps = {}) {
   const { isOpen, defaultType, defaultWalletId, editingTransaction, closeModal, openDeleteModal } =
     useTransactionModal();
+  const { data: categories = [] } = useCategories();
   const effectiveInitialData = initialData ?? editingTransaction;
   const isEditMode = Boolean(effectiveInitialData);
 
@@ -252,19 +253,17 @@ export function AddTransactionModal({
       note: values.note ? values.note : undefined,
     };
 
-    if (isEditMode && effectiveInitialData) {
-      onEdit?.({ ...effectiveInitialData, ...shared });
-      closeModal();
-      return;
-    }
-
-    if (!onAdd) {
+    const submit =
+      isEditMode && effectiveInitialData
+        ? onEdit && (() => onEdit({ ...effectiveInitialData, ...shared }))
+        : onAdd && (() => onAdd(shared));
+    if (!submit) {
       setError("root", { message: "Can't save: this form isn't connected yet." });
       return;
     }
 
     try {
-      await onAdd(shared);
+      await submit();
       closeModal();
     } catch (error) {
       setError("root", {
@@ -278,7 +277,7 @@ export function AddTransactionModal({
 
   const categoryChips = [
     { id: undefined as string | undefined, name: "Uncategorized", icon: Tag as LucideIcon, color: undefined as string | undefined },
-    ...MOCK_CATEGORIES.filter((category) => category.type === type).map((category) => ({
+    ...categories.filter((category) => category.type === type).map((category) => ({
       id: category.id as string | undefined,
       name: category.name,
       icon: category.icon,
@@ -471,6 +470,8 @@ export function AddTransactionModal({
                       id="transaction-wallet"
                       value={field.value}
                       onValueChange={(nextWalletId) => field.onChange(nextWalletId ?? "")}
+                      // The update API can't move a transaction between wallets.
+                      disabled={isEditMode}
                     />
                   )}
                 />

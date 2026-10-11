@@ -1,4 +1,4 @@
-import { Sidebar } from "@/components/Sidebar";
+import { ProtectedLayout } from "@/app/_components/ProtectedLayout";
 
 /**
  * Layout for the dashboard section: renders the navigation sidebar
@@ -10,10 +10,5 @@ export default function DashboardLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return (
-    <>
-      <Sidebar />
-      <div className="min-h-screen bg-[#f8f8f6] md:pl-16">{children}</div>
-    </>
-  );
+  return <ProtectedLayout>{children}</ProtectedLayout>;
 }
