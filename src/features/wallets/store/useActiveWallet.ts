@@ -119,6 +119,11 @@ export const useActiveWallet = create<ActiveWalletState>()(
         walletId: state.walletId,
         activeWalletId: state.activeWalletId,
       }),
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          syncTransactionFilters(state.walletId);
+        }
+      },
     }
   )
 );
