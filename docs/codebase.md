@@ -16,6 +16,8 @@ npm run dev
 
 App and API share `http://localhost:3000`; Swagger is `/api/docs`. `infra:up` starts only MongoDB. `infra:down` stops the dev container without removing its named data volume. There are no application Dockerfiles or frontend/backend proxy servers.
 
+Existing databases created with the old category uniqueness rule must run `npm run db:migrate:category-index` once. The migration removes the obsolete unique `(userId, name)` index and ensures the unique `(userId, type, name)` index exists before registration seeds both income and expense `Others` categories.
+
 ## 2. Stack and layout
 
 | Area | Responsibility |
@@ -130,6 +132,7 @@ Husky commit-msg calls `infra-dev/scripts/check-commit-msg.js`; pre-commit runs 
 | npm run docs:generate / docs:check | Generate or verify the codebase HTML mirror |
 | npm run generate-erd | Regenerate root docs/ERD.md from models |
 | npm run infra:up / infra:down | Start dev MongoDB / stop dev compose |
+| npm run db:migrate:category-index | Replace the legacy category-name index in an existing database |
 
 Generators work without DB/secrets and resolve paths relative to their files. Never hand-edit generated ERD/HTML/OpenAPI artifacts. Update README, codebase, API docs, manifests, CI and agent instructions together when paths/commands change. See [validation report](refactor-validation.md) for actual checks and remaining deployment limits.
 

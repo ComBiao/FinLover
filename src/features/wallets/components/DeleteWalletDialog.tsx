@@ -52,7 +52,7 @@ export function DeleteWalletDialog({ wallet, open, onOpenChange }: DeleteWalletD
             </span>
             <AlertDialogTitle>Delete Wallet</AlertDialogTitle>
           </div>
-          <AlertDialogDescription className="space-y-2 pt-2 text-left">
+          <AlertDialogDescription render={<div />} className="space-y-2 pt-2 text-left">
             <p className="font-semibold text-foreground">
               Are you sure you want to delete &ldquo;{wallet?.name}&rdquo;?
             </p>

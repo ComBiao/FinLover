@@ -20,6 +20,7 @@
     "api:check": "node --import tsx infra-dev/scripts/openapi.ts check",
     "docs:generate": "node infra-dev/scripts/docs.mjs",
     "docs:check": "node infra-dev/scripts/docs.mjs --check",
+    "db:migrate:category-index": "node --import tsx src/server/db/migrations/migrate-category-unique-index.ts",
     "infra:up": "docker compose -f infra-dev/compose.yml up -d mongo",
     "infra:down": "docker compose -f infra-dev/compose.yml down"
   },

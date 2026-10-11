@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
-import { cn, formatBaht } from "@/lib/utils";
+import { cn, formatBaht, formatEnglishDate, formatEnglishDayMonth } from "@/lib/utils";
 
 describe("cn", () => {
   it("merges class names", () => {
@@ -33,5 +33,12 @@ describe("formatBaht", () => {
     expect(formatBaht(1000)).toBe("฿1,000");
     expect(formatBaht(1000, { sign: true })).toBe("+฿1,000");
     expect(formatBaht(0, { sign: true })).toBe("฿0");
+  });
+});
+
+describe("English date formatting", () => {
+  it("uses day-first order and fixed three-letter English months", () => {
+    expect(formatEnglishDayMonth(new Date(2026, 8, 28))).toBe("28 Sep");
+    expect(formatEnglishDate(new Date(2026, 9, 11))).toBe("11 Oct 2026");
   });
 });

@@ -207,6 +207,8 @@ describe("walletsService — API calls", () => {
     expect(global.fetch).toHaveBeenCalledWith("/api/v1/wallets/60d5ecb8b5c9c61234567892", {
       method: "DELETE",
       credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: undefined,
     });
   });
 });

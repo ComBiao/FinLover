@@ -28,6 +28,21 @@ export function toLocalISODate(date: Date) {
   return `${year}-${month}-${day}`
 }
 
+const ENGLISH_SHORT_MONTHS = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+] as const
+
+/** English day and three-letter month, e.g. `11 Oct`, independent of browser locale. */
+export function formatEnglishDayMonth(date: Date) {
+  return `${date.getDate()} ${ENGLISH_SHORT_MONTHS[date.getMonth()]}`
+}
+
+/** English display date in day-first order, e.g. `11 Oct 2026`. */
+export function formatEnglishDate(date: Date) {
+  return `${formatEnglishDayMonth(date)} ${date.getFullYear()}`
+}
+
 /**
  * Formats a baht amount: rounded to 2 decimals first, then `฿1,304` for a whole
  * number or `฿1,304.50` when it has cents. Negatives get a leading `-`; with

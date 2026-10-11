@@ -37,7 +37,12 @@ describe('putApi / deleteApi', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     await expect(deleteApi('/api/v1/x/1')).resolves.toBeUndefined();
-    expect(fetchMock).toHaveBeenCalledWith('/api/v1/x/1', expect.objectContaining({ method: 'DELETE' }));
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/x/1', {
+      method: 'DELETE',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: undefined,
+    });
   });
 
   it('throws ApiClientError with status and field errors on failure', async () => {
