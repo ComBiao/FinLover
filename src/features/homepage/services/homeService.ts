@@ -1,4 +1,5 @@
-import { getCategories } from "@/features/categories/categoriesService";
+import { FALLBACK_CATEGORY_NAME, getCategories } from "@/features/categories/categoriesService";
+import { withFallbackCategory } from "@/features/transactions/transactions";
 import { getTransactions } from "@/features/transactions/transactionsService";
 import { getWallets } from "@/features/wallets/walletsService";
 import { isDateInMonth, type MonthKey } from "@/features/homepage/month";
@@ -39,7 +40,8 @@ export type HomeSummary = {
   topCategories: HomeTopCategory[];
 };
 
-const UNCATEGORIZED_KEY = "__uncategorized__";
+/** Only used when the user has no seeded "Others" to fold category-less rows into. */
+const NO_CATEGORY_KEY = "__no_category__";
 
 function computeSavingGoal(wallet: Wallet | undefined): HomeSavingGoal | null {
   if (!wallet?.isSaving || !wallet.savingGoal) return null;
@@ -85,19 +87,20 @@ export async function getHomeSummary(month: MonthKey, walletId: string): Promise
     .reduce((sum, t) => sum + t.amount, 0);
   const net = income - expense;
 
+  // Rows without a category count toward their type's "Others" rather than a separate bucket.
   const amountByCategory = new Map<string, number>();
-  for (const transaction of monthTransactions) {
+  for (const transaction of withFallbackCategory(monthTransactions, categories)) {
     if (transaction.type !== "expense") continue;
-    const key = transaction.categoryId ?? UNCATEGORIZED_KEY;
+    const key = transaction.categoryId ?? NO_CATEGORY_KEY;
     amountByCategory.set(key, (amountByCategory.get(key) ?? 0) + transaction.amount);
   }
 
   const topCategories: HomeTopCategory[] = [...amountByCategory.entries()]
     .map(([categoryId, amount]) => {
-      const category = categoryId === UNCATEGORIZED_KEY ? undefined : categories.find((c) => c.id === categoryId);
+      const category = categoryId === NO_CATEGORY_KEY ? undefined : categories.find((c) => c.id === categoryId);
       return {
         categoryId: category?.id ?? null,
-        name: category?.name ?? "Uncategorized",
+        name: category?.name ?? FALLBACK_CATEGORY_NAME,
         icon: category?.icon,
         color: category?.color,
         amount,

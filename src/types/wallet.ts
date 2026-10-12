@@ -9,6 +9,8 @@ export type Wallet = {
   type?: WalletType;
   balance: number;
   icon: LucideIcon;
+  /** Name of the icon (e.g. 'Wallet', 'CreditCard') */
+  iconName?: string;
   /** Optional custom color from the API (hex like "#f0c48a" or a Tailwind class string). */
   color?: string;
   /** Whether this wallet tracks a savings goal (Home's Total balance card only shows goal progress for a saving wallet). */

@@ -28,6 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { CATEGORY_STYLES, resolveChipTone, WALLET_TYPE_STYLES } from "@/components/chipColor";
+import { FALLBACK_CATEGORY_NAME, isFallbackCategory } from "@/features/categories/categoriesService";
 import { useCategories } from "@/features/categories/hooks/useCategories";
 import { useWallets } from "@/features/wallets/hooks/useWallets";
 import { cn, formatBaht, formatEnglishDate } from "@/lib/utils";
@@ -61,6 +62,13 @@ export function TransactionTable({
   const { data: categories = [] } = useCategories();
   const { data: wallets = [] } = useWallets();
 
+  /** A row without a category shows its type's seeded "Others" (see `withFallbackCategory`). */
+  const categoryOf = (transaction: Transaction) =>
+    categories.find(({ id }) => id === transaction.categoryId) ??
+    (transaction.categoryId
+      ? undefined
+      : categories.find((category) => category.type === transaction.type && isFallbackCategory(category)));
+
   if (transactions.length === 0) {
     return (
       <div
@@ -79,7 +87,7 @@ export function TransactionTable({
     <div className={cn("overflow-hidden rounded-xl border border-border bg-card", className)}>
       <div className="divide-y divide-border md:hidden">
         {transactions.map((transaction) => {
-          const category = categories.find(({ id }) => id === transaction.categoryId);
+          const category = categoryOf(transaction);
           const wallet = wallets.find(({ id }) => id === transaction.walletId);
           const CategoryIcon = category?.icon;
           const WalletIcon = wallet?.icon;
@@ -123,7 +131,7 @@ export function TransactionTable({
                   style={categoryTone?.style}
                 >
                   {CategoryIcon ? <CategoryIcon className="size-3" /> : null}
-                  {category?.name ?? "Uncategorized"}
+                  {category?.name ?? FALLBACK_CATEGORY_NAME}
                 </Badge>
                 <Badge
                   variant="secondary"
@@ -190,7 +198,7 @@ export function TransactionTable({
         </TableHeader>
         <TableBody>
           {transactions.map((transaction) => {
-            const category = categories.find(({ id }) => id === transaction.categoryId);
+            const category = categoryOf(transaction);
             const wallet = wallets.find(({ id }) => id === transaction.walletId);
             const CategoryIcon = category?.icon;
             const WalletIcon = wallet?.icon;
@@ -227,7 +235,7 @@ export function TransactionTable({
                     style={categoryTone?.style}
                   >
                     {CategoryIcon ? <CategoryIcon className="size-3" /> : null}
-                    {category?.name ?? "Uncategorized"}
+                    {category?.name ?? FALLBACK_CATEGORY_NAME}
                   </Badge>
                 </TableCell>
                 <TableCell className="py-3.5">

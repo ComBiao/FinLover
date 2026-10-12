@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowDownRight, ArrowUpRight, Check, Tag, Trash2, X, type LucideIcon } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Check, Trash2, X, type LucideIcon } from "lucide-react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 
@@ -21,6 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { WalletSelector } from "@/components/WalletSelector";
 import { ApiClientError } from "@/lib/api/client";
 import { cn, todayISODate, toLocalISODate } from "@/lib/utils";
+import { isFallbackCategory } from "@/features/categories/categoriesService";
 import { useCategories } from "@/features/categories/hooks/useCategories";
 import { useTransactionModal } from "@/features/transactions/store/useTransactionModal";
 import type { TransactionType } from "@/types/category";
@@ -126,12 +127,11 @@ const CATEGORY_PRESET_HEX: Record<string, string> = {
   freelance: "#4f9d78",
   saving: "#9b8afb",
 };
-const UNCATEGORIZED_CHIP_HEX = "#8a879a";
+const DEFAULT_CHIP_HEX = "#8a879a";
 
-function resolveCategoryChipHex(id: string | undefined, explicitColor: string | undefined) {
+function resolveCategoryChipHex(id: string, explicitColor: string | undefined) {
   if (explicitColor) return explicitColor;
-  if (!id) return UNCATEGORIZED_CHIP_HEX;
-  return CATEGORY_PRESET_HEX[id] ?? UNCATEGORIZED_CHIP_HEX;
+  return CATEGORY_PRESET_HEX[id] ?? DEFAULT_CHIP_HEX;
 }
 
 /** Strips an amount input down to digits and at most one decimal point with at most 2 decimal places — applied on every change (typed or pasted). */
@@ -275,20 +275,31 @@ export function AddTransactionModal({
     }
   }
 
-  const categoryChips = [
-    { id: undefined as string | undefined, name: "Uncategorized", icon: Tag as LucideIcon, color: undefined as string | undefined },
-    ...categories.filter((category) => category.type === type).map((category) => ({
-      id: category.id as string | undefined,
-      name: category.name,
-      icon: category.icon,
-      color: category.color,
-    })),
-  ].map((option) => {
-    const selected = (categoryIdValue || undefined) === option.id;
-    const hex = resolveCategoryChipHex(option.id, option.color);
+  const typeCategories = categories.filter((category) => category.type === type);
+  const fallbackCategory = typeCategories.find(isFallbackCategory);
+  const orderedCategories = fallbackCategory
+    ? [fallbackCategory, ...typeCategories.filter((category) => category !== fallbackCategory)]
+    : typeCategories;
+
+  // A transaction without a category means "Others", so preselect it whenever
+  // the field is empty: a fresh Add, a type switch (which clears the field),
+  // or editing a row whose category was deleted. Waits for categories to load,
+  // and leaves the field empty if this user has no seeded "Others".
+  const fallbackCategoryId = fallbackCategory?.id;
+  React.useEffect(() => {
+    if (isOpen && !categoryIdValue && fallbackCategoryId) {
+      setValue("categoryId", fallbackCategoryId);
+    }
+  }, [isOpen, categoryIdValue, fallbackCategoryId, setValue]);
+
+  const categoryChips = orderedCategories.map((category) => {
+    const selected = categoryIdValue === category.id;
+    const hex = resolveCategoryChipHex(category.id, category.color);
     const textColor = shadeHex(hex, 0.6);
     return {
-      ...option,
+      id: category.id,
+      name: category.name,
+      icon: category.icon,
       selected,
       textColor,
       backgroundColor: hexToRgba(hex, selected ? 0.22 : 0.12),
@@ -485,26 +496,25 @@ export function AddTransactionModal({
               <Label>Category</Label>
               <div className="flex flex-wrap gap-2">
                 {categoryChips.map((chip) => {
-                  const Icon = chip.icon;
+                  // The check swaps in for the category icon (same size, same
+                  // weight text) so selecting a chip never changes its width —
+                  // a wider chip would re-wrap the row and make chips jump.
+                  const Icon = chip.selected ? Check : chip.icon;
                   return (
                     <button
-                      key={chip.id ?? "uncategorized"}
+                      key={chip.id}
                       type="button"
                       role="radio"
                       aria-checked={chip.selected}
-                      onClick={() => setValue("categoryId", chip.id ?? "")}
-                      className={cn(
-                        "inline-flex h-10 items-center gap-1.5 rounded-full border-2 px-3.5 text-sm transition-colors",
-                        chip.selected ? "font-bold" : "font-semibold"
-                      )}
+                      onClick={() => setValue("categoryId", chip.id)}
+                      className="inline-flex h-10 items-center gap-1.5 rounded-full border-2 px-3.5 text-sm font-semibold transition-colors"
                       style={{
                         backgroundColor: chip.backgroundColor,
                         color: chip.textColor,
                         borderColor: chip.borderColor,
                       }}
                     >
-                      {chip.selected ? <Check className="size-3.5" strokeWidth={3} /> : null}
-                      <Icon className="size-4" />
+                      <Icon className="size-4" strokeWidth={chip.selected ? 3 : undefined} />
                       {chip.name}
                     </button>
                   );

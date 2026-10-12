@@ -1,87 +1,46 @@
-import { ArrowDownRight, ArrowUpRight, Wallet, type LucideIcon } from "lucide-react";
-
-import { Card, CardContent } from "@/components/ui/card";
+import { IncomeCard, NetCard, SpentCard } from "@/features/homepage/components/HomeCards";
+import { periodLabel, type TransactionPeriod } from "@/features/transactions/period";
 import { summarizeTransactions } from "@/features/transactions/transactions";
-import { cn, formatBaht } from "@/lib/utils";
 import type { Transaction } from "@/types/transaction";
 
 type SummaryCardsProps = {
   transactions: Transaction[];
+  period: TransactionPeriod;
+  isLoading?: boolean;
 };
 
-type SummaryCard = {
-  label: string;
-  value: number;
-  valueClassName: string;
-  cardClassName: string;
-  icon: LucideIcon;
-  iconClassName: string;
-};
-
-/** Total Income / Total Expense / Net Balance, computed from the currently filtered transactions. */
-export function SummaryCards({ transactions }: SummaryCardsProps) {
+/**
+ * Spent / Income / Net for the selected period, computed from the currently
+ * filtered transactions. Reuses Home's cards — same wording, order and look —
+ * with the period ("October 2026", "2026", a day range) in place of Home's month.
+ */
+export function SummaryCards({ transactions, period, isLoading = false }: SummaryCardsProps) {
   const { totalIncome, totalExpense, netBalance } = summarizeTransactions(transactions);
-
-  const cards: SummaryCard[] = [
-    {
-      label: "Total Income",
-      value: totalIncome,
-      valueClassName: "text-success",
-      cardClassName: "border-l-4 border-l-success bg-gradient-to-br from-success-bg to-card",
-      icon: ArrowUpRight,
-      iconClassName: "bg-success-bg text-success",
-    },
-    {
-      label: "Total Expense",
-      value: totalExpense,
-      valueClassName: "text-destructive",
-      cardClassName: "border-l-4 border-l-destructive bg-gradient-to-br from-danger-bg to-card",
-      icon: ArrowDownRight,
-      iconClassName: "bg-danger-bg text-destructive",
-    },
-    {
-      label: "Net Balance",
-      value: netBalance,
-      valueClassName: netBalance >= 0 ? "text-success" : "text-destructive",
-      cardClassName: "bg-gradient-pastel-a",
-      icon: Wallet,
-      iconClassName: "bg-card/60 text-foreground",
-    },
-  ];
+  const label = periodLabel(period);
+  const status = netBalance > 0 ? "surplus" : netBalance < 0 ? "overspending" : "even";
 
   return (
-    <div className="flex flex-col gap-3.5 sm:flex-row">
-      {cards.map((card) => (
-        <Card
-          key={card.label}
-          className={cn(
-            "flex-1 rounded-2xl shadow-sm transition-shadow hover:shadow-md",
-            card.cardClassName
-          )}
-        >
-          <CardContent className="flex items-start justify-between gap-3 py-1">
-            <div className="min-w-0">
-              <div className="text-sm font-medium text-muted-foreground">{card.label}</div>
-              <div
-                className={cn(
-                  "mt-1.5 truncate text-xl font-bold sm:text-2xl",
-                  card.valueClassName
-                )}
-              >
-                {formatBaht(card.value)}
-              </div>
-            </div>
-            <div
-              className={cn(
-                "hidden size-9 shrink-0 items-center justify-center rounded-full sm:flex",
-                card.iconClassName
-              )}
-            >
-              <card.icon className="size-4" />
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+    <div className="grid grid-cols-1 gap-[18px] md:grid-cols-3">
+      <SpentCard
+        monthLabel={label}
+        amount={totalExpense}
+        emptyLabel="No spending recorded in this period"
+        isLoading={isLoading}
+      />
+      <IncomeCard
+        monthLabel={label}
+        amount={totalIncome}
+        emptyLabel="No income recorded in this period"
+        isLoading={isLoading}
+      />
+      <NetCard
+        monthLabel={label}
+        net={netBalance}
+        status={status}
+        income={totalIncome}
+        expense={totalExpense}
+        isLoading={isLoading}
+      />
     </div>
   );
 }

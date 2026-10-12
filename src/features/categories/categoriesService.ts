@@ -26,6 +26,11 @@ export type UpdateCategoryInput = Partial<CreateCategoryInput>;
 /** Name of the per-type catch-all the server seeds at registration; the Category page keeps it last. */
 export const FALLBACK_CATEGORY_NAME = "Others";
 
+/** The per-type "Others" the server seeds at registration — it stands for "no specific category". A user-made category that happens to share the name doesn't count. */
+export function isFallbackCategory(category: Category) {
+  return Boolean(category.isSystem) && category.name === FALLBACK_CATEGORY_NAME;
+}
+
 export function toCategory(dto: CategoryDto): Category {
   return {
     id: dto.id,

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Eye, EyeOff, Plus, Wallet as WalletIcon } from "lucide-react";
+import { Plus, Wallet as WalletIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,7 +9,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatBaht } from "@/lib/utils";
 import type { Wallet } from "@/types/wallet";
 import { useWallets } from "@/features/wallets/hooks/useWallets";
-import { useActiveWallet } from "@/features/wallets/store/useActiveWallet";
 import { useBalanceVisibility } from "@/features/wallets/store/useBalanceVisibility";
 import { CreateWalletDialog } from "./CreateWalletDialog";
 import { EditWalletDialog } from "./EditWalletDialog";
@@ -21,11 +20,7 @@ export function WalletManagementPage() {
   const { data: wallets = [], isPending, isError } = useWallets();
 
   const isVisible = useBalanceVisibility((state) => state.isVisible);
-  const toggleVisibility = useBalanceVisibility((state) => state.toggle);
   const onError = useBalanceVisibility((state) => state.onError);
-
-  const activeWalletId = useActiveWallet((state) => state.activeWalletId);
-  const setActiveWalletId = useActiveWallet((state) => state.setActiveWalletId);
 
   const [createOpen, setCreateOpen] = React.useState(false);
   const [editingWallet, setEditingWallet] = React.useState<Wallet | null>(null);
@@ -44,11 +39,6 @@ export function WalletManagementPage() {
     [wallets]
   );
 
-  const activeWallet = React.useMemo(
-    () => wallets.find((w) => w.id === activeWalletId),
-    [wallets, activeWalletId]
-  );
-
   return (
     <main className="min-h-screen bg-background px-6 py-8 sm:px-10 sm:py-10">
       <div className="mx-auto flex max-w-6xl flex-col gap-6 pb-28">
@@ -62,18 +52,6 @@ export function WalletManagementPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={toggleVisibility}
-              className="gap-1.5"
-              aria-label={isVisible ? "Hide all balances" : "Show all balances"}
-            >
-              {isVisible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-              <span>{isVisible ? "Hide Balances" : "Show Balances"}</span>
-            </Button>
-
             <Button type="button" onClick={() => setCreateOpen(true)} className="gap-1.5">
               <Plus className="size-4" />
               <span>Create Wallet</span>
@@ -82,7 +60,7 @@ export function WalletManagementPage() {
         </div>
 
         {/* Overview Stats */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Card className="rounded-2xl bg-gradient-pastel-a shadow-sm">
             <CardContent className="flex flex-col gap-1.5 p-5">
               <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
@@ -119,28 +97,6 @@ export function WalletManagementPage() {
               <span className="text-xs text-muted-foreground">
                 Active accounts
               </span>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-2xl shadow-sm">
-            <CardContent className="flex flex-col gap-1.5 p-5">
-              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Active Wallet
-              </span>
-              <div className="truncate text-xl font-bold text-foreground">
-                {activeWalletId === "all" ? "All Wallets (Combined)" : activeWallet?.name ?? "None"}
-              </div>
-              <div className="mt-1 flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
-                  onClick={() => setActiveWalletId("all")}
-                >
-                  Switch to All
-                </Button>
-              </div>
             </CardContent>
           </Card>
         </div>

@@ -1,6 +1,7 @@
 import type { UserRepositoryPort, PasswordPort } from '@/server/shared/ports/users';
 import type { UnitOfWork } from '@/server/shared/ports/unit-of-work';
 import type { CategoryRepositoryPort } from '@/server/shared/ports/categories';
+import type { WalletRepositoryPort } from '@/server/shared/ports/wallets';
 import { LoginService } from './services/LoginService';
 import { RegisterService } from './services/RegisterService';
 import { DeleteAccountService } from './services/DeleteAccountService';
@@ -15,9 +16,9 @@ import { DeleteAccountController } from './controllers/DeleteAccountController';
  * The unit of work applies to account deletion. Callers must apply authentication
  * and Origin policies before exposing these handlers as routes.
  */
-export function createAuthRouter(users: UserRepositoryPort, passwords: PasswordPort, categories: CategoryRepositoryPort, uow: UnitOfWork) {
+export function createAuthRouter(users: UserRepositoryPort, passwords: PasswordPort, categories: CategoryRepositoryPort, uow: UnitOfWork, wallets?: WalletRepositoryPort) {
   const login = new LoginController(new LoginService(users, passwords));
-  const register = new RegisterController(new RegisterService(users, passwords, categories, uow));
+  const register = new RegisterController(new RegisterService(users, passwords, categories, uow, wallets));
   const logout = new LogoutController();
   const me = new GetCurrentUserController(new GetCurrentUserService(users));
   const deleteAccount = new DeleteAccountController(new DeleteAccountService(users, uow));
