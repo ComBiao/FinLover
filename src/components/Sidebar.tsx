@@ -10,7 +10,7 @@ import {
   LayoutGrid,
   Menu,
   Receipt,
-  Settings,
+  User,
   Wallet,
   X,
   type LucideIcon,
@@ -33,7 +33,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Reports", href: "/reports", icon: BarChart3 },
 ];
 
-const BOTTOM_ITEMS: NavItem[] = [{ label: "Settings", href: "/settings", icon: Settings }];
+const BOTTOM_ITEMS: NavItem[] = [{ label: "Account", href: "/profile", icon: User }];
 
 /**
  * App navigation rail. Collapsed to icons by default, expands to show
