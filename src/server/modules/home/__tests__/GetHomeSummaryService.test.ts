@@ -9,17 +9,21 @@ const wallet = (id: string, balance: number, overrides: Partial<WalletRecord> = 
   createdAt: new Date(0), updatedAt: new Date(0), ...overrides,
 });
 
-const tx = (walletId: string, type: TransactionRecord['type'], amount: number): TransactionRecord => ({
-  id: `${walletId}-${type}-${amount}`, userId: 'user-1', walletId, type, amount, date: new Date('2026-10-05T00:00:00.000Z'), title: 't',
+const tx = (walletId: string, type: TransactionRecord['type'], amount: number, categoryId: string | null = null): TransactionRecord => ({
+  id: `${walletId}-${type}-${amount}`, userId: 'user-1', walletId, type, amount, categoryId, date: new Date('2026-10-05T00:00:00.000Z'), title: 't',
 });
 
-function service(wallets: WalletRecord[], transactions: TransactionRecord[] = []) {
+type CategoryDoc = { _id: string; name: string; type: 'income' | 'expense'; isSystem?: boolean; icon?: string; color?: string };
+
+function service(wallets: WalletRecord[], transactions: TransactionRecord[] = [], categories: CategoryDoc[] = []) {
   const list = vi.fn(async () => wallets);
   const findByDateRange = vi.fn(async () => transactions);
+  const listCategories = vi.fn(async () => categories);
   return {
     list,
     findByDateRange,
-    summary: new GetHomeSummaryService({ list }, { findByDateRange }, () => new Date('2026-09-30T17:30:00.000Z'), () => 'Asia/Bangkok'),
+    listCategories,
+    summary: new GetHomeSummaryService({ list }, { findByDateRange }, { list: listCategories }, () => new Date('2026-09-30T17:30:00.000Z'), () => 'Asia/Bangkok'),
   };
 }
 
@@ -128,5 +132,62 @@ describe('GetHomeSummaryService — saving goal progress (#81)', () => {
     const { summary } = service(wallets);
 
     expect((await summary.execute('user-1', { walletId })).balance.savingGoal).toBeNull();
+  });
+});
+
+describe('GetHomeSummaryService — top categories (#93)', () => {
+  const categories: CategoryDoc[] = [
+    { _id: 'food', name: 'Food & Drinks', type: 'expense', isSystem: true, icon: 'Utensils', color: '#F97316' },
+    { _id: 'travel', name: 'Travel', type: 'expense', isSystem: true, icon: 'Plane', color: '#0EA5E9' },
+    { _id: 'bills', name: 'Bills', type: 'expense', isSystem: true, icon: 'Receipt', color: '#EAB308' },
+    { _id: 'others-exp', name: 'Others', type: 'expense', isSystem: true, icon: 'MoreHorizontal', color: '#4B5563' },
+    { _id: 'salary', name: 'Salary', type: 'income', isSystem: true, icon: 'Wallet', color: '#22C55E' },
+  ];
+  const wallets = [wallet('a', 0), wallet('b', 0)];
+
+  it('ranks the top three expense categories by amount, leaving out income', async () => {
+    const { listCategories, summary } = service(wallets, [
+      tx('a', 'expense', 100, 'food'), tx('a', 'expense', 250, 'food'), tx('b', 'expense', 300, 'travel'),
+      tx('a', 'expense', 20, 'bills'), tx('a', 'expense', 50, 'others-exp'), tx('a', 'income', 99999, 'salary'),
+    ], categories);
+
+    const { topCategories } = await summary.execute('user-1', { month: '2026-10', walletId: 'all' });
+
+    expect(listCategories).toHaveBeenCalledWith('user-1');
+    expect(topCategories).toEqual([
+      { rank: 1, categoryId: 'food', name: 'Food & Drinks', icon: 'Utensils', color: '#F97316', amount: 350 },
+      { rank: 2, categoryId: 'travel', name: 'Travel', icon: 'Plane', color: '#0EA5E9', amount: 300 },
+      { rank: 3, categoryId: 'others-exp', name: 'Others', icon: 'MoreHorizontal', color: '#4B5563', amount: 50 },
+    ]);
+  });
+
+  it('counts expenses without a category toward the seeded expense Others', async () => {
+    const { summary } = service(wallets, [tx('a', 'expense', 40), tx('a', 'expense', 60, 'others-exp'), tx('a', 'expense', 70, 'food')], categories);
+
+    const { topCategories } = await summary.execute('user-1', { walletId: 'all' });
+
+    expect(topCategories.map(({ categoryId, amount }) => [categoryId, amount])).toEqual([['others-exp', 100], ['food', 70]]);
+  });
+
+  it('keeps category-less expenses as an Others row without an id when the seeded one is gone', async () => {
+    const { summary } = service(wallets, [tx('a', 'expense', 40)], categories.filter(c => c._id !== 'others-exp'));
+
+    const { topCategories } = await summary.execute('user-1', { walletId: 'all' });
+
+    expect(topCategories).toEqual([{ rank: 1, categoryId: null, name: 'Others', icon: null, color: null, amount: 40 }]);
+  });
+
+  it('breaks ties by name and only counts the selected wallet', async () => {
+    const { summary } = service(wallets, [tx('a', 'expense', 10, 'travel'), tx('a', 'expense', 10, 'bills'), tx('b', 'expense', 500, 'food')], categories);
+
+    const { topCategories } = await summary.execute('user-1', { walletId: 'a' });
+
+    expect(topCategories.map(entry => entry.name)).toEqual(['Bills', 'Travel']);
+  });
+
+  it('is empty for a month without expenses', async () => {
+    const { summary } = service(wallets, [tx('a', 'income', 100, 'salary')], categories);
+
+    expect((await summary.execute('user-1', { walletId: 'all' })).topCategories).toEqual([]);
   });
 });
