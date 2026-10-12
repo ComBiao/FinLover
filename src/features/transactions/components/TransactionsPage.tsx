@@ -33,7 +33,7 @@ import { SummaryCards } from "./SummaryCards";
 export default function TransactionsPage() {
   const period = useTransactionFilters((state) => state.period);
   const months = useMemo(() => periodMonthKeys(period), [period]);
-  const { data: transactions = [] } = useTransactions(months);
+  const { data: transactions = [], isPending: isTransactionsPending } = useTransactions(months);
   const createTransaction = useCreateTransaction();
   const updateTransaction = useUpdateTransaction();
   const deleteTransaction = useDeleteTransaction();
@@ -90,7 +90,11 @@ export default function TransactionsPage() {
           </Button>
         </div>
 
-        <SummaryCards transactions={filteredTransactions} />
+        <SummaryCards
+          transactions={filteredTransactions}
+          period={period}
+          isLoading={isTransactionsPending}
+        />
 
         <TransactionFilterBar
           value={filters}
