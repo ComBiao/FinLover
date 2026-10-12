@@ -32,7 +32,7 @@ describe('GetHomeSummaryService — total balance (#89)', () => {
     expect(list).toHaveBeenCalledWith('user-1');
     expect(result.month).toBe('2026-10');
     expect(result.walletId).toBe('all');
-    expect(result.balance).toEqual({ hasWallets: true, totalBalance: 1000.5 });
+    expect(result.balance).toEqual({ hasWallets: true, totalBalance: 1000.5, savingGoal: null });
   });
 
   it('scopes the balance to one owned wallet', async () => {
@@ -40,7 +40,7 @@ describe('GetHomeSummaryService — total balance (#89)', () => {
 
     const result = await summary.execute('user-1', { month: '2026-10', walletId: 'b' });
 
-    expect(result.balance).toEqual({ hasWallets: true, totalBalance: 300 });
+    expect(result.balance).toEqual({ hasWallets: true, totalBalance: 300, savingGoal: null });
   });
 
   it('returns 0 instead of failing when the user has no wallets', async () => {
@@ -48,7 +48,7 @@ describe('GetHomeSummaryService — total balance (#89)', () => {
 
     const result = await summary.execute('user-1', { walletId: 'all' });
 
-    expect(result.balance).toEqual({ hasWallets: false, totalBalance: 0 });
+    expect(result.balance).toEqual({ hasWallets: false, totalBalance: 0, savingGoal: null });
   });
 
   it('defaults to the current month in the configured timezone', async () => {
@@ -91,5 +91,42 @@ describe('GetHomeSummaryService — income, expense and net (#90, #91, #92)', ()
     const result = await summary.execute('user-1', { month: '2030-01', walletId: 'all' });
 
     expect(result).toMatchObject({ income: 0, expense: 0, net: { net: 0, status: 'even' } });
+  });
+});
+
+describe('GetHomeSummaryService — saving goal progress (#81)', () => {
+  const emergency = wallet('e', 12400, { name: 'Emergency fund', isSaving: true, goalAmount: 20000 });
+
+  it("embeds the selected saving wallet's progress in the balance", async () => {
+    const { summary } = service([wallet('a', 500), emergency]);
+
+    const result = await summary.execute('user-1', { month: '2026-10', walletId: 'e' });
+
+    expect(result.balance.savingGoal).toEqual({
+      walletId: 'e', walletName: 'Emergency fund', goal: 20000, current: 12400, percent: 62, remaining: 7600, reached: false,
+    });
+  });
+
+  it.each([
+    ['over the goal', 25000, 100, 0, true],
+    ['exactly the goal', 20000, 100, 0, true],
+    ['just short of the goal', 19999, 99, 1, false],
+    ['a negative balance', -100, 0, 20100, false],
+  ])('clamps progress for %s', async (_name, balance, percent, remaining, reached) => {
+    const { summary } = service([{ ...emergency, balance }]);
+
+    const { savingGoal } = (await summary.execute('user-1', { walletId: 'e' })).balance;
+
+    expect(savingGoal).toMatchObject({ percent, remaining, reached });
+  });
+
+  it.each([
+    ['every wallet is selected', [emergency], 'all'],
+    ['the wallet is not a saving wallet', [wallet('a', 500)], 'a'],
+    ['the saving wallet has no goal', [wallet('s', 500, { isSaving: true })], 's'],
+  ])('is null when %s', async (_name, wallets, walletId) => {
+    const { summary } = service(wallets);
+
+    expect((await summary.execute('user-1', { walletId })).balance.savingGoal).toBeNull();
   });
 });
