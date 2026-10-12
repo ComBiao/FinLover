@@ -1,13 +1,15 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render as rtlRender, fireEvent, screen, waitFor, cleanup } from "@testing-library/react";
+import { render as rtlRender, fireEvent, screen, waitFor, within, cleanup } from "@testing-library/react";
 import type { ReactElement } from "react";
 
 import { AddTransactionModal } from "../components/AddTransactionModal";
 import { useTransactionModal } from "../store/useTransactionModal";
 import { ApiClientError } from "@/lib/api/client";
+import { toCategory } from "@/features/categories/categoriesService";
 import { mapWalletRecord } from "@/features/wallets/walletsService";
+import type { Category } from "@/types/category";
 import type { Transaction } from "@/types/transaction";
 
 const TEST_WALLET = vi.hoisted(() => ({ id: "64b0000000000000000000a1", name: "Cash wallet" }));
@@ -25,11 +27,27 @@ vi.mock("@/features/categories/categoriesService", async (importOriginal) => ({
 }));
 
 /** The modal reads wallets/categories through TanStack Query, so it needs a provider (wallets pre-seeded so the picker is populated on first render). */
-function render(ui: ReactElement) {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+function render(ui: ReactElement, { categories }: { categories?: Category[] } = {}) {
+  // `staleTime: Infinity` keeps the seeded data instead of refetching it through the mocked services.
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
   client.setQueryData(["wallets"], [mapWalletRecord({ ...TEST_WALLET, balance: 1000 })]);
+  if (categories) client.setQueryData(["categories"], categories);
   return rtlRender(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
 }
+
+/** Server order (creation order): seeded defaults with "Others" last per type, then a custom one. */
+const TEST_CATEGORIES: Category[] = [
+  toCategory({ id: "c-food", name: "Food & Drinks", type: "expense", icon: "Utensils", isSystem: true }),
+  toCategory({ id: "c-car", name: "Transportation", type: "expense", icon: "Car", isSystem: true }),
+  toCategory({ id: "c-others-exp", name: "Others", type: "expense", icon: "MoreHorizontal", isSystem: true }),
+  toCategory({ id: "c-salary", name: "Salary", type: "income", icon: "Wallet", isSystem: true }),
+  toCategory({ id: "c-others-inc", name: "Others", type: "income", icon: "MoreHorizontal", isSystem: true }),
+  toCategory({ id: "c-custom-others", name: "Others", type: "expense", icon: "Star", isSystem: false }),
+];
+
+const categoryGroup = () => within(screen.getByRole("radiogroup", { name: "Category" }));
+const categoryChipNames = () => categoryGroup().getAllByRole("radio").map((chip) => chip.textContent);
+const selectedChip = () => categoryGroup().getByRole("radio", { checked: true });
 
 beforeEach(() => {
   useTransactionModal.setState({
@@ -162,5 +180,55 @@ describe("AddTransactionModal — US3-2 async edit", () => {
     render(<AddTransactionModal onEdit={vi.fn()} />);
 
     expect(screen.getByLabelText("Pay from wallet")).toBeDisabled();
+  });
+});
+
+describe("AddTransactionModal — category chips (#138)", () => {
+  it("lists the seeded Others first and has no Uncategorized chip", () => {
+    useTransactionModal.setState({ isOpen: true, defaultType: "expense", editingTransaction: null });
+    render(<AddTransactionModal onAdd={vi.fn()} />, { categories: TEST_CATEGORIES });
+
+    expect(categoryChipNames()).toEqual(["Others", "Food & Drinks", "Transportation", "Others"]);
+    expect(screen.queryByText("Uncategorized")).not.toBeInTheDocument();
+  });
+
+  it("preselects the seeded Others for a new transaction and submits it", async () => {
+    const onAdd = vi.fn().mockResolvedValue(undefined);
+    useTransactionModal.setState({ isOpen: true, defaultType: "expense", editingTransaction: null });
+    render(<AddTransactionModal onAdd={onAdd} />, { categories: TEST_CATEGORIES });
+
+    await waitFor(() => expect(selectedChip()).toHaveTextContent("Others"));
+    await fillRequiredFields();
+    fireEvent.click(screen.getByText("Save expense"));
+
+    await waitFor(() => expect(onAdd).toHaveBeenCalledWith(expect.objectContaining({ categoryId: "c-others-exp" })));
+  });
+
+  it("switches to the new type's Others when toggling Expense/Income", async () => {
+    useTransactionModal.setState({ isOpen: true, defaultType: "expense", editingTransaction: null });
+    render(<AddTransactionModal onAdd={vi.fn()} />, { categories: TEST_CATEGORIES });
+
+    fireEvent.click(screen.getByText("Food & Drinks"));
+    await waitFor(() => expect(selectedChip()).toHaveTextContent("Food & Drinks"));
+
+    fireEvent.click(screen.getByRole("radio", { name: "Income" }));
+
+    expect(categoryChipNames()).toEqual(["Others", "Salary"]);
+    await waitFor(() => expect(selectedChip()).toHaveTextContent("Others"));
+  });
+
+  it("preselects Others when editing a transaction that has no category", async () => {
+    const onEdit = vi.fn().mockResolvedValue(undefined);
+    useTransactionModal.setState({
+      isOpen: true,
+      defaultType: "expense",
+      editingTransaction: { id: "tx2", title: "Snack", amount: 20, type: "expense", walletId: TEST_WALLET.id, date: new Date(2026, 9, 5) },
+    });
+    render(<AddTransactionModal onEdit={onEdit} />, { categories: TEST_CATEGORIES });
+
+    await waitFor(() => expect(selectedChip()).toHaveTextContent("Others"));
+    fireEvent.click(screen.getByText("Save changes"));
+
+    await waitFor(() => expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({ categoryId: "c-others-exp" })));
   });
 });
