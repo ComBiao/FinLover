@@ -34,7 +34,7 @@ export function WalletCard({ wallet, onEdit, onEditSaving, onDelete }: WalletCar
 
   const isActive = activeWalletId === wallet.id;
   const color = wallet.color ?? "#4A4757";
-  const Icon = wallet.isSaving ? PiggyBank : wallet.icon ?? WalletIcon;
+  const Icon = wallet.icon ?? (wallet.isSaving ? PiggyBank : WalletIcon);
 
   const goal = wallet.savingGoal ?? wallet.goalAmount ?? 0;
   const isSaving = Boolean(wallet.isSaving && goal > 0);
@@ -74,28 +74,10 @@ export function WalletCard({ wallet, onEdit, onEditSaving, onDelete }: WalletCar
                   </Badge>
                 ) : null}
               </div>
-              <span className="text-xs font-medium text-muted-foreground">
-                {wallet.isSaving ? "Saving Wallet" : "Daily Wallet"}
-              </span>
             </div>
           </div>
 
           <div className="flex items-center gap-1">
-            {isActive ? (
-              <Badge className="bg-primary/10 text-primary border-primary/30 text-xs font-semibold">
-                Active
-              </Badge>
-            ) : (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-7 text-xs text-muted-foreground hover:text-foreground"
-                onClick={() => setActiveWalletId(wallet.id)}
-              >
-                Set Active
-              </Button>
-            )}
 
             <DropdownMenu>
               <DropdownMenuTrigger
@@ -113,7 +95,7 @@ export function WalletCard({ wallet, onEdit, onEditSaving, onDelete }: WalletCar
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onEdit(wallet)}>
                   <Edit2 className="mr-2 size-4" />
-                  Edit Name & Color
+                  Edit
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onEditSaving(wallet)}>
                   <Target className="mr-2 size-4" />

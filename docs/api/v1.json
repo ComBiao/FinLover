@@ -3274,6 +3274,11 @@
                     "type": "string",
                     "pattern": "^#[0-9A-Fa-f]{6}$"
                   },
+                  "icon": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 50
+                  },
                   "isSaving": {
                     "type": "boolean"
                   },
@@ -3318,6 +3323,11 @@
                         "color": {
                           "type": "string",
                           "pattern": "^#[0-9A-Fa-f]{6}$"
+                        },
+                        "icon": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 50
                         },
                         "isSaving": {
                           "type": "boolean"
@@ -3727,6 +3737,11 @@
                             "type": "string",
                             "pattern": "^#[0-9A-Fa-f]{6}$"
                           },
+                          "icon": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 50
+                          },
                           "isSaving": {
                             "type": "boolean"
                           },
@@ -3950,6 +3965,11 @@
                         "color": {
                           "type": "string",
                           "pattern": "^#[0-9A-Fa-f]{6}$"
+                        },
+                        "icon": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 50
                         },
                         "isSaving": {
                           "type": "boolean"
@@ -4268,6 +4288,11 @@
                   "color": {
                     "type": "string",
                     "pattern": "^#[0-9A-Fa-f]{6}$"
+                  },
+                  "icon": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 50
                   }
                 },
                 "additionalProperties": true
@@ -4301,6 +4326,11 @@
                         "color": {
                           "type": "string",
                           "pattern": "^#[0-9A-Fa-f]{6}$"
+                        },
+                        "icon": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 50
                         },
                         "isSaving": {
                           "type": "boolean"
@@ -5202,6 +5232,11 @@
                         "color": {
                           "type": "string",
                           "pattern": "^#[0-9A-Fa-f]{6}$"
+                        },
+                        "icon": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 50
                         },
                         "isSaving": {
                           "type": "boolean"

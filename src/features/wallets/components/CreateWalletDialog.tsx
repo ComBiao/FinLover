@@ -15,7 +15,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { hexToRgba } from "@/components/chipColor";
 import { useCreateWallet } from "@/features/wallets/hooks/useWallets";
+import { WALLET_ICON_OPTIONS } from "@/features/wallets/walletIcons";
 
 const PRESET_COLORS = [
   "#4A4757",
@@ -38,6 +40,7 @@ type CreateWalletDialogProps = {
 export function CreateWalletDialog({ open, onOpenChange }: CreateWalletDialogProps) {
   const [name, setName] = React.useState("");
   const [color, setColor] = React.useState(PRESET_COLORS[0]);
+  const [icon, setIcon] = React.useState("Wallet");
   const [isSaving, setIsSaving] = React.useState(false);
   const [goalAmount, setGoalAmount] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
@@ -47,6 +50,7 @@ export function CreateWalletDialog({ open, onOpenChange }: CreateWalletDialogPro
   function resetForm() {
     setName("");
     setColor(PRESET_COLORS[0]);
+    setIcon("Wallet");
     setIsSaving(false);
     setGoalAmount("");
     setError(null);
@@ -82,6 +86,7 @@ export function CreateWalletDialog({ open, onOpenChange }: CreateWalletDialogPro
       await createWalletMutation.mutateAsync({
         name: trimmedName,
         color,
+        icon,
         isSaving,
         goalAmount: parsedGoal,
       });
@@ -139,6 +144,33 @@ export function CreateWalletDialog({ open, onOpenChange }: CreateWalletDialogPro
                   {color === preset ? <Check className="size-4 text-white" /> : null}
                 </button>
               ))}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label>Wallet Icon</Label>
+            <div className="grid grid-cols-6 gap-2 pt-1 sm:grid-cols-7">
+              {WALLET_ICON_OPTIONS.map((opt) => {
+                const IconComponent = opt.icon;
+                const isSelected = icon === opt.name;
+                return (
+                  <button
+                    key={opt.name}
+                    type="button"
+                    onClick={() => setIcon(opt.name)}
+                    className="flex size-9 items-center justify-center rounded-xl border transition-all hover:scale-105"
+                    style={{
+                      borderColor: isSelected ? color : "var(--border)",
+                      backgroundColor: isSelected ? hexToRgba(color, 0.15) : "transparent",
+                      color: isSelected ? color : "var(--muted-foreground)",
+                    }}
+                    aria-label={`Select ${opt.label} icon`}
+                    title={opt.label}
+                  >
+                    <IconComponent className="size-4.5" />
+                  </button>
+                );
+              })}
             </div>
           </div>
 

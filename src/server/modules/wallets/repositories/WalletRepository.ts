@@ -14,6 +14,7 @@ function toRecord(doc: InstanceType<typeof Wallet>): WalletRecord {
     balance: doc.balance,
     isDefault: doc.isDefault,
     color: doc.color,
+    icon: doc.icon,
     isSaving: doc.isSaving,
     goalAmount: doc.goalAmount,
     createdAt: doc.createdAt,
@@ -51,5 +52,23 @@ export class WalletRepository implements WalletAccess, WalletRepositoryPort {
   }
   async delete(id: string, userId: string, context: TransactionContext) {
     return Wallet.findOneAndDelete({ _id: id, userId }, { session: sessionOf(context) });
+  }
+  async createDefault(userId: string, context?: TransactionContext) {
+    const session = sessionOf(context);
+    const docs = await Wallet.create(
+      [
+        {
+          userId,
+          name: 'Cash',
+          balance: 0,
+          isDefault: true,
+          color: '#4A4757',
+          icon: 'Wallet',
+          isSaving: false,
+        },
+      ],
+      session ? { session } : undefined,
+    );
+    return toRecord(docs[0]);
   }
 }

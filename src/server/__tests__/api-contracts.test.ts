@@ -118,6 +118,10 @@ describe.each(["legacy", "v1"] as const)("%s API contracts", (version) => {
     );
     expect(reg.status).toBe(201);
     await contract(version, `${prefix}/auth/register`, "post", reg);
+    const registeredUser = await User.findOne({ email: "test@example.com" });
+    const defaultWallet = await Wallet.findOne({ userId: registeredUser!._id, isDefault: true });
+    expect(defaultWallet).not.toBeNull();
+    expect(defaultWallet!.name).toBe("Cash");
     const duplicate = await register(
       request("POST", `${prefix}/auth/register`, body, {}),
       context(),

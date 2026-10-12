@@ -19,9 +19,12 @@ type WalletDropdownProps = {
 
 const ALL_WALLETS_COLOR = "#4A4757";
 
-function walletTypeLabel(wallet: Wallet) {
-  if (wallet.isSaving) return wallet.savingGoal ? `Saving wallet · goal ${formatBaht(wallet.savingGoal)}` : "Saving wallet";
-  return "Daily wallet";
+function walletGoalLabel(wallet: Wallet) {
+  const goal = wallet.savingGoal ?? wallet.goalAmount;
+  if (wallet.isSaving && goal && goal > 0) {
+    return `Goal: ${formatBaht(goal)}`;
+  }
+  return null;
 }
 
 /**
@@ -93,7 +96,6 @@ export function WalletDropdown({ wallets, value, onValueChange, className }: Wal
           </span>
           <span className="flex-1">
             <span className="block text-sm font-bold text-foreground">All wallets</span>
-            <span className="block text-xs text-muted-foreground">Combined view</span>
           </span>
           <span className="text-sm font-bold text-foreground">{formatBaht(totalBalance)}</span>
           <span className="flex w-5 shrink-0 justify-center">
@@ -105,6 +107,7 @@ export function WalletDropdown({ wallets, value, onValueChange, className }: Wal
           const isSelected = value === wallet.id;
           const color = wallet.color ?? ALL_WALLETS_COLOR;
           const textColor = shadeHex(color, 0.6);
+          const goalLabel = walletGoalLabel(wallet);
 
           return (
             <button
@@ -132,7 +135,9 @@ export function WalletDropdown({ wallets, value, onValueChange, className }: Wal
                 <span className="block text-sm font-bold" style={{ color: textColor }}>
                   {wallet.name}
                 </span>
-                <span className="block text-xs text-muted-foreground">{walletTypeLabel(wallet)}</span>
+                {goalLabel ? (
+                  <span className="block text-xs text-muted-foreground">{goalLabel}</span>
+                ) : null}
               </span>
               <span className="text-sm font-bold text-foreground">
                 {formatBaht(wallet.balance)}
