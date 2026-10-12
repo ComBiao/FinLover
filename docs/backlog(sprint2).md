@@ -316,7 +316,7 @@ The engineering team is organized into three cross-functional pods with strict p
 
 | Task Description | Assignee (Volunteer) | Reviewer | Hours | Status |
 | :--- | :--- | :--- | :---: | :---: |
-| Implement get-income-this-month API (total income only, no recent items) | Bushi, Ikkyu | Yeen | 2.0h | To Do |
+| Implement get-income-this-month API (total income only, no recent items) | Bushi, Ikkyu | Yeen | 2.0h | Done |
 | Wire Income card to API | Yeen, Guy, Boss | Bushi | 1.0h | To Do |
 | Test Income this month card (no income case) | Tul, Timsum | - | 1.0h | To Do |
 
@@ -349,7 +349,7 @@ The engineering team is organized into three cross-functional pods with strict p
 
 | Task Description | Assignee (Volunteer) | Reviewer | Hours | Status |
 | :--- | :--- | :--- | :---: | :---: |
-| Implement get-expense-this-month API (total expense only, no % comparison) | Bushi, Ikkyu | Boss | 2.0h | To Do |
+| Implement get-expense-this-month API (total expense only, no % comparison) | Bushi, Ikkyu | Boss | 2.0h | Done |
 | Wire Spent card to API | Yeen, Guy, Boss | Ikkyu | 1.0h | To Do |
 | Test Spent this month card (no expense case) | Tul, Timsum | - | 1.0h | To Do |
 
@@ -383,7 +383,7 @@ The engineering team is organized into three cross-functional pods with strict p
 | Task Description | Assignee (Volunteer) | Reviewer | Hours | Status |
 | :--- | :--- | :--- | :---: | :---: |
 | Replace the existing SpendingTrendChart component with a Net Balance card (spec changed after it was built) | Tul, Timsum, Guy, Boss | Bushi | 2.0h | To Do |
-| Implement get-net-this-month API (income minus expense) | Bushi, Ikkyu | Guy | 1.0h | To Do |
+| Implement get-net-this-month API (income minus expense) | Bushi, Ikkyu | Guy | 1.0h | Done |
 | Wire Net card to API | Yeen, Guy, Boss | Ikkyu | 1.0h | To Do |
 | Test Net card (surplus and overspend cases) | Tul, Timsum | - | 1.0h | To Do |
 
