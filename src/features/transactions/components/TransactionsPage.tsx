@@ -15,7 +15,8 @@ import {
   useDeleteTransaction,
   useUpdateTransaction,
 } from "@/features/transactions/hooks/useTransactionMutations";
-import { filterTransactions } from "@/features/transactions/transactions";
+import { filterTransactions, withFallbackCategory } from "@/features/transactions/transactions";
+import { useCategories } from "@/features/categories/hooks/useCategories";
 import { periodMonthKeys } from "@/features/transactions/period";
 import { useTransactionFilters } from "@/features/transactions/store/useTransactionFilters";
 import { useTransactionModal } from "@/features/transactions/store/useTransactionModal";
@@ -33,7 +34,8 @@ import { SummaryCards } from "./SummaryCards";
 export default function TransactionsPage() {
   const period = useTransactionFilters((state) => state.period);
   const months = useMemo(() => periodMonthKeys(period), [period]);
-  const { data: transactions = [] } = useTransactions(months);
+  const { data: transactions = [], isPending: isTransactionsPending } = useTransactions(months);
+  const { data: categories = [] } = useCategories();
   const createTransaction = useCreateTransaction();
   const updateTransaction = useUpdateTransaction();
   const deleteTransaction = useDeleteTransaction();
@@ -50,8 +52,8 @@ export default function TransactionsPage() {
   const deletingTransaction = useTransactionModal((state) => state.deletingTransaction);
 
   const filteredTransactions = useMemo(
-    () => filterTransactions(transactions, filters),
-    [transactions, filters]
+    () => filterTransactions(withFallbackCategory(transactions, categories), filters),
+    [transactions, categories, filters]
   );
 
   function handleDeleteTransaction(id: string) {
@@ -90,7 +92,11 @@ export default function TransactionsPage() {
           </Button>
         </div>
 
-        <SummaryCards transactions={filteredTransactions} />
+        <SummaryCards
+          transactions={filteredTransactions}
+          period={period}
+          isLoading={isTransactionsPending}
+        />
 
         <TransactionFilterBar
           value={filters}
