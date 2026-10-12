@@ -74,28 +74,10 @@ export function WalletCard({ wallet, onEdit, onEditSaving, onDelete }: WalletCar
                   </Badge>
                 ) : null}
               </div>
-              <span className="text-xs font-medium text-muted-foreground">
-                {wallet.isSaving ? "Saving Wallet" : "Daily Wallet"}
-              </span>
             </div>
           </div>
 
           <div className="flex items-center gap-1">
-            {isActive ? (
-              <Badge className="bg-primary/10 text-primary border-primary/30 text-xs font-semibold">
-                Active
-              </Badge>
-            ) : (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-7 text-xs text-muted-foreground hover:text-foreground"
-                onClick={() => setActiveWalletId(wallet.id)}
-              >
-                Set Active
-              </Button>
-            )}
 
             <DropdownMenu>
               <DropdownMenuTrigger
