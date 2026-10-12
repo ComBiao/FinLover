@@ -1,9 +1,9 @@
 import "server-only";
-import type { QueryFilter } from 'mongoose';
+import { Types, type QueryFilter } from 'mongoose';
 import type { TransactionContext } from '@/server/shared/ports/unit-of-work';
 import { sessionOf } from '@/server/db/unit-of-work';
 import Transaction, { type ITransaction } from '@/server/db/models/Transaction';
-import type { TransactionRepositoryPort, TransactionInput, TransactionRecord } from '@/server/shared/ports/transactions';
+import type { TransactionRepositoryPort, TransactionInput, TransactionRecord, TransactionSummaryFilter, TransactionSummaryReader } from '@/server/shared/ports/transactions';
 import { authorizeTransactionWrite } from '@/server/db/transaction-write-guard';
 import { validateReferences } from '../services/rules';
 import { WalletRepository } from '../../wallets/repositories/WalletRepository';
@@ -14,16 +14,32 @@ function record(doc: ITransaction): TransactionRecord {
   // satisfies `transactionResponse`'s required `title`.
   return { id: String(doc._id), userId: String(doc.userId), walletId: String(doc.walletId), categoryId: doc.categoryId ? String(doc.categoryId) : null, type: doc.type, amount: Number(doc.amount), date: doc.date, title: doc.title ?? '(untitled)', note: doc.note };
 }
-export class TransactionRepository implements TransactionRepositoryPort {
+/** Case-insensitive title/note match. Escaped so the user's text is matched literally, never as a regex (also avoids ReDoS). */
+function searchFilter(search: string) {
+  const pattern = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+  return [{ title: pattern }, { notes: pattern }]; // `notes` is the stored path; the `note` alias isn't translated in query filters
+}
+export class TransactionRepository implements TransactionRepositoryPort, TransactionSummaryReader {
   async findByDateRange(userId: string, start: Date, end: Date, search?: string) {
     const filter: QueryFilter<ITransaction> = { userId, date: { $gte: start, $lt: end } };
-    if (search) {
-      // Escaped so the user's text is matched literally, never as a regex (also avoids ReDoS).
-      const pattern = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-      filter.$or = [{ title: pattern }, { notes: pattern }]; // `notes` is the stored path; the `note` alias isn't translated in query filters
-    }
+    if (search) filter.$or = searchFilter(search);
     const docs = await Transaction.find(filter).sort({ date: -1, _id: -1 });
     return docs.map(record);
+  }
+  async sumByType(userId: string, { start, end, walletId, type, categoryIds, search }: TransactionSummaryFilter) {
+    // Aggregation pipelines skip schema casting, so ids are converted here.
+    const id = (value: string) => new Types.ObjectId(value);
+    const match: Record<string, unknown> = { userId: id(userId), date: { $gte: start, $lt: end } };
+    if (walletId) match.walletId = id(walletId);
+    if (type) match.type = type;
+    if (categoryIds) match.categoryId = { $in: categoryIds.map(value => value === null ? null : id(value)) };
+    if (search) match.$or = searchFilter(search);
+    const groups: { _id: string; total: number }[] = await Transaction.aggregate([
+      { $match: match },
+      { $group: { _id: '$type', total: { $sum: '$amount' } } },
+    ]);
+    const total = (key: string) => groups.find(group => group._id === key)?.total ?? 0;
+    return { income: total('income'), expense: total('expense') };
   }
   async clearCategory(categoryId: string, userId: string, context: TransactionContext) {
     await authorizeTransactionWrite(Transaction.updateMany({ categoryId, userId }, { $set: { categoryId: null } }, { session: sessionOf(context) }), context);

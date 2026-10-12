@@ -13,6 +13,7 @@ import {
   walletResponse,
   walletSavingUpdate,
   homeSummaryResponse,
+  transactionSummaryResponse,
   loginSchema,
   registerSchema,
   apiError,
@@ -56,6 +57,7 @@ export const operations = [
   { action: 'updateWallet', method: 'put', path: '/wallets/{id}', status: 200, errors: [400, 401, 404, 409, 500], versions: ['v1'], description: 'Partially update an owned wallet name or color. Balance, owner, and saving settings are not editable here.' },
   { action: 'updateWalletSaving', method: 'patch', path: '/wallets/{id}/saving', status: 200, errors: [400, 401, 404, 500], versions: ['v1'], requestConstraint: walletSavingConstraint, description: 'Turn Saving Wallet on or off for an owned wallet. Saving on requires goalAmount greater than 0; saving off clears the goal. The balance is never changed.' },
   { action: 'listTransactions', method: 'get', path: '/transaction', status: 200, errors: [400, 401, 500], versions: ['v1'], description: 'List all owned transactions for an optional YYYY-MM month, defaulting to the current month in APPLICATION_TIMEZONE, optionally narrowed by a case-insensitive title/note search. Results are newest first; this monthly endpoint intentionally has no pagination.' },
+  { action: 'getTransactionSummary', method: 'get', path: '/transaction/summary', status: 200, errors: [400, 401, 404, 500], versions: ['v1'], description: "Total income, total expense and net balance (income minus expense) of the owned transactions dated from..to inclusive, narrowed by the same optional wallet, category, type and case-insensitive title/note search filters as the Transactions page. Choosing the seeded Others also counts that type's transactions without a category. Totals are 0 when nothing matches. from after to, or malformed dates or ids return 400; another user's or a missing wallet or category returns 404." },
   { action: 'createTransaction', method: 'post', path: '/transaction', status: 201, errors: [400, 401, 404, 422, 500], description: 'Create an owned transaction and adjust wallet balance in one MongoDB transaction. Requires a replica set. Category must belong to the user and match the transaction type. Persisted minimum amount is 0.01.' },
   { action: 'updateTransaction', method: 'put', path: '/transaction/{id}', status: 200, errors: [400, 401, 404, 422, 500], description: 'Replace editable fields of an owned transaction; reverse old and apply new balance atomically. wallet cannot be changed by this API.' },
   { action: 'deleteTransaction', method: 'delete', path: '/transaction/{id}', status: 204, errors: [400, 401, 404, 422, 500], description: 'Delete an owned transaction and reverse its balance atomically. Legacy success has no body.' },
@@ -99,6 +101,7 @@ export function buildSpec(version: 'legacy' | 'v1') {
                 : action === 'listWallets' ? { type: 'array', items: schema(walletResponse) }
                   : action === 'listTransactions' ? { type: 'array', items: schema(transactionResponse) }
                     : action === 'getHomeSummary' ? schema(homeSummaryResponse)
+                      : action === 'getTransactionSummary' ? schema(transactionSummaryResponse)
                     : (v1 ? schema(transactionResponse) : legacyTxResponse);
     const success = v1 ? obj({ status: { const: true }, data }) : action.includes('Category') || action.includes('Transaction') ? obj({ data }) : data;
     const error = v1 ? obj({ status: { const: false }, error: schema(apiError), timestamp: { type: 'string', format: 'date-time' }, path: { type: 'string' } }) : obj({ error: schema(apiError) });
@@ -106,6 +109,7 @@ export function buildSpec(version: 'legacy' | 'v1') {
     const walletExample = { id: '507f1f77bcf86cd799439011', name: 'Main', balance: 1250.5, isDefault: true, color: '#12AB34', isSaving: false, goalAmount: 0, createdAt: '2026-09-27T12:00:00.000Z', updatedAt: '2026-09-27T12:00:00.000Z' };
     const responseExample = action === 'listWallets' ? { status: true, data: [walletExample] }
       : action === 'getWallet' || action === 'updateWallet' || action === 'updateWalletSaving' ? { status: true, data: walletExample }
+        : action === 'getTransactionSummary' ? { status: true, data: { totalIncome: 60300, totalExpense: 7495, netBalance: 52805 } }
         : action === 'getHomeSummary' ? { status: true, data: { month: '2026-10', walletId: 'all', balance: { hasWallets: true, totalBalance: 1250.5, savingGoal: null }, income: 30000, expense: 7495, net: { net: 22505, status: 'surplus' }, topCategories: [{ rank: 1, categoryId: '507f1f77bcf86cd799439012', name: 'Food & Drinks', icon: 'Utensils', color: '#F97316', amount: 4200 }] } }
         : undefined;
     const responses: Record<string, unknown> = { [status]: { description: 'Success', ...(status === 204 ? {} : { content: { 'application/json': { schema: success, ...(responseExample ? { example: responseExample } : {}) } } }) } };
@@ -129,6 +133,14 @@ export function buildSpec(version: 'legacy' | 'v1') {
       ...(path.includes('{id}') ? [{ name: 'id', in: 'path', required: true, schema: { type: 'string', pattern: '^[a-fA-F0-9]{24}$' } }] : []),
       ...(action === 'listCategories' ? [{ name: 'type', in: 'query', required: false, description: 'Only return categories of this type.', schema: { type: 'string', enum: ['income', 'expense'] }, example: 'expense' }] : []),
       ...(action === 'listTransactions' ? [{ name: 'month', in: 'query', required: false, schema: { type: 'string', pattern: '^\\d{4}-(0[1-9]|1[0-2])$' }, example: '2026-10' }, { name: 'search', in: 'query', required: false, description: 'Case-insensitive text matched against title or note (max 100 characters); combines with month.', schema: { type: 'string', maxLength: 100 }, example: 'lunch' }] : []),
+      ...(action === 'getTransactionSummary' ? [
+        { name: 'from', in: 'query', required: true, description: 'First day of the range (inclusive).', schema: { type: 'string', format: 'date' }, example: '2026-10-01' },
+        { name: 'to', in: 'query', required: true, description: 'Last day of the range (inclusive); must not be before from.', schema: { type: 'string', format: 'date' }, example: '2026-10-31' },
+        { name: 'walletId', in: 'query', required: false, schema: { type: 'string', pattern: '^[a-fA-F0-9]{24}$' } },
+        { name: 'categoryId', in: 'query', required: false, schema: { type: 'string', pattern: '^[a-fA-F0-9]{24}$' } },
+        { name: 'type', in: 'query', required: false, schema: { type: 'string', enum: ['income', 'expense'] } },
+        { name: 'search', in: 'query', required: false, description: 'Case-insensitive text matched against title or note (max 100 characters).', schema: { type: 'string', maxLength: 100 }, example: 'lunch' },
+      ] : []),
       ...(action === 'getHomeSummary' ? [{ name: 'month', in: 'query', required: false, schema: { type: 'string', pattern: '^\\d{4}-(0[1-9]|1[0-2])$' }, example: '2026-10' }, { name: 'walletId', in: 'query', required: false, description: 'all (default) or the id of an owned wallet.', schema: { type: 'string', pattern: '^(all|[a-fA-F0-9]{24})$' }, example: 'all' }] : []),
     ];
     paths[path] ??= {};
@@ -145,7 +157,7 @@ export function buildSpec(version: 'legacy' | 'v1') {
   }
 
   const walletStatus = v1 ? 'Wallet create, list, detail, update, saving-status and delete operations are available on v1.' : 'The legacy API has no wallet operations.';
-  const unimplemented = v1 ? 'Monthly transaction reads, the home summary, category lists and the current-user endpoint are available; reports are not implemented.' : 'Wallet endpoints, remaining GET lists, reports and the current-user endpoint are not implemented.';
+  const unimplemented = v1 ? 'Monthly transaction reads, the transaction and home summaries, category lists and the current-user endpoint are available; reports are not implemented.' : 'Wallet endpoints, remaining GET lists, reports and the current-user endpoint are not implemented.';
   return {
     openapi: '3.1.0',
     info: { title: `FinLover ${version} API`, version: '1.0.0', description: `Implemented operations only. ${walletStatus} ${unimplemented} UI mock screens are not API integration.` },
