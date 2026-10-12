@@ -149,17 +149,20 @@ function AmountCard({ label, amount, emptyLabel, tone, isLoading }: AmountCardPr
 export function SpentCard({
   monthLabel,
   amount,
+  emptyLabel = "No spending recorded this month",
   isLoading = false,
 }: {
   monthLabel: string;
   amount: number;
+  /** Overrides the zero-amount hint, for callers whose period isn't a month (the Transactions page). */
+  emptyLabel?: string;
   isLoading?: boolean;
 }) {
   return (
     <AmountCard
       label={`Spent in ${monthLabel.toUpperCase()}`}
       amount={amount}
-      emptyLabel="No spending recorded this month"
+      emptyLabel={emptyLabel}
       tone="expense"
       isLoading={isLoading}
     />
@@ -169,17 +172,20 @@ export function SpentCard({
 export function IncomeCard({
   monthLabel,
   amount,
+  emptyLabel = "No income recorded this month",
   isLoading = false,
 }: {
   monthLabel: string;
   amount: number;
+  /** Overrides the zero-amount hint, for callers whose period isn't a month (the Transactions page). */
+  emptyLabel?: string;
   isLoading?: boolean;
 }) {
   return (
     <AmountCard
       label={`Income in ${monthLabel.toUpperCase()}`}
       amount={amount}
-      emptyLabel="No income recorded this month"
+      emptyLabel={emptyLabel}
       tone="income"
       isLoading={isLoading}
     />
