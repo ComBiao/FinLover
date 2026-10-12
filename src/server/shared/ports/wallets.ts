@@ -1,7 +1,7 @@
 import type { TransactionContext } from './unit-of-work';
 
-export type WalletCreateInput = { name: string; color?: string; isSaving?: boolean; goalAmount?: number };
-export type WalletUpdateInput = Partial<Pick<WalletCreateInput, 'name' | 'color'>>;
+export type WalletCreateInput = { name: string; color?: string; icon?: string; isSaving?: boolean; goalAmount?: number };
+export type WalletUpdateInput = Partial<Pick<WalletCreateInput, 'name' | 'color' | 'icon'>>;
 
 export type WalletSavingInput = { isSaving: boolean; goalAmount?: number };
 
@@ -12,6 +12,7 @@ export interface WalletRecord {
   balance: number;
   isDefault: boolean;
   color?: string;
+  icon?: string;
   isSaving: boolean;
   goalAmount?: number;
   createdAt: Date;
@@ -26,6 +27,7 @@ export interface WalletRepositoryPort {
   update(id: string, userId: string, input: WalletUpdateInput): Promise<WalletRecord | null>;
   setSaving(id: string, userId: string, input: WalletSavingInput): Promise<WalletRecord | null>;
   delete(id: string, userId: string, context: TransactionContext): Promise<unknown>;
+  createDefault(userId: string, context?: TransactionContext): Promise<WalletRecord>;
 }
 
 export interface WalletTransactionCleanup { removeByWallet(walletId: string, userId: string, context: TransactionContext): Promise<void> }

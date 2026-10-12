@@ -34,7 +34,7 @@ export function WalletCard({ wallet, onEdit, onEditSaving, onDelete }: WalletCar
 
   const isActive = activeWalletId === wallet.id;
   const color = wallet.color ?? "#4A4757";
-  const Icon = wallet.isSaving ? PiggyBank : wallet.icon ?? WalletIcon;
+  const Icon = wallet.icon ?? (wallet.isSaving ? PiggyBank : WalletIcon);
 
   const goal = wallet.savingGoal ?? wallet.goalAmount ?? 0;
   const isSaving = Boolean(wallet.isSaving && goal > 0);
@@ -95,7 +95,7 @@ export function WalletCard({ wallet, onEdit, onEditSaving, onDelete }: WalletCar
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onEdit(wallet)}>
                   <Edit2 className="mr-2 size-4" />
-                  Edit Name & Color
+                  Edit
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onEditSaving(wallet)}>
                   <Target className="mr-2 size-4" />
