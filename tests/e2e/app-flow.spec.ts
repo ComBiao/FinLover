@@ -44,6 +44,14 @@ test('whole app: wallet, categories, transactions, profile, delete account', asy
   await expect(page.getByText('Food & Drinks')).toBeVisible();
   await expect(page.getByText('Others')).toBeVisible();
 
+  // Task 24: Grouped category view (toggle Expense and Income tabs)
+  await page.getByRole('button', { name: 'Income', exact: true }).click();
+  await expect(page.getByText('Salary')).toBeVisible();
+  await expect(page.getByText('Food & Drinks')).toBeHidden();
+  await page.getByRole('button', { name: 'Expense', exact: true }).click();
+  await expect(page.getByText('Food & Drinks')).toBeVisible();
+  await expect(page.getByText('Salary')).toBeHidden();
+
   await page.getByRole('button', { name: 'Add new category' }).click();
   await page.getByLabel('Name').fill('Coffee');
   await page.getByRole('button', { name: 'Create Category' }).click();
@@ -68,6 +76,27 @@ test('whole app: wallet, categories, transactions, profile, delete account', asy
   await addTransaction(page, { type: 'Expense', title: 'Latte', amount: '120', category: 'Coffee & Tea' });
   await expect(page.getByRole('row', { name: /Latte/ })).toContainText('Coffee & Tea');
   expect((await wallets(page))[0].balance).toBe(880);
+
+  // Task 16: View/Filter history
+  // 1. Search keyword filter
+  const searchInput = page.locator('input[placeholder="Search by title or note"]:visible');
+  await searchInput.fill('Latte');
+  await expect(page.getByRole('row', { name: /Latte/ })).toBeVisible();
+  await expect(page.getByRole('row', { name: /Pay day/ })).toHaveCount(0);
+  await searchInput.fill('');
+  await expect(page.getByRole('row', { name: /Pay day/ })).toBeVisible();
+  await expect(page.getByRole('row', { name: /Latte/ })).toBeVisible();
+
+  // 2. Transaction type filter
+  await page.getByRole('combobox').filter({ hasText: 'All Types' }).click();
+  await page.getByRole('option', { name: 'Expense' }).click();
+  await expect(page.getByRole('row', { name: /Latte/ })).toBeVisible();
+  await expect(page.getByRole('row', { name: /Pay day/ })).toHaveCount(0);
+
+  // 3. Reset filters
+  await page.getByRole('button', { name: 'Reset Filters' }).filter({ visible: true }).click();
+  await expect(page.getByRole('row', { name: /Pay day/ })).toBeVisible();
+  await expect(page.getByRole('row', { name: /Latte/ })).toBeVisible();
 
   // Edit the expense: 120 -> 200.
   await page.getByRole('button', { name: 'Transaction actions' }).first().click();

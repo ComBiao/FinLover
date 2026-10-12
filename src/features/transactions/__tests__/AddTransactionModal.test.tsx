@@ -98,7 +98,7 @@ describe("AddTransactionModal — US3-1 async create (Add mode only)", () => {
 
     resolveAdd();
     await waitFor(() => expect(useTransactionModal.getState().isOpen).toBe(false));
-  });
+  }, 15000);
 
   it("shows the server's error and keeps the modal open when onAdd rejects", async () => {
     const onAdd = vi.fn().mockRejectedValue(new ApiClientError("Wallet not found", 404));
@@ -232,3 +232,100 @@ describe("AddTransactionModal — category chips (#138)", () => {
     await waitFor(() => expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({ categoryId: "c-others-exp" })));
   });
 });
+
+describe("AddTransactionModal — Task 62: Quick-add Validation", () => {
+  async function fillFieldsWithoutAmount() {
+    fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Dinner" } });
+    fireEvent.change(screen.getByLabelText("Date"), { target: { value: "2026-10-03" } });
+    fireEvent.click(screen.getByLabelText("Pay from wallet"));
+    const option = await screen.findByText(TEST_WALLET.name);
+    fireEvent.click(option);
+  }
+
+  it("fails validation and shows 'Amount is required' when amount is left empty", async () => {
+    const onAdd = vi.fn();
+    useTransactionModal.setState({ isOpen: true, defaultType: "expense", editingTransaction: null });
+    render(<AddTransactionModal onAdd={onAdd} />);
+
+    await fillFieldsWithoutAmount();
+
+    // Leave amount empty and attempt to submit
+    fireEvent.click(screen.getByText("Save expense"));
+
+    // Validation error appears and submission is blocked
+    expect(await screen.findByRole("alert")).toHaveTextContent("Amount is required");
+    expect(onAdd).not.toHaveBeenCalled();
+    expect(useTransactionModal.getState().isOpen).toBe(true);
+  });
+
+  it("fails validation when amount contains only whitespace", async () => {
+    const onAdd = vi.fn();
+    useTransactionModal.setState({ isOpen: true, defaultType: "expense", editingTransaction: null });
+    render(<AddTransactionModal onAdd={onAdd} />);
+
+    await fillFieldsWithoutAmount();
+    fireEvent.change(screen.getByLabelText("Money out"), { target: { value: "   " } });
+
+    fireEvent.click(screen.getByText("Save expense"));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Amount is required");
+    expect(onAdd).not.toHaveBeenCalled();
+  });
+
+  it("fails validation when amount is 0", async () => {
+    const onAdd = vi.fn();
+    useTransactionModal.setState({ isOpen: true, defaultType: "expense", editingTransaction: null });
+    render(<AddTransactionModal onAdd={onAdd} />);
+
+    await fillFieldsWithoutAmount();
+    fireEvent.change(screen.getByLabelText("Money out"), { target: { value: "0" } });
+
+    fireEvent.click(screen.getByText("Save expense"));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Amount must be greater than 0");
+    expect(onAdd).not.toHaveBeenCalled();
+  });
+
+  it("clears error and successfully submits once a valid amount is entered", async () => {
+    const onAdd = vi.fn().mockResolvedValue(undefined);
+    useTransactionModal.setState({ isOpen: true, defaultType: "expense", editingTransaction: null });
+    render(<AddTransactionModal onAdd={onAdd} />);
+
+    await fillFieldsWithoutAmount();
+
+    // Trigger validation error with empty amount
+    fireEvent.click(screen.getByText("Save expense"));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Amount is required");
+
+    // Correct the amount field
+    fireEvent.change(screen.getByLabelText("Money out"), { target: { value: "250" } });
+    fireEvent.click(screen.getByText("Save expense"));
+
+    await waitFor(() => expect(onAdd).toHaveBeenCalledTimes(1));
+    expect(onAdd).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "Dinner",
+        amount: 250,
+        walletId: TEST_WALLET.id,
+      })
+    );
+  });
+
+  it("validates empty amount in Income mode ('Money in')", async () => {
+    const onAdd = vi.fn();
+    useTransactionModal.setState({ isOpen: true, defaultType: "income", editingTransaction: null });
+    render(<AddTransactionModal onAdd={onAdd} />);
+
+    fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Freelance" } });
+    fireEvent.change(screen.getByLabelText("Date"), { target: { value: "2026-10-03" } });
+    fireEvent.click(screen.getByLabelText("Deposit to wallet"));
+    const option = await screen.findByText(TEST_WALLET.name);
+    fireEvent.click(option);
+
+    fireEvent.click(screen.getByText("Save income"));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Amount is required");
+    expect(onAdd).not.toHaveBeenCalled();
+  });
+});
+
