@@ -21,6 +21,8 @@ import { createWalletRouter } from '../modules/wallets/router';
 export const deleteWalletService = new DeleteWalletService(walletRepository, new TransactionRepository(), new MongoUnitOfWork());
 export const rawWallets = createWalletRouter(walletRepository, deleteWalletService);
 export const rawTransactions = createTransactionRouter(walletRepository, categoryRepository, new MongoUnitOfWork());
+import { createHomeRouter } from '../modules/home/router';
+export const rawHome = createHomeRouter(walletRepository);
 import { connectDB } from '@/server/db/index';
 
 const userRepository = new UserRepository();

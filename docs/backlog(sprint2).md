@@ -283,7 +283,7 @@ The engineering team is organized into three cross-functional pods with strict p
 
 | Task Description | Assignee (Volunteer) | Reviewer | Hours | Status |
 | :--- | :--- | :--- | :---: | :---: |
-| Implement get-total-balance API (aggregate across wallets; return savingGoal if saving wallet with goal) | Pat, Ice | Guy | 2.0h | To Do |
+| Implement get-total-balance API (aggregate across wallets; return savingGoal if saving wallet with goal) | Pat, Ice | Guy | 2.0h | Done |
 | Wire Total Balance card to API (include embedded saving goal progress) | Yeen, Guy, Boss | Ikkyu | 1.0h | To Do |
 | Test Total Balance card (current balance, saving goal embedded, empty state) | Tul, Timsum | - | 1.0h | To Do |
 

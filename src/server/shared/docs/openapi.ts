@@ -12,6 +12,7 @@ import {
   walletUpdate,
   walletResponse,
   walletSavingUpdate,
+  homeSummaryResponse,
   loginSchema,
   registerSchema,
   apiError,
@@ -59,6 +60,7 @@ export const operations = [
   { action: 'updateTransaction', method: 'put', path: '/transaction/{id}', status: 200, errors: [400, 401, 404, 422, 500], description: 'Replace editable fields of an owned transaction; reverse old and apply new balance atomically. wallet cannot be changed by this API.' },
   { action: 'deleteTransaction', method: 'delete', path: '/transaction/{id}', status: 204, errors: [400, 401, 404, 422, 500], description: 'Delete an owned transaction and reverse its balance atomically. Legacy success has no body.' },
   { action: 'deleteWallet', method: 'delete', path: '/wallets/{id}', status: 204, errors: [400, 401, 404, 500], versions: ['v1'], description: 'Delete an owned wallet and all of its transactions atomically in one UnitOfWork; nothing is deleted if any step fails. Other wallets and their transactions are untouched. Any owned wallet may be deleted, including the default or last wallet. Data cannot be recovered.' },
+  { action: 'getHomeSummary', method: 'get', path: '/home/summary', status: 200, errors: [400, 401, 404, 500], versions: ['v1'], description: "Home page figures for an optional YYYY-MM month (defaulting to the current month in APPLICATION_TIMEZONE) and either every owned wallet (walletId=all, the default) or one owned wallet. totalBalance sums the scoped wallets' current balances; hasWallets reports whether the caller owns any wallet. An invalid walletId returns 400; another user's or a missing wallet returns 404." },
 ] as const;
 
 export function operationsFor(version: 'legacy' | 'v1') {
@@ -96,6 +98,7 @@ export function buildSpec(version: 'legacy' | 'v1') {
               : action === 'createWallet' || action === 'getWallet' || action === 'updateWallet' || action === 'updateWalletSaving' ? schema(walletResponse)
                 : action === 'listWallets' ? { type: 'array', items: schema(walletResponse) }
                   : action === 'listTransactions' ? { type: 'array', items: schema(transactionResponse) }
+                    : action === 'getHomeSummary' ? schema(homeSummaryResponse)
                     : (v1 ? schema(transactionResponse) : legacyTxResponse);
     const success = v1 ? obj({ status: { const: true }, data }) : action.includes('Category') || action.includes('Transaction') ? obj({ data }) : data;
     const error = v1 ? obj({ status: { const: false }, error: schema(apiError), timestamp: { type: 'string', format: 'date-time' }, path: { type: 'string' } }) : obj({ error: schema(apiError) });
@@ -103,6 +106,7 @@ export function buildSpec(version: 'legacy' | 'v1') {
     const walletExample = { id: '507f1f77bcf86cd799439011', name: 'Main', balance: 1250.5, isDefault: true, color: '#12AB34', isSaving: false, goalAmount: 0, createdAt: '2026-09-27T12:00:00.000Z', updatedAt: '2026-09-27T12:00:00.000Z' };
     const responseExample = action === 'listWallets' ? { status: true, data: [walletExample] }
       : action === 'getWallet' || action === 'updateWallet' || action === 'updateWalletSaving' ? { status: true, data: walletExample }
+        : action === 'getHomeSummary' ? { status: true, data: { month: '2026-10', walletId: 'all', balance: { hasWallets: true, totalBalance: 1250.5 } } }
         : undefined;
     const responses: Record<string, unknown> = { [status]: { description: 'Success', ...(status === 204 ? {} : { content: { 'application/json': { schema: success, ...(responseExample ? { example: responseExample } : {}) } } }) } };
     const errors = new Set<number>(operation.errors.map(value => v1 && value === 422 ? 400 : value));
@@ -125,6 +129,7 @@ export function buildSpec(version: 'legacy' | 'v1') {
       ...(path.includes('{id}') ? [{ name: 'id', in: 'path', required: true, schema: { type: 'string', pattern: '^[a-fA-F0-9]{24}$' } }] : []),
       ...(action === 'listCategories' ? [{ name: 'type', in: 'query', required: false, description: 'Only return categories of this type.', schema: { type: 'string', enum: ['income', 'expense'] }, example: 'expense' }] : []),
       ...(action === 'listTransactions' ? [{ name: 'month', in: 'query', required: false, schema: { type: 'string', pattern: '^\\d{4}-(0[1-9]|1[0-2])$' }, example: '2026-10' }, { name: 'search', in: 'query', required: false, description: 'Case-insensitive text matched against title or note (max 100 characters); combines with month.', schema: { type: 'string', maxLength: 100 }, example: 'lunch' }] : []),
+      ...(action === 'getHomeSummary' ? [{ name: 'month', in: 'query', required: false, schema: { type: 'string', pattern: '^\\d{4}-(0[1-9]|1[0-2])$' }, example: '2026-10' }, { name: 'walletId', in: 'query', required: false, description: 'all (default) or the id of an owned wallet.', schema: { type: 'string', pattern: '^(all|[a-fA-F0-9]{24})$' }, example: 'all' }] : []),
     ];
     paths[path] ??= {};
     paths[path][method] = {
@@ -140,7 +145,7 @@ export function buildSpec(version: 'legacy' | 'v1') {
   }
 
   const walletStatus = v1 ? 'Wallet create, list, detail, update, saving-status and delete operations are available on v1.' : 'The legacy API has no wallet operations.';
-  const unimplemented = v1 ? 'Monthly transaction reads, category lists and the current-user endpoint are available; reports are not implemented.' : 'Wallet endpoints, remaining GET lists, reports and the current-user endpoint are not implemented.';
+  const unimplemented = v1 ? 'Monthly transaction reads, the home summary, category lists and the current-user endpoint are available; reports are not implemented.' : 'Wallet endpoints, remaining GET lists, reports and the current-user endpoint are not implemented.';
   return {
     openapi: '3.1.0',
     info: { title: `FinLover ${version} API`, version: '1.0.0', description: `Implemented operations only. ${walletStatus} ${unimplemented} UI mock screens are not API integration.` },

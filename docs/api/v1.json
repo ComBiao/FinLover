@@ -3,7 +3,7 @@
   "info": {
     "title": "FinLover v1 API",
     "version": "1.0.0",
-    "description": "Implemented operations only. Wallet create, list, detail, update, saving-status and delete operations are available on v1. Monthly transaction reads, category lists and the current-user endpoint are available; reports are not implemented. UI mock screens are not API integration."
+    "description": "Implemented operations only. Wallet create, list, detail, update, saving-status and delete operations are available on v1. Monthly transaction reads, the home summary, category lists and the current-user endpoint are available; reports are not implemented. UI mock screens are not API integration."
   },
   "servers": [
     {
@@ -7139,6 +7139,324 @@
           },
           "415": {
             "description": "Body-bearing cookie/browser-auth mutation requires application/json",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "fields": {
+                          "type": "object",
+                          "propertyNames": {
+                            "type": "string"
+                          },
+                          "additionalProperties": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "path": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "error",
+                    "timestamp",
+                    "path"
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "fields": {
+                          "type": "object",
+                          "propertyNames": {
+                            "type": "string"
+                          },
+                          "additionalProperties": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "path": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "error",
+                    "timestamp",
+                    "path"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/home/summary": {
+      "get": {
+        "operationId": "v1_getHomeSummary",
+        "tags": [
+          "home"
+        ],
+        "summary": "getHomeSummary",
+        "description": "Home page figures for an optional YYYY-MM month (defaulting to the current month in APPLICATION_TIMEZONE) and either every owned wallet (walletId=all, the default) or one owned wallet. totalBalance sums the scoped wallets' current balances; hasWallets reports whether the caller owns any wallet. An invalid walletId returns 400; another user's or a missing wallet returns 404. Authorization takes precedence over cookie. Cookie-authenticated GETs do not require an Origin. Implemented.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "month",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+            },
+            "example": "2026-10"
+          },
+          {
+            "name": "walletId",
+            "in": "query",
+            "required": false,
+            "description": "all (default) or the id of an owned wallet.",
+            "schema": {
+              "type": "string",
+              "pattern": "^(all|[a-fA-F0-9]{24})$"
+            },
+            "example": "all"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "month": {
+                          "type": "string"
+                        },
+                        "walletId": {
+                          "type": "string"
+                        },
+                        "balance": {
+                          "type": "object",
+                          "properties": {
+                            "hasWallets": {
+                              "type": "boolean"
+                            },
+                            "totalBalance": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "hasWallets",
+                            "totalBalance"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "month",
+                        "walletId",
+                        "balance"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "data"
+                  ]
+                },
+                "example": {
+                  "status": true,
+                  "data": {
+                    "month": "2026-10",
+                    "walletId": "all",
+                    "balance": {
+                      "hasWallets": true,
+                      "totalBalance": 1250.5
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, ID, or missing consent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "fields": {
+                          "type": "object",
+                          "propertyNames": {
+                            "type": "string"
+                          },
+                          "additionalProperties": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "path": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "error",
+                    "timestamp",
+                    "path"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, or expired credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "fields": {
+                          "type": "object",
+                          "propertyNames": {
+                            "type": "string"
+                          },
+                          "additionalProperties": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "path": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "error",
+                    "timestamp",
+                    "path"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found or not owned",
             "content": {
               "application/json": {
                 "schema": {
