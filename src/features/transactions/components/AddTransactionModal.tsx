@@ -21,10 +21,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { WalletSelector } from "@/components/WalletSelector";
 import { ApiClientError } from "@/lib/api/client";
 import { cn, todayISODate, toLocalISODate } from "@/lib/utils";
-import { FALLBACK_CATEGORY_NAME } from "@/features/categories/categoriesService";
+import { isFallbackCategory } from "@/features/categories/categoriesService";
 import { useCategories } from "@/features/categories/hooks/useCategories";
 import { useTransactionModal } from "@/features/transactions/store/useTransactionModal";
-import type { Category, TransactionType } from "@/types/category";
+import type { TransactionType } from "@/types/category";
 import type { Transaction } from "@/types/transaction";
 
 const addTransactionFormSchema = z.object({
@@ -132,11 +132,6 @@ const DEFAULT_CHIP_HEX = "#8a879a";
 function resolveCategoryChipHex(id: string, explicitColor: string | undefined) {
   if (explicitColor) return explicitColor;
   return CATEGORY_PRESET_HEX[id] ?? DEFAULT_CHIP_HEX;
-}
-
-/** The per-type "Others" the server seeds at registration — it stands for "no specific category", so it's listed first and preselected. A user-made category that happens to share the name doesn't count. */
-function isFallbackCategory(category: Category) {
-  return Boolean(category.isSystem) && category.name === FALLBACK_CATEGORY_NAME;
 }
 
 /** Strips an amount input down to digits and at most one decimal point with at most 2 decimal places — applied on every change (typed or pasted). */

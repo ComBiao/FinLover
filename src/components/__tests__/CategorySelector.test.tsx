@@ -27,6 +27,7 @@ describe("CategorySelector — income vs expense (#140)", () => {
     expect(expenseGroup).not.toHaveTextContent("Salary");
     expect(incomeGroup).toHaveTextContent("Salary");
     expect(incomeGroup).toHaveTextContent("Others");
+    expect(screen.queryByText("Uncategorized")).not.toBeInTheDocument();
   });
 
   it("names the type on the trigger when the picked name exists in both types", () => {
