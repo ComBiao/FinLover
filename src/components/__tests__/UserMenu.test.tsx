@@ -1,24 +1,17 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { UserMenu } from "@/components/UserMenu";
 
-const router = vi.hoisted(() => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }));
-const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
-
-vi.mock("next/navigation", () => ({ useRouter: () => router }));
-vi.mock("sonner", () => ({ toast }));
-
 const fetchMock = vi.fn();
 
-/** `UserMenu` also loads the current user, so route by URL and leave the logout response to each test. */
-function mockApi(logoutResponse: Response) {
+function mockApi() {
   fetchMock.mockImplementation(async (url: string) =>
     String(url).endsWith("/api/v1/auth/me")
       ? Response.json({ status: true, data: { user: { id: "u1", email: "alex@example.com", name: "Alex" } } })
-      : logoutResponse
+      : Response.json({ status: false }, { status: 404 })
   );
 }
 
@@ -31,41 +24,37 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-function mount() {
+function mount(onNavigate?: () => void) {
   return render(
     <QueryClientProvider client={new QueryClient()}>
-      <UserMenu />
+      <UserMenu onNavigate={onNavigate} />
     </QueryClientProvider>
   );
 }
 
-describe("logout", () => {
-  it("clears client state and returns to login only after the API succeeds", async () => {
-    mockApi(Response.json({ status: true, data: null }));
-    mount();
-    fireEvent.click(screen.getByRole("button"));
-    fireEvent.click(await screen.findByText("Log out"));
-    fireEvent.click(await screen.findByRole("button", { name: "Log out" }));
+describe("UserMenu", () => {
+  it("renders user name, avatar fallback, links to /profile, and calls onNavigate on click", async () => {
+    mockApi();
+    const onNavigate = vi.fn();
+    mount(onNavigate);
 
-    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/api/v1/auth/logout",
-      expect.objectContaining({ method: "POST", credentials: "same-origin" })
-    );
-    expect(router.refresh).toHaveBeenCalledOnce();
+    const link = await screen.findByRole("link", { name: /alex/i });
+    expect(link).toHaveAttribute("href", "/profile");
+    expect(screen.getByText("A")).toBeInTheDocument();
+
+    fireEvent.click(link);
+    expect(onNavigate).toHaveBeenCalledOnce();
   });
 
-  it("reports a failed logout and keeps the user on the current page", async () => {
-    mockApi(
-      Response.json({ status: false, error: { message: "Request failed" } }, { status: 500 })
-    );
+  it("does not render dropdown menu items (Profile, Log out, Delete account)", async () => {
+    mockApi();
     mount();
-    fireEvent.click(screen.getByRole("button"));
-    fireEvent.click(await screen.findByText("Log out"));
-    fireEvent.click(await screen.findByRole("button", { name: "Log out" }));
 
-    await waitFor(() => expect(toast.error).toHaveBeenCalled());
-    expect(router.replace).not.toHaveBeenCalled();
-    expect(router.refresh).not.toHaveBeenCalled();
+    const link = await screen.findByRole("link", { name: /alex/i });
+    fireEvent.click(link);
+
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+    expect(screen.queryByText("Delete account")).not.toBeInTheDocument();
   });
 });
+

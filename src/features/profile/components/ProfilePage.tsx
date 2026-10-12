@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { Mail, Trash2, User } from "lucide-react";
+import { LogOut, Mail, Trash2, User } from "lucide-react";
 import { toast } from "sonner";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -19,15 +19,30 @@ import {
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { displayName, useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
-import { ApiClientError, deleteApi } from "@/lib/api/client";
+import { ApiClientError, deleteApi, postApi } from "@/lib/api/client";
 
-/** Account details plus the delete-account action (no password re-entry — team decision, #88). */
+/** Account details plus the logout and delete-account actions. */
 export function ProfilePage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { data: user, isPending, isError, refetch } = useCurrentUser();
+  const logout = useMutation({ mutationFn: () => postApi("/api/v1/auth/logout") });
   const deleteAccount = useMutation({ mutationFn: () => deleteApi("/api/v1/auth/delete-account") });
+  const [logoutOpen, setLogoutOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
+
+  async function handleConfirmLogout() {
+    try {
+      await logout.mutateAsync();
+      queryClient.clear();
+      setLogoutOpen(false);
+      toast.success("Logged out");
+      router.replace("/login");
+      router.refresh();
+    } catch {
+      toast.error("Unable to log out. Please try again.");
+    }
+  }
 
   function leaveAfterAccountGone() {
     queryClient.clear();
@@ -101,6 +116,23 @@ export function ProfilePage() {
         )}
       </Card>
 
+      <Card className="mt-6 gap-3 p-6">
+        <h2 className="text-base font-semibold text-foreground">Log out</h2>
+        <p className="text-sm text-muted-foreground">
+          Log out of your account on this device.
+        </p>
+        <div>
+          <Button
+            variant="outline"
+            onClick={() => setLogoutOpen(true)}
+            className="gap-2"
+          >
+            <LogOut className="size-4" />
+            Log out
+          </Button>
+        </div>
+      </Card>
+
       <Card className="mt-6 gap-3 border-destructive/30 p-6">
         <h2 className="text-base font-semibold text-foreground">Delete account</h2>
         <p className="text-sm text-muted-foreground">
@@ -114,6 +146,28 @@ export function ProfilePage() {
           </Button>
         </div>
       </Card>
+
+      <Dialog open={logoutOpen} onOpenChange={setLogoutOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Log out?</DialogTitle>
+            <DialogDescription>Are you sure you want to log out?</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setLogoutOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={logout.isPending}
+              onClick={handleConfirmLogout}
+            >
+              {logout.isPending ? "Logging out..." : "Log out"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent>
@@ -141,3 +195,4 @@ export function ProfilePage() {
     </main>
   );
 }
+
