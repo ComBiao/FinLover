@@ -1,148 +1,61 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { Utensils } from "lucide-react";
 
 import { getHomeSummary } from "../services/homeService";
-import * as walletsService from "@/features/wallets/walletsService";
-import * as transactionsService from "@/features/transactions/transactionsService";
-import * as categoriesService from "@/features/categories/categoriesService";
-import type { Wallet } from "@/types/wallet";
-import type { Transaction } from "@/types/transaction";
-import type { Category } from "@/types/category";
-import { PiggyBank, Tag, Wallet as WalletIcon } from "lucide-react";
 
-const testWallets: Wallet[] = [
-  {
-    id: "w1",
-    name: "Daily",
-    balance: 5000,
-    isDefault: true,
-    color: "#4A4757",
-    isSaving: false,
-    icon: WalletIcon,
-    type: "cash",
-  },
-  {
-    id: "w2",
-    name: "Vacation",
-    balance: 8000,
-    isDefault: false,
-    color: "#8B7CF6",
-    isSaving: true,
-    savingGoal: 20000,
-    icon: PiggyBank,
-    type: "savings",
-  },
-];
+const fetchMock = vi.fn();
 
-const testCategories: Category[] = [
-  { id: "c1", name: "Food", type: "expense", color: "#FF5733", icon: Tag },
-  { id: "c2", name: "Transport", type: "expense", color: "#33FF57", icon: Tag },
-  { id: "c3", name: "Salary", type: "income", color: "#3357FF", icon: Tag },
-];
+function respondWith(body: unknown, status = 200) {
+  fetchMock.mockResolvedValue(new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } }));
+  vi.stubGlobal("fetch", fetchMock);
+}
 
-const testTransactions: Transaction[] = [
-  {
-    id: "t1",
-    walletId: "w1",
-    categoryId: "c1",
-    type: "expense",
-    amount: 300,
-    date: new Date("2026-10-05T10:00:00Z"),
-    title: "Lunch",
-  },
-  {
-    id: "t2",
-    walletId: "w1",
-    categoryId: "c2",
-    type: "expense",
-    amount: 150,
-    date: new Date("2026-10-06T10:00:00Z"),
-    title: "BTS train",
-  },
-  {
-    id: "t3",
-    walletId: "w1",
-    categoryId: "c3",
-    type: "income",
-    amount: 10000,
-    date: new Date("2026-10-01T10:00:00Z"),
-    title: "Part-time job",
-  },
-  {
-    id: "t4",
-    walletId: "w1",
-    categoryId: "c1",
-    type: "expense",
-    amount: 500,
-    date: new Date("2026-09-15T10:00:00Z"), // Different month (September)
-    title: "Dinner last month",
-  },
-];
-
-describe("homeService — getHomeSummary", () => {
-  beforeEach(() => {
-    vi.restoreAllMocks();
-    vi.spyOn(walletsService, "getWallets").mockResolvedValue(testWallets);
-    vi.spyOn(transactionsService, "getTransactions").mockResolvedValue(testTransactions);
-    vi.spyOn(categoriesService, "getCategories").mockResolvedValue(testCategories);
-  });
-
-  it("calculates summary for all wallets in October 2026", async () => {
-    const summary = await getHomeSummary("2026-10", "all");
-
-    // Total balance: w1 (5000) + w2 (8000) = 13000
-    expect(summary.balance.totalBalance).toBe(13000);
-    expect(summary.balance.hasWallets).toBe(true);
-    // Combined view has no single saving goal
-    expect(summary.balance.savingGoal).toBeNull();
-
-    // Income for 2026-10: t3 (10000)
-    expect(summary.income).toBe(10000);
-
-    // Expense for 2026-10: t1 (300) + t2 (150) = 450 (t4 is in September, excluded)
-    expect(summary.expense).toBe(450);
-
-    // Net: 10000 - 450 = 9550
-    expect(summary.net.net).toBe(9550);
-    expect(summary.net.status).toBe("surplus");
-
-    // Top categories: Food (300) is #1, Transport (150) is #2
-    expect(summary.topCategories).toHaveLength(2);
-    expect(summary.topCategories[0]).toMatchObject({
-      categoryId: "c1",
-      name: "Food",
-      amount: 300,
-      rank: 1,
-    });
-    expect(summary.topCategories[1]).toMatchObject({
-      categoryId: "c2",
-      name: "Transport",
-      amount: 150,
-      rank: 2,
-    });
-  });
-
-  it("calculates summary scoped to specific saving wallet (w2)", async () => {
-    const summary = await getHomeSummary("2026-10", "w2");
-
-    // Total balance: w2 only = 8000
-    expect(summary.balance.totalBalance).toBe(8000);
-
-    // Saving goal: goal 20000, current 8000 -> 40%, remaining 12000
-    expect(summary.balance.savingGoal).toEqual({
-      walletId: "w2",
-      walletName: "Vacation",
-      goal: 20000,
-      current: 8000,
-      percent: 40,
-      remaining: 12000,
-      reached: false,
-    });
-
-    // No transactions in w2
-    expect(summary.income).toBe(0);
-    expect(summary.expense).toBe(0);
-    expect(summary.net.net).toBe(0);
-    expect(summary.net.status).toBe("even");
-  });
+afterEach(() => {
+  vi.unstubAllGlobals();
+  fetchMock.mockReset();
 });
 
+const apiSummary = {
+  month: "2026-10",
+  walletId: "w2",
+  balance: {
+    hasWallets: true,
+    totalBalance: 8000,
+    savingGoal: { walletId: "w2", walletName: "Vacation", goal: 20000, current: 8000, percent: 40, remaining: 12000, reached: false },
+  },
+  income: 10000,
+  expense: 450,
+  net: { net: 9550, status: "surplus" },
+  topCategories: [
+    { rank: 1, categoryId: "c1", name: "Food", icon: "Utensils", color: "#FF5733", amount: 300 },
+    { rank: 2, categoryId: null, name: "Others", icon: null, color: null, amount: 150 },
+  ],
+};
+
+describe("homeService — getHomeSummary (#154)", () => {
+  it("reads the month and wallet summary from the home summary API", async () => {
+    respondWith({ status: true, data: apiSummary });
+
+    const summary = await getHomeSummary("2026-10", "w2");
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/v1/home/summary?month=2026-10&walletId=w2");
+    expect(summary.balance).toEqual(apiSummary.balance);
+    expect(summary).toMatchObject({ month: "2026-10", walletId: "w2", income: 10000, expense: 450, net: { net: 9550, status: "surplus" } });
+  });
+
+  it("turns category icon names back into icons", async () => {
+    respondWith({ status: true, data: apiSummary });
+
+    const [food, others] = (await getHomeSummary("2026-10", "w2")).topCategories;
+
+    expect(food).toEqual({ rank: 1, categoryId: "c1", name: "Food", icon: Utensils, color: "#FF5733", amount: 300 });
+    expect(others).toEqual({ rank: 2, categoryId: null, name: "Others", icon: undefined, color: undefined, amount: 150 });
+  });
+
+  it("surfaces API errors to the query", async () => {
+    respondWith({ status: false, error: { code: "NOT_FOUND", message: "Wallet not found" } }, 404);
+
+    await expect(getHomeSummary("2026-10", "gone")).rejects.toMatchObject({ status: 404, message: "Wallet not found" });
+  });
+});
