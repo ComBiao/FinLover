@@ -3,6 +3,7 @@ import { deleteApi, getApi, postApi, putApi } from "@/lib/api/client";
 import { toLocalISODate } from "@/lib/utils";
 import type { TransactionType } from "@/types/category";
 import type { Transaction } from "@/types/transaction";
+import type { TransactionSummary } from "@/features/transactions/transactions";
 
 /** One row of `GET/POST /api/v1/transactions` (see `transactionResponse` in `@/shared/contracts`). */
 type TransactionDto = {
@@ -77,4 +78,22 @@ export async function updateTransaction(
 
 export function deleteTransaction(id: string): Promise<void> {
   return deleteApi(`/api/v1/transactions/${id}`);
+}
+
+/** Query for `GET /api/v1/transactions/summary`: an inclusive `YYYY-MM-DD` range plus the list's optional filters. */
+export type TransactionSummaryQuery = {
+  from: string;
+  to: string;
+  walletId?: string;
+  categoryId?: string;
+  type?: TransactionType;
+  search?: string;
+};
+
+export function getTransactionSummary(query: TransactionSummaryQuery): Promise<TransactionSummary> {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value) params.set(key, value);
+  }
+  return getApi<TransactionSummary>(`/api/v1/transactions/summary?${params}`);
 }

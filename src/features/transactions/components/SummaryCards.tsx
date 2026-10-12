@@ -1,21 +1,22 @@
 import { IncomeCard, NetCard, SpentCard } from "@/features/homepage/components/HomeCards";
 import { periodLabel, type TransactionPeriod } from "@/features/transactions/period";
-import { summarizeTransactions } from "@/features/transactions/transactions";
-import type { Transaction } from "@/types/transaction";
+import type { TransactionSummary } from "@/features/transactions/transactions";
 
 type SummaryCardsProps = {
-  transactions: Transaction[];
+  summary: TransactionSummary | undefined;
   period: TransactionPeriod;
   isLoading?: boolean;
 };
 
+const EMPTY_SUMMARY: TransactionSummary = { totalIncome: 0, totalExpense: 0, netBalance: 0 };
+
 /**
- * Spent / Income / Net for the selected period, computed from the currently
- * filtered transactions. Reuses Home's cards — same wording, order and look —
- * with the period ("October 2026", "2026", a day range) in place of Home's month.
+ * Spent / Income / Net for the selected period and filters, as totalled by
+ * the server. Reuses Home's cards — same wording, order and look — with the
+ * period ("October 2026", "2026", a day range) in place of Home's month.
  */
-export function SummaryCards({ transactions, period, isLoading = false }: SummaryCardsProps) {
-  const { totalIncome, totalExpense, netBalance } = summarizeTransactions(transactions);
+export function SummaryCards({ summary = EMPTY_SUMMARY, period, isLoading = false }: SummaryCardsProps) {
+  const { totalIncome, totalExpense, netBalance } = summary;
   const label = periodLabel(period);
   const status = netBalance > 0 ? "surplus" : netBalance < 0 ? "overspending" : "even";
 

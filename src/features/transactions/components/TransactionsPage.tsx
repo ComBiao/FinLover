@@ -10,6 +10,7 @@ import { TransactionFilterBar } from "@/features/transactions/components/Transac
 import { TransactionTable } from "@/features/transactions/components/TransactionTable";
 import { Button } from "@/components/ui/button";
 import { useTransactions } from "@/features/transactions/hooks/useTransactions";
+import { useTransactionSummary } from "@/features/transactions/hooks/useTransactionSummary";
 import {
   useCreateTransaction,
   useDeleteTransaction,
@@ -34,7 +35,7 @@ import { SummaryCards } from "./SummaryCards";
 export default function TransactionsPage() {
   const period = useTransactionFilters((state) => state.period);
   const months = useMemo(() => periodMonthKeys(period), [period]);
-  const { data: transactions = [], isPending: isTransactionsPending } = useTransactions(months);
+  const { data: transactions = [] } = useTransactions(months);
   const { data: categories = [] } = useCategories();
   const createTransaction = useCreateTransaction();
   const updateTransaction = useUpdateTransaction();
@@ -50,6 +51,8 @@ export default function TransactionsPage() {
   const openDeleteModal = useTransactionModal((state) => state.openDeleteModal);
   const closeDeleteModal = useTransactionModal((state) => state.closeDeleteModal);
   const deletingTransaction = useTransactionModal((state) => state.deletingTransaction);
+
+  const { data: summary, isPending: isSummaryPending } = useTransactionSummary(period, filters);
 
   const filteredTransactions = useMemo(
     () => filterTransactions(withFallbackCategory(transactions, categories), filters),
@@ -92,11 +95,7 @@ export default function TransactionsPage() {
           </Button>
         </div>
 
-        <SummaryCards
-          transactions={filteredTransactions}
-          period={period}
-          isLoading={isTransactionsPending}
-        />
+        <SummaryCards summary={summary} period={period} isLoading={isSummaryPending} />
 
         <TransactionFilterBar
           value={filters}
