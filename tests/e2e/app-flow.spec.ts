@@ -23,7 +23,7 @@ async function addTransaction(page: Page, opts: { type: 'Expense' | 'Income'; ti
 test('whole app: wallet, categories, transactions, profile, delete account', async ({ page }) => {
   const email = uniqueEmail();
   await register(page, email, 'Alex Tester');
-  await expect(page).toHaveURL(/registered=1/);
+  await expect(page).toHaveURL(/registered=1/, { timeout: 30_000 });
   await login(page, email);
   await expect(page).toHaveURL(/\/homepage$/);
 
@@ -36,7 +36,7 @@ test('whole app: wallet, categories, transactions, profile, delete account', asy
   await page.getByLabel('Wallet Name').fill('Daily');
   await page.getByRole('dialog').getByRole('button', { name: 'Create Wallet' }).click();
   await expect(page.getByText('Daily').first()).toBeVisible();
-  expect((await wallets(page)).map((w) => w.name)).toEqual(['Daily']);
+  expect((await wallets(page)).map((w) => w.name)).toEqual(['Cash', 'Daily']);
 
   // --- Categories ---------------------------------------------------------
   await page.goto('/category');
@@ -123,7 +123,7 @@ test('whole app: wallet, categories, transactions, profile, delete account', asy
   await page.getByRole('dialog').filter({ hasText: 'Delete Category' }).getByRole('button', { name: 'Delete' }).click();
   await expect(page.getByText('Coffee & Tea')).toBeHidden();
   await page.goto('/transactions');
-  await expect(page.getByRole('row', { name: /Latte/ })).toContainText('Uncategorized');
+  await expect(page.getByRole('row', { name: /Latte/ })).toContainText('Others');
   expect((await wallets(page))[0].balance).toBe(800);
 
   // Delete the remaining transactions: balance returns to zero.

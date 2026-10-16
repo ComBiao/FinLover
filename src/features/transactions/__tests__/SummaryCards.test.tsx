@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import React, { act } from "react";
 import { Tag, Wallet as WalletIcon } from "lucide-react";
@@ -16,6 +16,7 @@ import { currentPeriod } from "../period";
 import type { Category } from "@/types/category";
 import type { Transaction } from "@/types/transaction";
 import type { Wallet } from "@/types/wallet";
+import type { TransactionSummary } from "../transactions";
 
 const testWallets: Wallet[] = [
   {
@@ -82,6 +83,12 @@ const testTransactions: Transaction[] = [
   },
 ];
 
+const defaultSummary: TransactionSummary = {
+  totalIncome: 10000,
+  totalExpense: 450,
+  netBalance: 9550,
+};
+
 function renderWithClient(ui: React.ReactElement) {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -118,6 +125,27 @@ describe("Task 66 — Summary Cards Recalculation", () => {
     vi.spyOn(walletsService, "getWallets").mockResolvedValue(testWallets);
     vi.spyOn(categoriesService, "getCategories").mockResolvedValue(testCategories);
     vi.spyOn(transactionsService, "getTransactions").mockResolvedValue(testTransactions);
+    vi.spyOn(transactionsService, "getTransactionSummary").mockImplementation(async (query) => {
+      if (query.walletId === "empty-wallet" || query.categoryId === "empty-cat") {
+        return { totalIncome: 0, totalExpense: 0, netBalance: 0 };
+      }
+      if (query.walletId === "w1") {
+        return { totalIncome: 0, totalExpense: 450, netBalance: -450 };
+      }
+      if (query.walletId === "w2") {
+        return { totalIncome: 10000, totalExpense: 0, netBalance: 10000 };
+      }
+      if (query.categoryId === "c1") {
+        return { totalIncome: 0, totalExpense: 300, netBalance: -300 };
+      }
+      if (query.type === "expense") {
+        return { totalIncome: 0, totalExpense: 450, netBalance: -450 };
+      }
+      if (query.type === "income") {
+        return { totalIncome: 10000, totalExpense: 0, netBalance: 10000 };
+      }
+      return defaultSummary;
+    });
   });
 
   afterEach(() => {
@@ -126,28 +154,25 @@ describe("Task 66 — Summary Cards Recalculation", () => {
   });
 
   describe("SummaryCards component in isolation", () => {
-    it("computes and displays correct totals for full transaction list", () => {
+    it("renders summary figures when summary is provided", () => {
       render(
         <SummaryCards
-          transactions={testTransactions}
+          summary={{ totalIncome: 10000, totalExpense: 450, netBalance: 9550 }}
           period={currentPeriod()}
         />
       );
 
       const cards = getCards();
-      // Total expense: t1 (300) + t2 (150) = 450
       expect(within(cards.spent).getByText("฿450")).toBeInTheDocument();
-      // Total income: t3 (10000)
       expect(within(cards.income).getByText("฿10,000")).toBeInTheDocument();
-      // Net: 10000 - 450 = +9550
       expect(within(cards.net).getByText("+฿9,550")).toBeInTheDocument();
       expect(within(cards.net).getByText("Surplus")).toBeInTheDocument();
     });
 
-    it("displays empty state when transactions list is empty", () => {
+    it("renders zero amounts and empty state messages when summary is empty", () => {
       render(
         <SummaryCards
-          transactions={[]}
+          summary={{ totalIncome: 0, totalExpense: 0, netBalance: 0 }}
           period={currentPeriod()}
         />
       );
@@ -159,19 +184,34 @@ describe("Task 66 — Summary Cards Recalculation", () => {
       expect(within(cards.income).getByText("฿0")).toBeInTheDocument();
       expect(within(cards.net).getByText("฿0")).toBeInTheDocument();
     });
+
+    it("renders negative net balance with Overspending status", () => {
+      render(
+        <SummaryCards
+          summary={{ totalIncome: 0, totalExpense: 450, netBalance: -450 }}
+          period={currentPeriod()}
+        />
+      );
+
+      const cards = getCards();
+      expect(within(cards.spent).getByText("฿450")).toBeInTheDocument();
+      expect(within(cards.net).getByText("-฿450")).toBeInTheDocument();
+      expect(within(cards.net).getByText("Overspending")).toBeInTheDocument();
+    });
   });
 
   describe("TransactionsPage — SummaryCards recalculation on filter changes", () => {
-    it("renders initial total calculations for all transactions in period", async () => {
+    it("renders initial total calculations from server summary", async () => {
       renderWithClient(<TransactionsPage />);
 
-      // Wait for page to render
       expect(await screen.findByRole("heading", { name: "Transactions" })).toBeInTheDocument();
 
       const cards = getCards();
-      expect(await within(cards.spent).findByText("฿450")).toBeInTheDocument();
-      expect(within(cards.income).getByText("฿10,000")).toBeInTheDocument();
-      expect(within(cards.net).getByText("+฿9,550")).toBeInTheDocument();
+      await waitFor(() => {
+        expect(within(cards.spent).getByText("฿450")).toBeInTheDocument();
+        expect(within(cards.income).getByText("฿10,000")).toBeInTheDocument();
+        expect(within(cards.net).getByText("+฿9,550")).toBeInTheDocument();
+      });
     });
 
     it("recalculates SummaryCards when filtering by transaction type (Expense)", async () => {
@@ -179,7 +219,6 @@ describe("Task 66 — Summary Cards Recalculation", () => {
 
       expect(await screen.findByRole("heading", { name: "Transactions" })).toBeInTheDocument();
 
-      // Filter by Expense: Income becomes 0, Net becomes -450
       act(() => {
         useTransactionFilters.getState().setFilters({
           ...useTransactionFilters.getState().filters,
@@ -188,10 +227,12 @@ describe("Task 66 — Summary Cards Recalculation", () => {
       });
 
       const cards = getCards();
-      expect(within(cards.spent).getByText("฿450")).toBeInTheDocument();
-      expect(within(cards.income).getByText("No income recorded in this period")).toBeInTheDocument();
-      expect(within(cards.net).getByText("-฿450")).toBeInTheDocument();
-      expect(within(cards.net).getByText("Overspending")).toBeInTheDocument();
+      await waitFor(() => {
+        expect(within(cards.spent).getByText("฿450")).toBeInTheDocument();
+        expect(within(cards.income).getByText("No income recorded in this period")).toBeInTheDocument();
+        expect(within(cards.net).getByText("-฿450")).toBeInTheDocument();
+        expect(within(cards.net).getByText("Overspending")).toBeInTheDocument();
+      });
     });
 
     it("recalculates SummaryCards when filtering by transaction type (Income)", async () => {
@@ -199,7 +240,6 @@ describe("Task 66 — Summary Cards Recalculation", () => {
 
       expect(await screen.findByRole("heading", { name: "Transactions" })).toBeInTheDocument();
 
-      // Filter by Income: Spent becomes 0, Net becomes +10,000
       act(() => {
         useTransactionFilters.getState().setFilters({
           ...useTransactionFilters.getState().filters,
@@ -208,10 +248,12 @@ describe("Task 66 — Summary Cards Recalculation", () => {
       });
 
       const cards = getCards();
-      expect(within(cards.spent).getByText("No spending recorded in this period")).toBeInTheDocument();
-      expect(within(cards.income).getByText("฿10,000")).toBeInTheDocument();
-      expect(within(cards.net).getByText("+฿10,000")).toBeInTheDocument();
-      expect(within(cards.net).getByText("Surplus")).toBeInTheDocument();
+      await waitFor(() => {
+        expect(within(cards.spent).getByText("No spending recorded in this period")).toBeInTheDocument();
+        expect(within(cards.income).getByText("฿10,000")).toBeInTheDocument();
+        expect(within(cards.net).getByText("+฿10,000")).toBeInTheDocument();
+        expect(within(cards.net).getByText("Surplus")).toBeInTheDocument();
+      });
     });
 
     it("recalculates SummaryCards when filtering by specific wallet", async () => {
@@ -219,7 +261,6 @@ describe("Task 66 — Summary Cards Recalculation", () => {
 
       expect(await screen.findByRole("heading", { name: "Transactions" })).toBeInTheDocument();
 
-      // Filter by w1 (Main Wallet): has t1 (300) and t2 (150), no income
       act(() => {
         useTransactionFilters.getState().setFilters({
           ...useTransactionFilters.getState().filters,
@@ -227,12 +268,13 @@ describe("Task 66 — Summary Cards Recalculation", () => {
         });
       });
 
-      const cardsW1 = getCards();
-      expect(within(cardsW1.spent).getByText("฿450")).toBeInTheDocument();
-      expect(within(cardsW1.income).getByText("No income recorded in this period")).toBeInTheDocument();
-      expect(within(cardsW1.net).getByText("-฿450")).toBeInTheDocument();
+      const cards = getCards();
+      await waitFor(() => {
+        expect(within(cards.spent).getByText("฿450")).toBeInTheDocument();
+        expect(within(cards.income).getByText("No income recorded in this period")).toBeInTheDocument();
+        expect(within(cards.net).getByText("-฿450")).toBeInTheDocument();
+      });
 
-      // Switch to w2 (Savings Wallet): has only t3 (10000 income)
       act(() => {
         useTransactionFilters.getState().setFilters({
           ...useTransactionFilters.getState().filters,
@@ -240,10 +282,11 @@ describe("Task 66 — Summary Cards Recalculation", () => {
         });
       });
 
-      const cardsW2 = getCards();
-      expect(within(cardsW2.spent).getByText("No spending recorded in this period")).toBeInTheDocument();
-      expect(within(cardsW2.income).getByText("฿10,000")).toBeInTheDocument();
-      expect(within(cardsW2.net).getByText("+฿10,000")).toBeInTheDocument();
+      await waitFor(() => {
+        expect(within(cards.spent).getByText("No spending recorded in this period")).toBeInTheDocument();
+        expect(within(cards.income).getByText("฿10,000")).toBeInTheDocument();
+        expect(within(cards.net).getByText("+฿10,000")).toBeInTheDocument();
+      });
     });
 
     it("recalculates SummaryCards when filtering by specific category", async () => {
@@ -251,7 +294,6 @@ describe("Task 66 — Summary Cards Recalculation", () => {
 
       expect(await screen.findByRole("heading", { name: "Transactions" })).toBeInTheDocument();
 
-      // Filter by Category c1 (Food): only t1 (300 expense)
       act(() => {
         useTransactionFilters.getState().setFilters({
           ...useTransactionFilters.getState().filters,
@@ -260,26 +302,33 @@ describe("Task 66 — Summary Cards Recalculation", () => {
       });
 
       const cards = getCards();
-      expect(within(cards.spent).getByText("฿300")).toBeInTheDocument();
-      expect(within(cards.income).getByText("No income recorded in this period")).toBeInTheDocument();
-      expect(within(cards.net).getByText("-฿300")).toBeInTheDocument();
+      await waitFor(() => {
+        expect(within(cards.spent).getByText("฿300")).toBeInTheDocument();
+        expect(within(cards.income).getByText("No income recorded in this period")).toBeInTheDocument();
+        expect(within(cards.net).getByText("-฿300")).toBeInTheDocument();
+      });
     });
 
-    it("recalculates SummaryCards when searching by keyword", async () => {
+    it("displays ฿0 across all three cards when filter matches nothing", async () => {
       renderWithClient(<TransactionsPage />);
 
       expect(await screen.findByRole("heading", { name: "Transactions" })).toBeInTheDocument();
 
-      // Search for "Train": only t2 (150 expense) matches
-      const searchInputs = screen.getAllByPlaceholderText("Search by title or note");
       act(() => {
-        fireEvent.change(searchInputs[0], { target: { value: "Train" } });
+        useTransactionFilters.getState().setFilters({
+          ...useTransactionFilters.getState().filters,
+          walletId: "empty-wallet",
+        });
       });
 
       const cards = getCards();
-      expect(within(cards.spent).getByText("฿150")).toBeInTheDocument();
-      expect(within(cards.income).getByText("No income recorded in this period")).toBeInTheDocument();
-      expect(within(cards.net).getByText("-฿150")).toBeInTheDocument();
+      await waitFor(() => {
+        expect(within(cards.spent).getByText("No spending recorded in this period")).toBeInTheDocument();
+        expect(within(cards.income).getByText("No income recorded in this period")).toBeInTheDocument();
+        expect(within(cards.spent).getByText("฿0")).toBeInTheDocument();
+        expect(within(cards.income).getByText("฿0")).toBeInTheDocument();
+        expect(within(cards.net).getByText("฿0")).toBeInTheDocument();
+      });
     });
 
     it("restores SummaryCards calculations when resetting filters", async () => {
@@ -287,7 +336,6 @@ describe("Task 66 — Summary Cards Recalculation", () => {
 
       expect(await screen.findByRole("heading", { name: "Transactions" })).toBeInTheDocument();
 
-      // Apply filter
       act(() => {
         useTransactionFilters.getState().setFilters({
           ...useTransactionFilters.getState().filters,
@@ -295,18 +343,20 @@ describe("Task 66 — Summary Cards Recalculation", () => {
         });
       });
 
-      const cardsFiltered = getCards();
-      expect(within(cardsFiltered.spent).getByText("฿300")).toBeInTheDocument();
+      const cards = getCards();
+      await waitFor(() => {
+        expect(within(cards.spent).getByText("฿300")).toBeInTheDocument();
+      });
 
-      // Reset filters
       act(() => {
         useTransactionFilters.getState().resetFilters();
       });
 
-      const cardsRestored = getCards();
-      expect(within(cardsRestored.spent).getByText("฿450")).toBeInTheDocument();
-      expect(within(cardsRestored.income).getByText("฿10,000")).toBeInTheDocument();
-      expect(within(cardsRestored.net).getByText("+฿9,550")).toBeInTheDocument();
+      await waitFor(() => {
+        expect(within(cards.spent).getByText("฿450")).toBeInTheDocument();
+        expect(within(cards.income).getByText("฿10,000")).toBeInTheDocument();
+        expect(within(cards.net).getByText("+฿9,550")).toBeInTheDocument();
+      });
     });
   });
 });
