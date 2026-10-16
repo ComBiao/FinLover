@@ -284,7 +284,7 @@ The engineering team is organized into three cross-functional pods with strict p
 | Task Description | Assignee (Volunteer) | Reviewer | Hours | Status |
 | :--- | :--- | :--- | :---: | :---: |
 | Implement get-total-balance API (aggregate across wallets; return savingGoal if saving wallet with goal) | Pat, Ice | Guy | 2.0h | Done |
-| Wire Total Balance card to API (include embedded saving goal progress) | Yeen, Guy, Boss | Ikkyu | 1.0h | To Do |
+| Wire Total Balance card to API (include embedded saving goal progress) | Yeen, Guy, Boss | Ikkyu | 1.0h | Done |
 | Test Total Balance card (current balance, saving goal embedded, empty state) | Tul, Timsum | - | 1.0h | To Do |
 
 ---
@@ -317,7 +317,7 @@ The engineering team is organized into three cross-functional pods with strict p
 | Task Description | Assignee (Volunteer) | Reviewer | Hours | Status |
 | :--- | :--- | :--- | :---: | :---: |
 | Implement get-income-this-month API (total income only, no recent items) | Bushi, Ikkyu | Yeen | 2.0h | Done |
-| Wire Income card to API | Yeen, Guy, Boss | Bushi | 1.0h | To Do |
+| Wire Income card to API | Yeen, Guy, Boss | Bushi | 1.0h | Done |
 | Test Income this month card (no income case) | Tul, Timsum | - | 1.0h | To Do |
 
 ---
@@ -350,7 +350,7 @@ The engineering team is organized into three cross-functional pods with strict p
 | Task Description | Assignee (Volunteer) | Reviewer | Hours | Status |
 | :--- | :--- | :--- | :---: | :---: |
 | Implement get-expense-this-month API (total expense only, no % comparison) | Bushi, Ikkyu | Boss | 2.0h | Done |
-| Wire Spent card to API | Yeen, Guy, Boss | Ikkyu | 1.0h | To Do |
+| Wire Spent card to API | Yeen, Guy, Boss | Ikkyu | 1.0h | Done |
 | Test Spent this month card (no expense case) | Tul, Timsum | - | 1.0h | To Do |
 
 ---
@@ -384,7 +384,7 @@ The engineering team is organized into three cross-functional pods with strict p
 | :--- | :--- | :--- | :---: | :---: |
 | Replace the existing SpendingTrendChart component with a Net Balance card (spec changed after it was built) | Tul, Timsum, Guy, Boss | Bushi | 2.0h | To Do |
 | Implement get-net-this-month API (income minus expense) | Bushi, Ikkyu | Guy | 1.0h | Done |
-| Wire Net card to API | Yeen, Guy, Boss | Ikkyu | 1.0h | To Do |
+| Wire Net card to API | Yeen, Guy, Boss | Ikkyu | 1.0h | Done |
 | Test Net card (surplus and overspend cases) | Tul, Timsum | - | 1.0h | To Do |
 
 ---
@@ -417,7 +417,7 @@ The engineering team is organized into three cross-functional pods with strict p
 | Task Description | Assignee (Volunteer) | Reviewer | Hours | Status |
 | :--- | :--- | :--- | :---: | :---: |
 | Implement get-top-categories-this-month API | Bushi, Ikkyu | Tul | 2.0h | Done |
-| Wire category breakdown list to API | Yeen, Guy, Boss | Bushi | 1.0h | To Do |
+| Wire category breakdown list to API | Yeen, Guy, Boss | Bushi | 1.0h | Done |
 | Test category breakdown (empty state) | Tul, Timsum | - | 1.0h | To Do |
 
 ---
@@ -450,7 +450,7 @@ The engineering team is organized into three cross-functional pods with strict p
 | Task Description | Assignee (Volunteer) | Reviewer | Hours | Status |
 | :--- | :--- | :--- | :---: | :---: |
 | Implement get-savings-goal-progress in summary API (embedded with total balance) | Pat, Ice | Timsum | 2.0h | Done |
-| Wire embedded Savings Goal UI inside Total Balance card (show only for saving wallet with goal) | Yeen, Guy, Boss | Ikkyu | 1.0h | To Do |
+| Wire embedded Savings Goal UI inside Total Balance card (show only for saving wallet with goal) | Yeen, Guy, Boss | Ikkyu | 1.0h | Done |
 | Test embedded Savings Goal in Total Balance card (saving wallet with goal vs standard/all wallets) | Tul, Timsum | - | 1.0h | To Do |
 
 ---
