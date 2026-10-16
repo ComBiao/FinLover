@@ -1,11 +1,28 @@
-import type { WalletRepositoryPort } from '@/server/shared/ports/wallets';
+import type { WalletRecord, WalletRepositoryPort } from '@/server/shared/ports/wallets';
 import type { TransactionRepositoryPort } from '@/server/shared/ports/transactions';
 import { AppError } from '@/server/shared/kernel/AppError';
 import { currentMonth, monthBoundaries } from '@/server/modules/transactions/services/GetTransactionsByMonthService';
 
 export type HomeSummaryQuery = { month?: string; walletId: string };
 
-/** Home page figures for one month and either every owned wallet ("all") or one of them (US2-1 to US2-5). */
+/** Progress toward a saving wallet's goal; null unless that one wallet is selected and is saving with a goal (US2-7). */
+function savingGoalOf(wallet: WalletRecord | undefined) {
+  if (!wallet?.isSaving || !wallet.goalAmount) return null;
+  const goal = wallet.goalAmount;
+  const current = wallet.balance;
+  return {
+    walletId: wallet.id,
+    walletName: wallet.name,
+    goal,
+    current,
+    // Floored so the bar never shows 100% before the goal is actually reached.
+    percent: Math.max(0, Math.min(100, Math.floor((current / goal) * 100))),
+    remaining: Math.max(0, goal - current),
+    reached: current >= goal,
+  };
+}
+
+/** Home page figures for one month and either every owned wallet ("all") or one of them (US2-1 to US2-7). */
 export class GetHomeSummaryService {
   constructor(
     private wallets: Pick<WalletRepositoryPort, 'list'>,
@@ -37,6 +54,7 @@ export class GetHomeSummaryService {
       balance: {
         hasWallets: wallets.length > 0,
         totalBalance: scoped.reduce((sum, wallet) => sum + wallet.balance, 0),
+        savingGoal: walletId === 'all' ? null : savingGoalOf(scoped[0]),
       },
       income,
       expense,

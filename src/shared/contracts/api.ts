@@ -46,7 +46,14 @@ export const homeSummaryQuery = z.object({
 export const homeSummaryResponse = z.object({
   month: z.string(),
   walletId: z.string(),
-  balance: z.object({ hasWallets: z.boolean(), totalBalance: z.number() }),
+  balance: z.object({
+    hasWallets: z.boolean(),
+    totalBalance: z.number(),
+    savingGoal: z.object({
+      walletId: objectId, walletName: z.string(), goal: z.number(), current: z.number(),
+      percent: z.number().int().min(0).max(100), remaining: z.number(), reached: z.boolean(),
+    }).nullable(),
+  }),
   income: z.number(),
   expense: z.number(),
   net: z.object({ net: z.number(), status: z.enum(['surplus', 'overspending', 'even']) }),

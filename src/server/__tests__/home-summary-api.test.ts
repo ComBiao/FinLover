@@ -62,13 +62,13 @@ describe('GET /api/v1/home/summary — total balance (#89)', () => {
 
     const json = await (await call(`?month=2026-10&walletId=${bank._id}`)).json();
 
-    expect(json.data.balance).toEqual({ hasWallets: true, totalBalance: 2000 });
+    expect(json.data.balance).toEqual({ hasWallets: true, totalBalance: 2000, savingGoal: null });
   });
 
   it('returns 0 for a user without wallets, defaulting to the current month', async () => {
     const json = await (await call()).json();
 
-    expect(json.data.balance).toEqual({ hasWallets: false, totalBalance: 0 });
+    expect(json.data.balance).toEqual({ hasWallets: false, totalBalance: 0, savingGoal: null });
     expect(json.data.month).toMatch(/^\d{4}-(0[1-9]|1[0-2])$/);
   });
 
@@ -124,5 +124,27 @@ describe('GET /api/v1/home/summary — income, expense and net (#90, #91, #92)',
     const data = (await (await call('?month=2030-01')).json()).data;
 
     expect(data).toMatchObject({ income: 0, expense: 0, net: { net: 0, status: 'even' } });
+  });
+});
+
+describe('GET /api/v1/home/summary — saving goal progress (#81)', () => {
+  it('embeds progress for a selected saving wallet with a goal', async () => {
+    const fund = await Wallet.create({ userId: USER, name: 'Emergency fund', balance: 12400, isSaving: true, goalAmount: 20000 });
+
+    const data = (await (await call(`?walletId=${fund._id}`)).json()).data;
+
+    expect(data.balance).toEqual({
+      hasWallets: true,
+      totalBalance: 12400,
+      savingGoal: { walletId: String(fund._id), walletName: 'Emergency fund', goal: 20000, current: 12400, percent: 62, remaining: 7600, reached: false },
+    });
+  });
+
+  it('leaves it null for all wallets and for a regular wallet', async () => {
+    await Wallet.create({ userId: USER, name: 'Emergency fund', balance: 12400, isSaving: true, goalAmount: 20000 });
+    const cash = await Wallet.create({ userId: USER, name: 'Cash', balance: 10 });
+
+    expect((await (await call()).json()).data.balance.savingGoal).toBeNull();
+    expect((await (await call(`?walletId=${cash._id}`)).json()).data.balance.savingGoal).toBeNull();
   });
 });

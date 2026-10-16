@@ -7253,7 +7253,7 @@
           "home"
         ],
         "summary": "getHomeSummary",
-        "description": "Home page figures for an optional YYYY-MM month (defaulting to the current month in APPLICATION_TIMEZONE) and either every owned wallet (walletId=all, the default) or one owned wallet. totalBalance sums the scoped wallets' current balances; hasWallets reports whether the caller owns any wallet. income and expense total the scoped transactions dated in that month; net is income minus expense with status surplus, overspending or even. An invalid walletId returns 400; another user's or a missing wallet returns 404. Authorization takes precedence over cookie. Cookie-authenticated GETs do not require an Origin. Implemented.",
+        "description": "Home page figures for an optional YYYY-MM month (defaulting to the current month in APPLICATION_TIMEZONE) and either every owned wallet (walletId=all, the default) or one owned wallet. totalBalance sums the scoped wallets' current balances; hasWallets reports whether the caller owns any wallet; savingGoal shows the selected wallet's progress (percent floored to 0–100) when it is a saving wallet with a goal, otherwise null, and is always null for walletId=all. income and expense total the scoped transactions dated in that month; net is income minus expense with status surplus, overspending or even. An invalid walletId returns 400; another user's or a missing wallet returns 404. Authorization takes precedence over cookie. Cookie-authenticated GETs do not require an Origin. Implemented.",
         "security": [
           {
             "bearerAuth": []
@@ -7313,11 +7313,58 @@
                             },
                             "totalBalance": {
                               "type": "number"
+                            },
+                            "savingGoal": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "walletId": {
+                                      "type": "string",
+                                      "pattern": "^[a-f0-9]{24}$"
+                                    },
+                                    "walletName": {
+                                      "type": "string"
+                                    },
+                                    "goal": {
+                                      "type": "number"
+                                    },
+                                    "current": {
+                                      "type": "number"
+                                    },
+                                    "percent": {
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "maximum": 100
+                                    },
+                                    "remaining": {
+                                      "type": "number"
+                                    },
+                                    "reached": {
+                                      "type": "boolean"
+                                    }
+                                  },
+                                  "required": [
+                                    "walletId",
+                                    "walletName",
+                                    "goal",
+                                    "current",
+                                    "percent",
+                                    "remaining",
+                                    "reached"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
                             }
                           },
                           "required": [
                             "hasWallets",
-                            "totalBalance"
+                            "totalBalance",
+                            "savingGoal"
                           ],
                           "additionalProperties": false
                         },
@@ -7372,7 +7419,8 @@
                     "walletId": "all",
                     "balance": {
                       "hasWallets": true,
-                      "totalBalance": 1250.5
+                      "totalBalance": 1250.5,
+                      "savingGoal": null
                     },
                     "income": 30000,
                     "expense": 7495,

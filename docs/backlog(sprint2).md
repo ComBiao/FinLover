@@ -449,7 +449,7 @@ The engineering team is organized into three cross-functional pods with strict p
 
 | Task Description | Assignee (Volunteer) | Reviewer | Hours | Status |
 | :--- | :--- | :--- | :---: | :---: |
-| Implement get-savings-goal-progress in summary API (embedded with total balance) | Pat, Ice | Timsum | 2.0h | To Do |
+| Implement get-savings-goal-progress in summary API (embedded with total balance) | Pat, Ice | Timsum | 2.0h | Done |
 | Wire embedded Savings Goal UI inside Total Balance card (show only for saving wallet with goal) | Yeen, Guy, Boss | Ikkyu | 1.0h | To Do |
 | Test embedded Savings Goal in Total Balance card (saving wallet with goal vs standard/all wallets) | Tul, Timsum | - | 1.0h | To Do |
 
