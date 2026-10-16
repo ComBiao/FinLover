@@ -66,21 +66,16 @@ describe("WalletManagementPage UI", () => {
     expect(screen.getByText("Default")).toBeInTheDocument();
   });
 
-  it("toggles balance visibility when clicking the eye button (#78)", async () => {
+  it("does not render Hide Balances button, Active Wallet card, or Daily/Saving subtitles", async () => {
     renderWithClient(<WalletManagementPage />);
 
     expect(await screen.findByText("Main Cash")).toBeInTheDocument();
-    // Initially visible
-    expect(screen.getByText("Hide Balances")).toBeInTheDocument();
-
-    // Toggle hide
-    fireEvent.click(screen.getByText("Hide Balances"));
-    expect(screen.getByText("Show Balances")).toBeInTheDocument();
-    expect(useBalanceVisibility.getState().isVisible).toBe(false);
-
-    // Toggle back to show
-    fireEvent.click(screen.getByText("Show Balances"));
-    expect(useBalanceVisibility.getState().isVisible).toBe(true);
+    expect(screen.queryByText("Hide Balances")).not.toBeInTheDocument();
+    expect(screen.queryByText("Show Balances")).not.toBeInTheDocument();
+    expect(screen.queryByText("Active Wallet")).not.toBeInTheDocument();
+    expect(screen.queryByText("Daily Wallet")).not.toBeInTheDocument();
+    expect(screen.queryByText("Saving Wallet")).not.toBeInTheDocument();
+    expect(screen.queryByText("Set Active")).not.toBeInTheDocument();
   });
 
   it("opens Create Wallet dialog when clicking Create Wallet button", async () => {

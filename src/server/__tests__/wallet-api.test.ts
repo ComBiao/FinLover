@@ -86,6 +86,17 @@ describe('POST /api/v1/wallets', () => {
     expect((await response.json()).data).toMatchObject({ name: 'Cash', balance: 0, isSaving: false, isDefault: false });
   });
 
+  it('creates and updates a wallet with a custom icon', async () => {
+    const res = await createWallet({ name: 'Travel Wallet', color: '#3B82F6', icon: 'Plane' });
+    expect(res.status).toBe(201);
+    const { data } = await res.json();
+    expect(data.icon).toBe('Plane');
+
+    const updateRes = await putWallet(data.id, { icon: 'Gem' });
+    expect(updateRes.status).toBe(200);
+    expect((await updateRes.json()).data.icon).toBe('Gem');
+  });
+
   it('ignores owner, balance, default and unknown fields in the body', async () => {
     const clientId = new mongoose.Types.ObjectId().toString();
     const response = await createWallet({

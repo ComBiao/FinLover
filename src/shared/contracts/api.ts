@@ -39,8 +39,31 @@ export const transactionMonthQuery = z.object({
   search: z.string().trim().max(100).optional().transform(value => value || undefined),
 });
 export const categoryResponse = categoryInput.extend({ id: objectId, isSystem: z.boolean(), createdAt: z.iso.datetime(), updatedAt: z.iso.datetime() });
-export const walletInput = z.object({ name: z.string().trim().min(1).max(50), color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(), isSaving: z.boolean().optional(), goalAmount: z.number().min(0).optional()});
-export const walletUpdate = walletInput.pick({ name: true, color: true }).partial();
+export const WALLET_ICON_NAMES = [
+  'Wallet',
+  'Banknote',
+  'CreditCard',
+  'Landmark',
+  'Coins',
+  'PiggyBank',
+  'CircleDollarSign',
+  'Gem',
+  'Briefcase',
+  'ShoppingBag',
+  'Plane',
+  'ShieldCheck',
+  'Receipt',
+] as const;
+export const walletIcon = z.enum(WALLET_ICON_NAMES);
+export type WalletIconName = z.infer<typeof walletIcon>;
+export const walletInput = z.object({
+  name: z.string().trim().min(1).max(50),
+  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+  icon: z.string().trim().min(1).max(50).optional(),
+  isSaving: z.boolean().optional(),
+  goalAmount: z.number().min(0).optional(),
+});
+export const walletUpdate = walletInput.pick({ name: true, color: true, icon: true }).partial();
 export const walletResponse = walletInput.extend({ id: objectId, balance: z.number(), isDefault: z.boolean(), isSaving: z.boolean(), createdAt: z.iso.datetime(), updatedAt: z.iso.datetime() });
 export const walletSavingUpdate = z.object({ isSaving: z.boolean(), goalAmount: z.number().optional() }).superRefine((value, ctx) => {
   if (value.isSaving && !(value.goalAmount !== undefined && value.goalAmount > 0)) ctx.addIssue({ code: 'custom', path: ['goalAmount'], message: 'Goal amount must be greater than 0 when saving is on' });

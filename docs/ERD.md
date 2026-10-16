@@ -24,6 +24,7 @@ erDiagram
     Number balance
     Boolean isDefault
     String color
+    String icon
     Boolean isSaving
     Number goalAmount
     ObjectId _id

@@ -7,6 +7,7 @@ export interface IWallet extends Document {
   balance: number;
   isDefault: boolean;
   color?: string;
+  icon?: string;
   isSaving: boolean;
   goalAmount?: number;
   createdAt: Date;
@@ -19,6 +20,7 @@ const WalletSchema: Schema = new Schema({
   balance: { type: Number, required: true, default: 0 },
   isDefault: { type: Boolean, default: false },
   color: { type: String, trim: true },
+  icon: { type: String, trim: true },
   isSaving: { type: Boolean, default: false },
   goalAmount: { type: Number, min: 0 },
 }, {

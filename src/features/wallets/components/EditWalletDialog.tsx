@@ -14,8 +14,10 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { hexToRgba } from "@/components/chipColor";
 import type { Wallet } from "@/types/wallet";
 import { useUpdateWallet } from "@/features/wallets/hooks/useWallets";
+import { WALLET_ICON_OPTIONS } from "@/features/wallets/walletIcons";
 
 const PRESET_COLORS = [
   "#4A4757",
@@ -38,6 +40,7 @@ type EditWalletFormProps = {
 function EditWalletForm({ wallet, onSuccess }: EditWalletFormProps) {
   const [name, setName] = React.useState(wallet.name);
   const [color, setColor] = React.useState(wallet.color ?? PRESET_COLORS[0]);
+  const [icon, setIcon] = React.useState(wallet.iconName ?? (wallet.isSaving ? "PiggyBank" : "Wallet"));
   const [error, setError] = React.useState<string | null>(null);
 
   const updateWalletMutation = useUpdateWallet();
@@ -60,7 +63,7 @@ function EditWalletForm({ wallet, onSuccess }: EditWalletFormProps) {
     try {
       await updateWalletMutation.mutateAsync({
         id: wallet.id,
-        input: { name: trimmedName, color },
+        input: { name: trimmedName, color, icon },
       });
       onSuccess();
     } catch (err) {
@@ -106,6 +109,33 @@ function EditWalletForm({ wallet, onSuccess }: EditWalletFormProps) {
               {color === preset ? <Check className="size-4 text-white" /> : null}
             </button>
           ))}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label>Wallet Icon</Label>
+        <div className="grid grid-cols-6 gap-2 pt-1 sm:grid-cols-7">
+          {WALLET_ICON_OPTIONS.map((opt) => {
+            const IconComponent = opt.icon;
+            const isSelected = icon === opt.name;
+            return (
+              <button
+                key={opt.name}
+                type="button"
+                onClick={() => setIcon(opt.name)}
+                className="flex size-9 items-center justify-center rounded-xl border transition-all hover:scale-105"
+                style={{
+                  borderColor: isSelected ? color : "var(--border)",
+                  backgroundColor: isSelected ? hexToRgba(color, 0.15) : "transparent",
+                  color: isSelected ? color : "var(--muted-foreground)",
+                }}
+                aria-label={`Select ${opt.label} icon`}
+                title={opt.label}
+              >
+                <IconComponent className="size-4.5" />
+              </button>
+            );
+          })}
         </div>
       </div>
 

@@ -1,6 +1,6 @@
-import { PiggyBank, Wallet as WalletIcon } from "lucide-react";
 import { ApiClientError, deleteApi } from "@/lib/api/client";
 import type { Wallet } from "@/types/wallet";
+import { resolveWalletIcon } from "./walletIcons";
 
 export type WalletApiRecord = {
   id: string;
@@ -8,6 +8,7 @@ export type WalletApiRecord = {
   balance: number;
   isDefault?: boolean;
   color?: string;
+  icon?: string;
   isSaving?: boolean;
   goalAmount?: number;
   createdAt?: string;
@@ -17,6 +18,7 @@ export type WalletApiRecord = {
 export type CreateWalletInput = {
   name: string;
   color?: string;
+  icon?: string;
   isSaving?: boolean;
   goalAmount?: number;
 };
@@ -24,6 +26,7 @@ export type CreateWalletInput = {
 export type UpdateWalletInput = {
   name?: string;
   color?: string;
+  icon?: string;
 };
 
 export type UpdateWalletSavingInput = {
@@ -45,7 +48,8 @@ export function mapWalletRecord(record: WalletApiRecord): Wallet {
     savingGoal: goal,
     goalAmount: goal,
     type: isSaving ? "savings" : "cash",
-    icon: isSaving ? PiggyBank : WalletIcon,
+    icon: resolveWalletIcon(record.icon, isSaving),
+    iconName: record.icon,
   };
 }
 
