@@ -416,7 +416,7 @@ The engineering team is organized into three cross-functional pods with strict p
 
 | Task Description | Assignee (Volunteer) | Reviewer | Hours | Status |
 | :--- | :--- | :--- | :---: | :---: |
-| Implement get-top-categories-this-month API | Bushi, Ikkyu | Tul | 2.0h | To Do |
+| Implement get-top-categories-this-month API | Bushi, Ikkyu | Tul | 2.0h | Done |
 | Wire category breakdown list to API | Yeen, Guy, Boss | Bushi | 1.0h | To Do |
 | Test category breakdown (empty state) | Tul, Timsum | - | 1.0h | To Do |
 

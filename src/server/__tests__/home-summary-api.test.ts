@@ -7,6 +7,7 @@ import { NextRequest } from 'next/server';
 import Wallet from '@/server/db/models/Wallet';
 import User from '@/server/db/models/User';
 import Transaction from '@/server/db/models/Transaction';
+import Category from '@/server/db/models/Category';
 import { signToken } from '@/server/shared/auth/crypto';
 import { seedUser } from '@/test/user-fixture';
 
@@ -27,7 +28,7 @@ beforeAll(async () => {
 }, 60_000);
 afterAll(async () => { await mongoose.disconnect(); await replSet?.stop(); }, 60_000);
 beforeEach(async () => {
-  await Promise.all([Wallet.deleteMany({}), User.deleteMany({}), Transaction.collection.deleteMany({})]);
+  await Promise.all([Wallet.deleteMany({}), User.deleteMany({}), Transaction.collection.deleteMany({}), Category.deleteMany({})]);
   await seedUser(USER);
 });
 
@@ -146,5 +147,32 @@ describe('GET /api/v1/home/summary — saving goal progress (#81)', () => {
 
     expect((await (await call()).json()).data.balance.savingGoal).toBeNull();
     expect((await (await call(`?walletId=${cash._id}`)).json()).data.balance.savingGoal).toBeNull();
+  });
+});
+
+describe('GET /api/v1/home/summary — top categories (#93)', () => {
+  it("ranks the month's expense categories and folds category-less expenses into Others", async () => {
+    const wallet = await Wallet.create({ userId: USER, name: 'Cash' });
+    const [food, others] = await Category.create([
+      { userId: USER, name: 'Food & Drinks', type: 'expense', isSystem: true, icon: 'Utensils', color: '#F97316' },
+      { userId: USER, name: 'Others', type: 'expense', isSystem: true, icon: 'MoreHorizontal', color: '#4B5563' },
+    ]);
+    const base = { userId: USER, walletId: wallet._id, type: 'expense', title: 'Fixture', date: new Date('2026-10-05T00:00:00.000Z'), createdAt: new Date(), updatedAt: new Date() };
+    await Transaction.collection.insertMany([
+      { ...base, categoryId: food._id, amount: 120 },
+      { ...base, categoryId: null, amount: 200 },
+      { ...base, categoryId: food._id, amount: 30, date: new Date('2026-09-05T00:00:00.000Z') },
+    ]);
+
+    const data = (await (await call('?month=2026-10')).json()).data;
+
+    expect(data.topCategories).toEqual([
+      { rank: 1, categoryId: String(others._id), name: 'Others', icon: 'MoreHorizontal', color: '#4B5563', amount: 200 },
+      { rank: 2, categoryId: String(food._id), name: 'Food & Drinks', icon: 'Utensils', color: '#F97316', amount: 120 },
+    ]);
+  });
+
+  it('returns an empty list for a month without expenses', async () => {
+    expect((await (await call('?month=2030-01')).json()).data.topCategories).toEqual([]);
   });
 });

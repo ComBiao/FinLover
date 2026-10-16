@@ -57,6 +57,10 @@ export const homeSummaryResponse = z.object({
   income: z.number(),
   expense: z.number(),
   net: z.object({ net: z.number(), status: z.enum(['surplus', 'overspending', 'even']) }),
+  topCategories: z.array(z.object({
+    rank: z.number().int().min(1), categoryId: objectId.nullable(), name: z.string(),
+    icon: z.string().nullable(), color: z.string().nullable(), amount: z.number(),
+  })),
 });
 export const categoryResponse = categoryInput.extend({ id: objectId, isSystem: z.boolean(), createdAt: z.iso.datetime(), updatedAt: z.iso.datetime() });
 export const WALLET_ICON_NAMES = [

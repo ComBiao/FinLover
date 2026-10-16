@@ -7253,7 +7253,7 @@
           "home"
         ],
         "summary": "getHomeSummary",
-        "description": "Home page figures for an optional YYYY-MM month (defaulting to the current month in APPLICATION_TIMEZONE) and either every owned wallet (walletId=all, the default) or one owned wallet. totalBalance sums the scoped wallets' current balances; hasWallets reports whether the caller owns any wallet; savingGoal shows the selected wallet's progress (percent floored to 0–100) when it is a saving wallet with a goal, otherwise null, and is always null for walletId=all. income and expense total the scoped transactions dated in that month; net is income minus expense with status surplus, overspending or even. An invalid walletId returns 400; another user's or a missing wallet returns 404. Authorization takes precedence over cookie. Cookie-authenticated GETs do not require an Origin. Implemented.",
+        "description": "Home page figures for an optional YYYY-MM month (defaulting to the current month in APPLICATION_TIMEZONE) and either every owned wallet (walletId=all, the default) or one owned wallet. totalBalance sums the scoped wallets' current balances; hasWallets reports whether the caller owns any wallet; savingGoal shows the selected wallet's progress (percent floored to 0–100) when it is a saving wallet with a goal, otherwise null, and is always null for walletId=all. income and expense total the scoped transactions dated in that month; net is income minus expense with status surplus, overspending or even. topCategories lists up to three expense categories by amount spent (ties by name); expenses without a category count toward the seeded expense Others. An invalid walletId returns 400; another user's or a missing wallet returns 404. Authorization takes precedence over cookie. Cookie-authenticated GETs do not require an Origin. Implemented.",
         "security": [
           {
             "bearerAuth": []
@@ -7394,6 +7394,57 @@
                             "status"
                           ],
                           "additionalProperties": false
+                        },
+                        "topCategories": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "rank": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 9007199254740991
+                              },
+                              "categoryId": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "pattern": "^[a-f0-9]{24}$"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "icon": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "color": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "amount": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "rank",
+                              "categoryId",
+                              "name",
+                              "icon",
+                              "color",
+                              "amount"
+                            ],
+                            "additionalProperties": false
+                          }
                         }
                       },
                       "required": [
@@ -7402,7 +7453,8 @@
                         "balance",
                         "income",
                         "expense",
-                        "net"
+                        "net",
+                        "topCategories"
                       ],
                       "additionalProperties": false
                     }
@@ -7427,7 +7479,17 @@
                     "net": {
                       "net": 22505,
                       "status": "surplus"
-                    }
+                    },
+                    "topCategories": [
+                      {
+                        "rank": 1,
+                        "categoryId": "507f1f77bcf86cd799439012",
+                        "name": "Food & Drinks",
+                        "icon": "Utensils",
+                        "color": "#F97316",
+                        "amount": 4200
+                      }
+                    ]
                   }
                 }
               }
