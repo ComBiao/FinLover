@@ -7253,7 +7253,7 @@
           "home"
         ],
         "summary": "getHomeSummary",
-        "description": "Home page figures for an optional YYYY-MM month (defaulting to the current month in APPLICATION_TIMEZONE) and either every owned wallet (walletId=all, the default) or one owned wallet. totalBalance sums the scoped wallets' current balances; hasWallets reports whether the caller owns any wallet. An invalid walletId returns 400; another user's or a missing wallet returns 404. Authorization takes precedence over cookie. Cookie-authenticated GETs do not require an Origin. Implemented.",
+        "description": "Home page figures for an optional YYYY-MM month (defaulting to the current month in APPLICATION_TIMEZONE) and either every owned wallet (walletId=all, the default) or one owned wallet. totalBalance sums the scoped wallets' current balances; hasWallets reports whether the caller owns any wallet. income and expense total the scoped transactions dated in that month; net is income minus expense with status surplus, overspending or even. An invalid walletId returns 400; another user's or a missing wallet returns 404. Authorization takes precedence over cookie. Cookie-authenticated GETs do not require an Origin. Implemented.",
         "security": [
           {
             "bearerAuth": []
@@ -7320,12 +7320,42 @@
                             "totalBalance"
                           ],
                           "additionalProperties": false
+                        },
+                        "income": {
+                          "type": "number"
+                        },
+                        "expense": {
+                          "type": "number"
+                        },
+                        "net": {
+                          "type": "object",
+                          "properties": {
+                            "net": {
+                              "type": "number"
+                            },
+                            "status": {
+                              "type": "string",
+                              "enum": [
+                                "surplus",
+                                "overspending",
+                                "even"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "net",
+                            "status"
+                          ],
+                          "additionalProperties": false
                         }
                       },
                       "required": [
                         "month",
                         "walletId",
-                        "balance"
+                        "balance",
+                        "income",
+                        "expense",
+                        "net"
                       ],
                       "additionalProperties": false
                     }
@@ -7343,6 +7373,12 @@
                     "balance": {
                       "hasWallets": true,
                       "totalBalance": 1250.5
+                    },
+                    "income": 30000,
+                    "expense": 7495,
+                    "net": {
+                      "net": 22505,
+                      "status": "surplus"
                     }
                   }
                 }

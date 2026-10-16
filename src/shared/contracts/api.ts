@@ -47,6 +47,9 @@ export const homeSummaryResponse = z.object({
   month: z.string(),
   walletId: z.string(),
   balance: z.object({ hasWallets: z.boolean(), totalBalance: z.number() }),
+  income: z.number(),
+  expense: z.number(),
+  net: z.object({ net: z.number(), status: z.enum(['surplus', 'overspending', 'even']) }),
 });
 export const categoryResponse = categoryInput.extend({ id: objectId, isSystem: z.boolean(), createdAt: z.iso.datetime(), updatedAt: z.iso.datetime() });
 export const WALLET_ICON_NAMES = [

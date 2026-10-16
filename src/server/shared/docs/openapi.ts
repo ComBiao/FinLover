@@ -60,7 +60,7 @@ export const operations = [
   { action: 'updateTransaction', method: 'put', path: '/transaction/{id}', status: 200, errors: [400, 401, 404, 422, 500], description: 'Replace editable fields of an owned transaction; reverse old and apply new balance atomically. wallet cannot be changed by this API.' },
   { action: 'deleteTransaction', method: 'delete', path: '/transaction/{id}', status: 204, errors: [400, 401, 404, 422, 500], description: 'Delete an owned transaction and reverse its balance atomically. Legacy success has no body.' },
   { action: 'deleteWallet', method: 'delete', path: '/wallets/{id}', status: 204, errors: [400, 401, 404, 500], versions: ['v1'], description: 'Delete an owned wallet and all of its transactions atomically in one UnitOfWork; nothing is deleted if any step fails. Other wallets and their transactions are untouched. Any owned wallet may be deleted, including the default or last wallet. Data cannot be recovered.' },
-  { action: 'getHomeSummary', method: 'get', path: '/home/summary', status: 200, errors: [400, 401, 404, 500], versions: ['v1'], description: "Home page figures for an optional YYYY-MM month (defaulting to the current month in APPLICATION_TIMEZONE) and either every owned wallet (walletId=all, the default) or one owned wallet. totalBalance sums the scoped wallets' current balances; hasWallets reports whether the caller owns any wallet. An invalid walletId returns 400; another user's or a missing wallet returns 404." },
+  { action: 'getHomeSummary', method: 'get', path: '/home/summary', status: 200, errors: [400, 401, 404, 500], versions: ['v1'], description: "Home page figures for an optional YYYY-MM month (defaulting to the current month in APPLICATION_TIMEZONE) and either every owned wallet (walletId=all, the default) or one owned wallet. totalBalance sums the scoped wallets' current balances; hasWallets reports whether the caller owns any wallet. income and expense total the scoped transactions dated in that month; net is income minus expense with status surplus, overspending or even. An invalid walletId returns 400; another user's or a missing wallet returns 404." },
 ] as const;
 
 export function operationsFor(version: 'legacy' | 'v1') {
@@ -106,7 +106,7 @@ export function buildSpec(version: 'legacy' | 'v1') {
     const walletExample = { id: '507f1f77bcf86cd799439011', name: 'Main', balance: 1250.5, isDefault: true, color: '#12AB34', isSaving: false, goalAmount: 0, createdAt: '2026-09-27T12:00:00.000Z', updatedAt: '2026-09-27T12:00:00.000Z' };
     const responseExample = action === 'listWallets' ? { status: true, data: [walletExample] }
       : action === 'getWallet' || action === 'updateWallet' || action === 'updateWalletSaving' ? { status: true, data: walletExample }
-        : action === 'getHomeSummary' ? { status: true, data: { month: '2026-10', walletId: 'all', balance: { hasWallets: true, totalBalance: 1250.5 } } }
+        : action === 'getHomeSummary' ? { status: true, data: { month: '2026-10', walletId: 'all', balance: { hasWallets: true, totalBalance: 1250.5 }, income: 30000, expense: 7495, net: { net: 22505, status: 'surplus' } } }
         : undefined;
     const responses: Record<string, unknown> = { [status]: { description: 'Success', ...(status === 204 ? {} : { content: { 'application/json': { schema: success, ...(responseExample ? { example: responseExample } : {}) } } }) } };
     const errors = new Set<number>(operation.errors.map(value => v1 && value === 422 ? 400 : value));
