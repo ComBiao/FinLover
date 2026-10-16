@@ -6,7 +6,9 @@ import { MongoMemoryReplSet } from 'mongodb-memory-server';
 const port = process.env.E2E_PORT ?? '3100';
 const mongo = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
 
-const server = spawn('npx', ['next', 'dev', '-p', port], {
+const isWin = process.platform === 'win32';
+const server = spawn(isWin ? 'npx.cmd' : 'npx', ['next', 'dev', '-p', port], {
+  shell: isWin,
   stdio: 'inherit',
   env: {
     ...process.env,

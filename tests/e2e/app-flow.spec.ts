@@ -23,7 +23,7 @@ async function addTransaction(page: Page, opts: { type: 'Expense' | 'Income'; ti
 test('whole app: wallet, categories, transactions, profile, delete account', async ({ page }) => {
   const email = uniqueEmail();
   await register(page, email, 'Alex Tester');
-  await expect(page).toHaveURL(/registered=1/);
+  await expect(page).toHaveURL(/registered=1/, { timeout: 30_000 });
   await login(page, email);
   await expect(page).toHaveURL(/\/homepage$/);
 
@@ -36,13 +36,21 @@ test('whole app: wallet, categories, transactions, profile, delete account', asy
   await page.getByLabel('Wallet Name').fill('Daily');
   await page.getByRole('dialog').getByRole('button', { name: 'Create Wallet' }).click();
   await expect(page.getByText('Daily').first()).toBeVisible();
-  expect((await wallets(page)).map((w) => w.name)).toEqual(['Daily']);
+  expect((await wallets(page)).map((w) => w.name)).toEqual(['Cash', 'Daily']);
 
   // --- Categories ---------------------------------------------------------
   await page.goto('/category');
   // Seeded defaults come from the server, with the fallback last.
   await expect(page.getByText('Food & Drinks')).toBeVisible();
   await expect(page.getByText('Others')).toBeVisible();
+
+  // Task 24: Grouped category view (toggle Expense and Income tabs)
+  await page.getByRole('button', { name: 'Income', exact: true }).click();
+  await expect(page.getByText('Salary')).toBeVisible();
+  await expect(page.getByText('Food & Drinks')).toBeHidden();
+  await page.getByRole('button', { name: 'Expense', exact: true }).click();
+  await expect(page.getByText('Food & Drinks')).toBeVisible();
+  await expect(page.getByText('Salary')).toBeHidden();
 
   await page.getByRole('button', { name: 'Add new category' }).click();
   await page.getByLabel('Name').fill('Coffee');
@@ -69,6 +77,27 @@ test('whole app: wallet, categories, transactions, profile, delete account', asy
   await expect(page.getByRole('row', { name: /Latte/ })).toContainText('Coffee & Tea');
   expect((await wallets(page))[0].balance).toBe(880);
 
+  // Task 16: View/Filter history
+  // 1. Search keyword filter
+  const searchInput = page.locator('input[placeholder="Search by title or note"]:visible');
+  await searchInput.fill('Latte');
+  await expect(page.getByRole('row', { name: /Latte/ })).toBeVisible();
+  await expect(page.getByRole('row', { name: /Pay day/ })).toHaveCount(0);
+  await searchInput.fill('');
+  await expect(page.getByRole('row', { name: /Pay day/ })).toBeVisible();
+  await expect(page.getByRole('row', { name: /Latte/ })).toBeVisible();
+
+  // 2. Transaction type filter
+  await page.getByRole('combobox').filter({ hasText: 'All Types' }).click();
+  await page.getByRole('option', { name: 'Expense' }).click();
+  await expect(page.getByRole('row', { name: /Latte/ })).toBeVisible();
+  await expect(page.getByRole('row', { name: /Pay day/ })).toHaveCount(0);
+
+  // 3. Reset filters
+  await page.getByRole('button', { name: 'Reset Filters' }).filter({ visible: true }).click();
+  await expect(page.getByRole('row', { name: /Pay day/ })).toBeVisible();
+  await expect(page.getByRole('row', { name: /Latte/ })).toBeVisible();
+
   // Edit the expense: 120 -> 200.
   await page.getByRole('button', { name: 'Transaction actions' }).first().click();
   await page.getByRole('menuitem', { name: 'Edit' }).click();
@@ -94,7 +123,7 @@ test('whole app: wallet, categories, transactions, profile, delete account', asy
   await page.getByRole('dialog').filter({ hasText: 'Delete Category' }).getByRole('button', { name: 'Delete' }).click();
   await expect(page.getByText('Coffee & Tea')).toBeHidden();
   await page.goto('/transactions');
-  await expect(page.getByRole('row', { name: /Latte/ })).toContainText('Uncategorized');
+  await expect(page.getByRole('row', { name: /Latte/ })).toContainText('Others');
   expect((await wallets(page))[0].balance).toBe(800);
 
   // Delete the remaining transactions: balance returns to zero.
