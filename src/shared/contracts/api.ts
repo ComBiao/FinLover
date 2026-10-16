@@ -38,6 +38,16 @@ export const transactionMonthQuery = z.object({
   // Case-insensitive substring match on title or note; blank means no search.
   search: z.string().trim().max(100).optional().transform(value => value || undefined),
 });
+export const homeSummaryQuery = z.object({
+  month: transactionMonthQuery.shape.month,
+  // "all" (the default) totals every owned wallet; an id scopes the summary to that wallet.
+  walletId: z.union([z.literal('all'), objectId]).optional().transform(value => value ?? 'all'),
+});
+export const homeSummaryResponse = z.object({
+  month: z.string(),
+  walletId: z.string(),
+  balance: z.object({ hasWallets: z.boolean(), totalBalance: z.number() }),
+});
 export const categoryResponse = categoryInput.extend({ id: objectId, isSystem: z.boolean(), createdAt: z.iso.datetime(), updatedAt: z.iso.datetime() });
 export const WALLET_ICON_NAMES = [
   'Wallet',
