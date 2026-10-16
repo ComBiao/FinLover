@@ -49,8 +49,16 @@ export function HomePage() {
   const walletId = useActiveWallet((state) => state.activeWalletId);
   const setWalletId = useActiveWallet((state) => state.setActiveWalletId);
 
-  const { data: wallets = [] } = useWallets();
+  const { data: wallets = [], isSuccess: isWalletsLoaded } = useWallets();
   const { data: currentUser } = useCurrentUser();
+
+  // The summary API answers 404 for a wallet that no longer exists (e.g. just
+  // deleted), so fall back to the combined view instead of an error state.
+  React.useEffect(() => {
+    if (isWalletsLoaded && walletId !== "all" && !wallets.some((wallet) => wallet.id === walletId)) {
+      setWalletId("all");
+    }
+  }, [isWalletsLoaded, wallets, walletId, setWalletId]);
   // Memoized so the query key stays stable between renders (avoids refetch loops)
   const months = React.useMemo(() => [month], [month]);
   const { data: transactions = [], isPending: isTransactionsPending } = useTransactions(months);

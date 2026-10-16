@@ -38,6 +38,16 @@ export const transactionMonthQuery = z.object({
   // Case-insensitive substring match on title or note; blank means no search.
   search: z.string().trim().max(100).optional().transform(value => value || undefined),
 });
+export const transactionSummaryQuery = z.object({
+  // Inclusive calendar-date range, matching the Transactions page period (a month, a year or picked days).
+  from: z.iso.date(),
+  to: z.iso.date(),
+  walletId: objectId.optional(),
+  categoryId: objectId.optional(),
+  type: z.enum(['income', 'expense']).optional(),
+  search: transactionMonthQuery.shape.search,
+}).refine(value => value.from <= value.to, { message: 'from must not be after to', path: ['to'] });
+export const transactionSummaryResponse = z.object({ totalIncome: z.number(), totalExpense: z.number(), netBalance: z.number() });
 export const homeSummaryQuery = z.object({
   month: transactionMonthQuery.shape.month,
   // "all" (the default) totals every owned wallet; an id scopes the summary to that wallet.
@@ -46,7 +56,21 @@ export const homeSummaryQuery = z.object({
 export const homeSummaryResponse = z.object({
   month: z.string(),
   walletId: z.string(),
-  balance: z.object({ hasWallets: z.boolean(), totalBalance: z.number() }),
+  balance: z.object({
+    hasWallets: z.boolean(),
+    totalBalance: z.number(),
+    savingGoal: z.object({
+      walletId: objectId, walletName: z.string(), goal: z.number(), current: z.number(),
+      percent: z.number().int().min(0).max(100), remaining: z.number(), reached: z.boolean(),
+    }).nullable(),
+  }),
+  income: z.number(),
+  expense: z.number(),
+  net: z.object({ net: z.number(), status: z.enum(['surplus', 'overspending', 'even']) }),
+  topCategories: z.array(z.object({
+    rank: z.number().int().min(1), categoryId: objectId.nullable(), name: z.string(),
+    icon: z.string().nullable(), color: z.string().nullable(), amount: z.number(),
+  })),
 });
 export const categoryResponse = categoryInput.extend({ id: objectId, isSystem: z.boolean(), createdAt: z.iso.datetime(), updatedAt: z.iso.datetime() });
 export const WALLET_ICON_NAMES = [

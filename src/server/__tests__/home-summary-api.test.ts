@@ -6,6 +6,8 @@ import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import { NextRequest } from 'next/server';
 import Wallet from '@/server/db/models/Wallet';
 import User from '@/server/db/models/User';
+import Transaction from '@/server/db/models/Transaction';
+import Category from '@/server/db/models/Category';
 import { signToken } from '@/server/shared/auth/crypto';
 import { seedUser } from '@/test/user-fixture';
 
@@ -26,7 +28,7 @@ beforeAll(async () => {
 }, 60_000);
 afterAll(async () => { await mongoose.disconnect(); await replSet?.stop(); }, 60_000);
 beforeEach(async () => {
-  await Promise.all([Wallet.deleteMany({}), User.deleteMany({})]);
+  await Promise.all([Wallet.deleteMany({}), User.deleteMany({}), Transaction.collection.deleteMany({}), Category.deleteMany({})]);
   await seedUser(USER);
 });
 
@@ -48,10 +50,9 @@ describe('GET /api/v1/home/summary — total balance (#89)', () => {
     const res = await call('?month=2026-10');
 
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({
-      status: true,
-      data: { month: '2026-10', walletId: 'all', balance: { hasWallets: true, totalBalance: 3500.25 } },
-    });
+    const json = await res.json();
+    expect(json.status).toBe(true);
+    expect(json.data).toMatchObject({ month: '2026-10', walletId: 'all', balance: { hasWallets: true, totalBalance: 3500.25 } });
   });
 
   it('scopes the total to one owned wallet', async () => {
@@ -62,13 +63,13 @@ describe('GET /api/v1/home/summary — total balance (#89)', () => {
 
     const json = await (await call(`?month=2026-10&walletId=${bank._id}`)).json();
 
-    expect(json.data.balance).toEqual({ hasWallets: true, totalBalance: 2000 });
+    expect(json.data.balance).toEqual({ hasWallets: true, totalBalance: 2000, savingGoal: null });
   });
 
   it('returns 0 for a user without wallets, defaulting to the current month', async () => {
     const json = await (await call()).json();
 
-    expect(json.data.balance).toEqual({ hasWallets: false, totalBalance: 0 });
+    expect(json.data.balance).toEqual({ hasWallets: false, totalBalance: 0, savingGoal: null });
     expect(json.data.month).toMatch(/^\d{4}-(0[1-9]|1[0-2])$/);
   });
 
@@ -92,5 +93,86 @@ describe('GET /api/v1/home/summary — total balance (#89)', () => {
 
   it('returns 401 without credentials', async () => {
     expect((await call('', null)).status).toBe(401);
+  });
+});
+
+describe('GET /api/v1/home/summary — income, expense and net (#90, #91, #92)', () => {
+  // Fixture rows go straight to the collection: the model rejects writes outside a transaction service.
+  const seedTransaction = (fields: Record<string, unknown>) => Transaction.collection.insertOne({
+    userId: USER, categoryId: null, title: 'Fixture', createdAt: new Date(), updatedAt: new Date(), ...fields,
+  });
+
+  it("totals the month's transactions across wallets, leaving out other months and users", async () => {
+    const [cash, bank] = await Wallet.create([{ userId: USER, name: 'Cash' }, { userId: USER, name: 'Bank' }]);
+    const theirs = await Wallet.create({ userId: OTHER, name: 'Theirs' });
+    await seedTransaction({ walletId: cash._id, type: 'income', amount: 60300, date: new Date('2026-10-01T00:00:00.000Z') });
+    await seedTransaction({ walletId: cash._id, type: 'expense', amount: 7000, date: new Date('2026-10-31T00:00:00.000Z') });
+    await seedTransaction({ walletId: bank._id, type: 'expense', amount: 495, date: new Date('2026-10-15T00:00:00.000Z') });
+    await seedTransaction({ walletId: cash._id, type: 'expense', amount: 1000, date: new Date('2026-09-30T00:00:00.000Z') });
+    await seedTransaction({ walletId: cash._id, type: 'income', amount: 5000, date: new Date('2026-11-01T00:00:00.000Z') });
+    await seedTransaction({ userId: OTHER, walletId: theirs._id, type: 'income', amount: 99999, date: new Date('2026-10-10T00:00:00.000Z') });
+
+    const all = (await (await call('?month=2026-10')).json()).data;
+    const bankOnly = (await (await call(`?month=2026-10&walletId=${bank._id}`)).json()).data;
+
+    expect(all).toMatchObject({ income: 60300, expense: 7495, net: { net: 52805, status: 'surplus' } });
+    expect(bankOnly).toMatchObject({ income: 0, expense: 495, net: { net: -495, status: 'overspending' } });
+  });
+
+  it('returns zero totals for a month without transactions', async () => {
+    await Wallet.create({ userId: USER, name: 'Cash', balance: 100 });
+
+    const data = (await (await call('?month=2030-01')).json()).data;
+
+    expect(data).toMatchObject({ income: 0, expense: 0, net: { net: 0, status: 'even' } });
+  });
+});
+
+describe('GET /api/v1/home/summary — saving goal progress (#81)', () => {
+  it('embeds progress for a selected saving wallet with a goal', async () => {
+    const fund = await Wallet.create({ userId: USER, name: 'Emergency fund', balance: 12400, isSaving: true, goalAmount: 20000 });
+
+    const data = (await (await call(`?walletId=${fund._id}`)).json()).data;
+
+    expect(data.balance).toEqual({
+      hasWallets: true,
+      totalBalance: 12400,
+      savingGoal: { walletId: String(fund._id), walletName: 'Emergency fund', goal: 20000, current: 12400, percent: 62, remaining: 7600, reached: false },
+    });
+  });
+
+  it('leaves it null for all wallets and for a regular wallet', async () => {
+    await Wallet.create({ userId: USER, name: 'Emergency fund', balance: 12400, isSaving: true, goalAmount: 20000 });
+    const cash = await Wallet.create({ userId: USER, name: 'Cash', balance: 10 });
+
+    expect((await (await call()).json()).data.balance.savingGoal).toBeNull();
+    expect((await (await call(`?walletId=${cash._id}`)).json()).data.balance.savingGoal).toBeNull();
+  });
+});
+
+describe('GET /api/v1/home/summary — top categories (#93)', () => {
+  it("ranks the month's expense categories and folds category-less expenses into Others", async () => {
+    const wallet = await Wallet.create({ userId: USER, name: 'Cash' });
+    const [food, others] = await Category.create([
+      { userId: USER, name: 'Food & Drinks', type: 'expense', isSystem: true, icon: 'Utensils', color: '#F97316' },
+      { userId: USER, name: 'Others', type: 'expense', isSystem: true, icon: 'MoreHorizontal', color: '#4B5563' },
+    ]);
+    const base = { userId: USER, walletId: wallet._id, type: 'expense', title: 'Fixture', date: new Date('2026-10-05T00:00:00.000Z'), createdAt: new Date(), updatedAt: new Date() };
+    await Transaction.collection.insertMany([
+      { ...base, categoryId: food._id, amount: 120 },
+      { ...base, categoryId: null, amount: 200 },
+      { ...base, categoryId: food._id, amount: 30, date: new Date('2026-09-05T00:00:00.000Z') },
+    ]);
+
+    const data = (await (await call('?month=2026-10')).json()).data;
+
+    expect(data.topCategories).toEqual([
+      { rank: 1, categoryId: String(others._id), name: 'Others', icon: 'MoreHorizontal', color: '#4B5563', amount: 200 },
+      { rank: 2, categoryId: String(food._id), name: 'Food & Drinks', icon: 'Utensils', color: '#F97316', amount: 120 },
+    ]);
+  });
+
+  it('returns an empty list for a month without expenses', async () => {
+    expect((await (await call('?month=2030-01')).json()).data.topCategories).toEqual([]);
   });
 });

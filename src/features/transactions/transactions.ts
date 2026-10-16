@@ -54,20 +54,9 @@ export function filterTransactions(
     .sort((a, b) => b.date.getTime() - a.date.getTime());
 }
 
+/** Spent / Income / Net for the Transactions page's active filters (`GET /api/v1/transactions/summary`). */
 export type TransactionSummary = {
   totalIncome: number;
   totalExpense: number;
   netBalance: number;
 };
-
-/** Total income, total expense, and net balance for a list of transactions. */
-export function summarizeTransactions(transactions: Transaction[]): TransactionSummary {
-  const totalIncome = transactions
-    .filter((transaction) => transaction.type === "income")
-    .reduce((sum, transaction) => sum + transaction.amount, 0);
-  const totalExpense = transactions
-    .filter((transaction) => transaction.type === "expense")
-    .reduce((sum, transaction) => sum + transaction.amount, 0);
-
-  return { totalIncome, totalExpense, netBalance: totalIncome - totalExpense };
-}

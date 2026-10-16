@@ -8,6 +8,17 @@ export interface TransactionRepositoryPort {
   update(id: string, userId: string, input: TransactionInput, context: TransactionContext): Promise<TransactionRecord | null>;
   remove(id: string, userId: string, context: TransactionContext): Promise<TransactionRecord | null>;
 }
+/** Filters for a totals-only read; dates are UTC-midnight bounds, `end` exclusive. */
+export interface TransactionSummaryFilter {
+  start: Date;
+  end: Date;
+  walletId?: string;
+  type?: 'income' | 'expense';
+  /** Matches any of these; `null` matches transactions without a category. */
+  categoryIds?: (string | null)[];
+  search?: string;
+}
+export interface TransactionSummaryReader { sumByType(userId: string, filter: TransactionSummaryFilter): Promise<{ income: number; expense: number }> }
 export interface WalletAccess { exists(id: string, userId: string, context: TransactionContext): Promise<boolean>; adjust(id: string, userId: string, delta: number, context: TransactionContext): Promise<void> }
 
 export interface CategoryAccess { typeOf(id: string, userId: string, context: TransactionContext): Promise<string | null> }
