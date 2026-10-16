@@ -761,7 +761,7 @@ The engineering team is organized into three cross-functional pods with strict p
 | Task Description | Assignee (Volunteer) | Reviewer | Hours | Status |
 | :--- | :--- | :--- | :---: | :---: |
 | Design filter-aware summary cards for Transactions page | Tul, Timsum, Guy, Boss | Bushi | 2.0h | To Do |
-| Implement filter-aware summary aggregation API | Bushi, Ikkyu | Boss | 2.0h | To Do |
+| Implement filter-aware summary aggregation API | Bushi, Ikkyu | Boss | 2.0h | Done |
 | Wire summary cards to active filters | Yeen, Guy, Boss | Ikkyu | 1.0h | To Do |
 | Test summary cards recalculate on filter change | Guy, Timsum | - | 1.0h | To Do |
 

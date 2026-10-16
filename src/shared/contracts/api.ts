@@ -38,6 +38,16 @@ export const transactionMonthQuery = z.object({
   // Case-insensitive substring match on title or note; blank means no search.
   search: z.string().trim().max(100).optional().transform(value => value || undefined),
 });
+export const transactionSummaryQuery = z.object({
+  // Inclusive calendar-date range, matching the Transactions page period (a month, a year or picked days).
+  from: z.iso.date(),
+  to: z.iso.date(),
+  walletId: objectId.optional(),
+  categoryId: objectId.optional(),
+  type: z.enum(['income', 'expense']).optional(),
+  search: transactionMonthQuery.shape.search,
+}).refine(value => value.from <= value.to, { message: 'from must not be after to', path: ['to'] });
+export const transactionSummaryResponse = z.object({ totalIncome: z.number(), totalExpense: z.number(), netBalance: z.number() });
 export const homeSummaryQuery = z.object({
   month: transactionMonthQuery.shape.month,
   // "all" (the default) totals every owned wallet; an id scopes the summary to that wallet.

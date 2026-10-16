@@ -10,7 +10,7 @@ export class CategoryRepository implements CategoryRepositoryPort {
   }
   async findOwned(id: string, userId: string, context?: TransactionContext) {
     const doc = await Category.findOne({ _id: id, userId }).session(sessionOf(context) ?? null);
-    return doc ? { id: String(doc._id), isSystem: doc.isSystem, type: doc.type } : null;
+    return doc ? { id: String(doc._id), isSystem: doc.isSystem, type: doc.type, name: doc.name } : null;
   }
   async list(userId: string, type?: 'income' | 'expense') {
     return Category.find({ userId, ...(type ? { type } : {}) }).sort({ createdAt: 1, _id: 1 }).lean();
