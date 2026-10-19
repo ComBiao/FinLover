@@ -99,6 +99,7 @@ export default function TransactionsPage() {
 
         <TransactionFilterBar
           value={filters}
+          categories={categories}
           onValueChange={setFilters}
           period={period}
           onPeriodChange={setPeriod}

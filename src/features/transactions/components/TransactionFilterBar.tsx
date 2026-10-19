@@ -11,10 +11,12 @@ import { Input } from "@/components/ui/input";
 import { PeriodPicker } from "@/features/transactions/components/PeriodPicker";
 import type { PeriodMode, TransactionPeriod } from "@/features/transactions/period";
 import { cn } from "@/lib/utils";
+import type { Category, TransactionType } from "@/types/category";
 import type { TransactionFilters } from "@/types/transaction";
 
 type TransactionFilterBarProps = {
   value: TransactionFilters;
+  categories: Category[];
   onValueChange: (filters: TransactionFilters) => void;
   period: TransactionPeriod;
   onPeriodChange: (period: TransactionPeriod) => void;
@@ -37,9 +39,14 @@ type TransactionFilterBarProps = {
  * owns filter state (a zustand store) and passes it in via
  * `value`/`onValueChange`, so this component stays a pure presentational
  * wrapper around the Issue #1 selectors.
+ *
+ * Type and Category stay in sync (#163): the Category list only offers the
+ * picked type's categories, changing Type clears a category of the other
+ * type, and picking a category while Type is "All" switches Type to it.
  */
 export function TransactionFilterBar({
   value,
+  categories,
   onValueChange,
   period,
   onPeriodChange,
@@ -51,6 +58,17 @@ export function TransactionFilterBar({
 
   function patch(partial: Partial<TransactionFilters>) {
     onValueChange({ ...value, ...partial });
+  }
+
+  function handleTypeChange(type: TransactionType | undefined) {
+    const selected = categories.find((category) => category.id === value.categoryId);
+    const keepsCategory = !type || !selected || selected.type === type;
+    patch(keepsCategory ? { type } : { type, categoryId: undefined });
+  }
+
+  function handleCategoryChange(categoryId: string | undefined) {
+    const selected = categories.find((category) => category.id === categoryId);
+    patch(selected ? { categoryId, type: selected.type } : { categoryId });
   }
 
   const activeFilterCount = [
@@ -95,12 +113,14 @@ export function TransactionFilterBar({
           <div className="flex flex-col gap-2.5">
             <TransactionTypeSelector
               value={value.type}
-              onValueChange={(type) => patch({ type })}
+              onValueChange={handleTypeChange}
               className="w-full"
             />
             <CategorySelector
+              type={value.type}
               value={value.categoryId}
-              onValueChange={(categoryId) => patch({ categoryId })}
+              onValueChange={handleCategoryChange}
+              categories={categories}
               allowAll
               className="w-full"
             />
@@ -144,12 +164,14 @@ export function TransactionFilterBar({
         <div className="flex flex-wrap items-center gap-2">
           <TransactionTypeSelector
             value={value.type}
-            onValueChange={(type) => patch({ type })}
+            onValueChange={handleTypeChange}
             className="min-w-[110px] flex-1 sm:max-w-40 sm:flex-none"
           />
           <CategorySelector
+            type={value.type}
             value={value.categoryId}
-            onValueChange={(categoryId) => patch({ categoryId })}
+            onValueChange={handleCategoryChange}
+            categories={categories}
             allowAll
             className="min-w-[110px] flex-1 sm:max-w-44 sm:flex-none"
           />
