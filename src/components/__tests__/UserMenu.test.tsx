@@ -5,6 +5,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { UserMenu } from "@/components/UserMenu";
 
+const navigation = vi.hoisted(() => ({ pathname: "/homepage" }));
+vi.mock("next/navigation", () => ({ usePathname: () => navigation.pathname }));
+
 const fetchMock = vi.fn();
 
 function mockApi() {
@@ -17,6 +20,7 @@ function mockApi() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  navigation.pathname = "/homepage";
   vi.stubGlobal("fetch", fetchMock);
 });
 afterEach(() => {
@@ -56,5 +60,19 @@ describe("UserMenu", () => {
     expect(screen.queryByRole("menu")).not.toBeInTheDocument();
     expect(screen.queryByText("Delete account")).not.toBeInTheDocument();
   });
-});
 
+  it("marks itself as the current page on /profile (#165)", async () => {
+    mockApi();
+    navigation.pathname = "/profile";
+    mount();
+
+    expect(await screen.findByRole("link", { name: /alex/i })).toHaveAttribute("aria-current", "page");
+  });
+
+  it("is not marked current on other pages", async () => {
+    mockApi();
+    mount();
+
+    expect(await screen.findByRole("link", { name: /alex/i })).not.toHaveAttribute("aria-current");
+  });
+});
