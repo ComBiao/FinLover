@@ -10,7 +10,7 @@
 | :--- | :--- |
 | **Project Name** | **Fin Lover** — Personal Finance Management Web Application |
 | **Academic Context** | 2110423 Software Engineering Team Project (Chulalongkorn University) |
-| **Total Product Backlog** | **132 Story Points** across **8 Epics** (42 User Stories) |
+| **Total Product Backlog** | **132 Story Points** across **8 Epics** (43 User Stories) |
 | **Sprint 1 Commitment** | 30.0 Story Points (84.25 Estimated Man-Hours) — *Completed Aug 25 – Sep 14, 2026* |
 | **Sprint 2 Commitment** | 47.0 Story Points (124.0 Estimated Man-Hours) — *Active Sep 15 – Oct 19, 2026* |
 | **Future Backlog Scope** | 55.0 Story Points (Epics 4, 7, 8) |
@@ -67,7 +67,7 @@ The engineering team is organized into three cross-functional pods with strict p
 ### 3.3 Future Sprints (Backlog Scope — 55 Story Points)
 - **EPIC 4: Recurring Transactions (17 SP)** — US4-1 to US4-5 (Automated scheduling engine, calendar view, rule management).
 - **EPIC 7: Shared Wallets (8 SP)** — US7-1 to US7-2 (Multi-user wallet collaboration, email invitations, RBAC).
-- **EPIC 8: Financial Reports & Analytics (14 SP)** — US8-1 to US8-4 (Position summaries, monthly comparison charts, category distribution pie charts, custom temporal filters).
+- **EPIC 8: Financial Reports & Analytics (14 SP)** — US8-1 to US8-5 (Wallet and period filter, summary cards, cash flow chart, category distribution charts, running balance); scheduled for Sprint 3.
 
 ## 4. Master Product Backlog Index (132 Story Points)
 
@@ -111,11 +111,12 @@ The engineering team is organized into three cross-functional pods with strict p
 | **US6-6** | EPIC 6 | Multiple Wallets | Wallet page | 2.0 | Sprint 2 (Active Scope) |
 | **US7-1** | EPIC 7 | Shared Wallets | Wallet page | 5.0 | Product Backlog (Future Sprint) |
 | **US7-2** | EPIC 7 | Shared Wallets | Wallet page | 3.0 | Product Backlog (Future Sprint) |
-| **US8-1** | EPIC 8 | Financial Reports & Analytics Dashboard | Report page | 5.0 | Product Backlog (Future Sprint) |
-| **US8-2** | EPIC 8 | Financial Reports & Analytics Dashboard | Report page | 3.0 | Product Backlog (Future Sprint) |
-| **US8-3** | EPIC 8 | Financial Reports & Analytics Dashboard | Report page | 3.0 | Product Backlog (Future Sprint) |
-| **US8-4** | EPIC 8 | Financial Reports & Analytics Dashboard | Report page | 3.0 | Product Backlog (Future Sprint) |
-| **TOTAL** | — | **8 Epics (42 User Stories)** | — | **132.0** | — |
+| **US8-1** | EPIC 8 | Financial Reports & Analytics Dashboard | Report page | 3.0 | Sprint 3 (Active Scope) |
+| **US8-2** | EPIC 8 | Financial Reports & Analytics Dashboard | Report page | 2.0 | Sprint 3 (Active Scope) |
+| **US8-3** | EPIC 8 | Financial Reports & Analytics Dashboard | Report page | 3.0 | Sprint 3 (Active Scope) |
+| **US8-4** | EPIC 8 | Financial Reports & Analytics Dashboard | Report page | 3.0 | Sprint 3 (Active Scope) |
+| **US8-5** | EPIC 8 | Financial Reports & Analytics Dashboard | Report page | 3.0 | Sprint 3 (Active Scope) |
+| **TOTAL** | — | **8 Epics (43 User Stories)** | — | **132.0** | — |
 
 ## 5. Comprehensive Epic & User Story Specifications
 
@@ -1348,105 +1349,134 @@ The engineering team is organized into three cross-functional pods with strict p
 
 ### EPIC 8: Financial Reports & Analytics Dashboard (14.0 Story Points)
 
-**Epic Description**: In-depth financial position analytics, real-time balance aggregations, month-over-month income vs. expense comparison charts, spending distribution pie charts, and flexible temporal range filters.
+**Epic Description**: One Report page (`/reports`) with a shared filter (wallets and period) that drives summary cards, a cash flow bar chart, income and expense category distribution charts, and a running balance line chart. Reports are read-only views over the user's existing wallets and transactions.
 
-#### US8-1 — Report page [5.0 SP]
-
-- **Epic**: EPIC 8 (Financial Reports & Analytics Dashboard)
-- **Target Page / Component**: `Report page`
-- **Estimate**: **5.0 Story Points**
-- **Delivery Lifecycle**: **Product Backlog (Future Sprint)**
-- **Traceability / Engineering Notes**: Ref: FR 3.1 Financial Position Summary (real-time)
-
-**User Story Statement**:
-> As a user, I want to view a Report page summary of my total income, total expenses, and net balance for my selected wallet (or an aggregated view of all my wallets), So that I can quickly understand my financial position in context.
-
-**Acceptance Criteria (Gherkin BDD)**:
-
-**Scenario 1**:
-- **Given** the user has recorded transactions within the selected period, 
-- **When** the user attempts to view the dashboard, 
-- **Then** the system should allow the action and display accurate totals for income, expenses, and net balance updated in real time.
-
-**Scenario 2**:
-- **Given** the user has no transactions recorded for the selected period, 
-- **When** the user attempts to view the dashboard, 
-- **Then** the system should display that there is no transaction in that time period.
+**Scope notes (Sprint 3)**: every wallet is a personal wallet (shared wallets belong to Epic 7); the wallet list for the filter comes from `GET /api/v1/wallets`; wallets have no stored opening balance, so the running balance is computed backwards from each wallet's current balance; transactions without a category are counted under the type's "Others" category, matching the Home page.
 
 ---
 
-#### US8-2 — Report page [3.0 SP]
+#### US8-1 — Report filter [3.0 SP]
 
 - **Epic**: EPIC 8 (Financial Reports & Analytics Dashboard)
 - **Target Page / Component**: `Report page`
 - **Estimate**: **3.0 Story Points**
-- **Delivery Lifecycle**: **Product Backlog (Future Sprint)**
-- **Traceability / Engineering Notes**: Ref: FR 3.2 Comparison Charts
+- **Delivery Lifecycle**: **Sprint 3 (Active Scope)**
+- **Traceability / Engineering Notes**: Ref: FR 3.3 Time Period Filtering. API: none (wallets via `GET /api/v1/wallets`).
 
 **User Story Statement**:
-> As a user, I want to view, on the Report page, a monthly comparison chart of my income versus expenses for each month, So that I can track how my cash flow changes month over month.
+> As a user, I want to choose which wallets and which period (weekly, monthly, annual, or a custom range) the Report page covers, So that every report section reflects exactly the wallets and dates I care about.
 
 **Acceptance Criteria (Gherkin BDD)**:
 
 **Scenario 1**:
-- **Given** the user has transactions across multiple periods, 
-- **When** the user attempts to view the comparison chart, 
-- **Then** the system should allow the action and render a bar or line chart correctly plotting income against expenses per period.
+- **Given** the user is on the Report page, 
+- **When** the user selects more than one wallet (for example Cash and Bank) and a Custom Range from 2026-09-01 to 2026-09-30, 
+- **Then** every section displays only those wallets and that range, including both end dates (on first load: all wallets and the current month)
 
 **Scenario 2**:
-- **Given** the user input period contains only expense transactions and no income transactions, 
-- **When** the user attempts to view the chart, 
-- **Then** the system should render the income series as zero rather than omitting the chart or throwing an error.
+- **Given** the user is editing the filter, 
+- **When** the end date is earlier than the start date, or no wallet is selected, 
+- **Then** the system displays a validation error and does not apply the filter
 
 ---
 
-#### US8-3 — Report page [3.0 SP]
+#### US8-2 — Summary cards [2.0 SP]
+
+- **Epic**: EPIC 8 (Financial Reports & Analytics Dashboard)
+- **Target Page / Component**: `Report page`
+- **Estimate**: **2.0 Story Points**
+- **Delivery Lifecycle**: **Sprint 3 (Active Scope)**
+- **Traceability / Engineering Notes**: Ref: FR 3.1 Financial Position Summary. API: `GET /api/v1/reports/summary`.
+
+**User Story Statement**:
+> As a user, I want to see my total income, total expenses and net cash flow for the selected wallets and period, So that I can understand my financial position at a glance.
+
+**Acceptance Criteria (Gherkin BDD)**:
+
+**Scenario 1**:
+- **Given** the selected wallets have income of 45,000 and expenses of 30,000 in the period, 
+- **When** the user views the Report page, 
+- **Then** the cards show Total Income ฿45,000.00, Total Expenses ฿30,000.00 and Net Cash Flow +฿15,000.00
+
+**Scenario 2**:
+- **Given** there are no transactions in the selected period, 
+- **When** the user views the Report page, 
+- **Then** all three cards show ฿0.00 together with the message "No transactions recorded in this period"
+
+---
+
+#### US8-3 — Cash flow chart [3.0 SP]
 
 - **Epic**: EPIC 8 (Financial Reports & Analytics Dashboard)
 - **Target Page / Component**: `Report page`
 - **Estimate**: **3.0 Story Points**
-- **Delivery Lifecycle**: **Product Backlog (Future Sprint)**
-- **Traceability / Engineering Notes**: Ref: FR 3.2 Distribution Charts
+- **Delivery Lifecycle**: **Sprint 3 (Active Scope)**
+- **Traceability / Engineering Notes**: Ref: FR 3.2 Comparison Charts. API: `GET /api/v1/reports/cash-flow`.
 
 **User Story Statement**:
-> As a user, I want to see, on the Report page, a pie chart showing my spending distribution by category, So that I can identify where most of my money goes.
+> As a user, I want a bar chart of my income versus expenses over time at a daily, weekly or monthly interval, So that I can see how my cash flow changes.
 
 **Acceptance Criteria (Gherkin BDD)**:
 
 **Scenario 1**:
-- **Given** the user has expense transactions across 1 or more categories, 
-- **When** the user attempts to view the distribution chart, 
-- **Then** the system should allow the action and render a pie chart whose category percentages sum to 100%.
+- **Given** the selected period contains transactions (for example three months), 
+- **When** the user views the chart, 
+- **Then** the user can choose Daily, Weekly or Monthly (the interval suggested for the range is preselected) and the chart shows grouped bars, income in green and expenses in red, for each bucket
 
 **Scenario 2**:
-- **Given** the user has no expense transactions in the selected period, 
-- **When** the user attempts to view the distribution chart, 
-- **Then** the system should display an appropriate empty-state message instead of an incorrectly rendered chart.
+- **Given** a bucket has expenses but no income, 
+- **When** the user views the chart, 
+- **Then** the income bar has zero height and the expense bar shows its real value, without an error or a distorted axis
 
 ---
 
-#### US8-4 — Report page [3.0 SP]
+#### US8-4 — Category distribution [3.0 SP]
 
 - **Epic**: EPIC 8 (Financial Reports & Analytics Dashboard)
 - **Target Page / Component**: `Report page`
 - **Estimate**: **3.0 Story Points**
-- **Delivery Lifecycle**: **Product Backlog (Future Sprint)**
-- **Traceability / Engineering Notes**: Ref: FR 3.3 Time Period Filtering
+- **Delivery Lifecycle**: **Sprint 3 (Active Scope)**
+- **Traceability / Engineering Notes**: Ref: FR 3.2 Distribution Charts. API: `GET /api/v1/reports/category-distribution`.
 
 **User Story Statement**:
-> As a user, I want to filter my Report page financial reports by weekly, monthly, annual, or a custom date range, So that I can analyze specific periods.
+> As a user, I want donut charts of my income and my spending by category, So that I can see where my money comes from and where it goes.
 
 **Acceptance Criteria (Gherkin BDD)**:
 
 **Scenario 1**:
-- **Given** the user selects "Custom Range" with start date "2026-08-01" and end date "2026-08-31", 
-- **When** the user attempts to apply the filter, 
-- **Then** the system should allow the action and display only transactions and totals within that exact range including the start and end date.
+- **Given** the user has expenses in several categories (for example Food and Transport) and income in several categories (for example Salary and Investments), 
+- **When** the user views the distribution charts, 
+- **Then** two charts (Income and Expense) are shown, the percentages of each add up to 100, each with a legend and ฿ tooltips; transactions without a category are counted under Others
 
 **Scenario 2**:
-- **Given** the user input is invalid, e.g., an end date earlier than the start date such as start "2026-08-31" and end "2026-08-01", 
-- **When** the user attempts to apply the filter, 
-- **Then** the system should display an appropriate error message and not apply the range.
+- **Given** the user has expenses but no income in the period, 
+- **When** the user views the distribution charts, 
+- **Then** the expense chart is shown normally and the income chart is replaced by the message "No income transactions for this period"
+
+---
+
+#### US8-5 — Running balance [3.0 SP]
+
+- **Epic**: EPIC 8 (Financial Reports & Analytics Dashboard)
+- **Target Page / Component**: `Report page`
+- **Estimate**: **3.0 Story Points**
+- **Delivery Lifecycle**: **Sprint 3 (Active Scope)**
+- **Traceability / Engineering Notes**: New in Sprint 3. API: `GET /api/v1/reports/running-balance`.
+
+**User Story Statement**:
+> As a user, I want a line chart of my balance day by day (or week by week), So that I can see how my money builds up or runs down over the period.
+
+**Acceptance Criteria (Gherkin BDD)**:
+
+**Scenario 1**:
+- **Given** the balance before 2026-10-01 is ฿12,400.00 and the range is 2026-10-01 to 2026-10-15, 
+- **When** the user views the running balance, 
+- **Then** the line starts at ฿12,400.00 and each point adds the income and subtracts the expenses up to that point
+
+**Scenario 2**:
+- **Given** some days in the range have no transactions, 
+- **When** the user views the running balance, 
+- **Then** the previous balance carries over as a flat line instead of dropping to ฿0
 
 ---
 
@@ -1496,10 +1526,11 @@ POST   /api/recurring-rules        # Create rule (frequency: Weekly/Monthly, sta
 PUT    /api/recurring-rules/:id    # Update rule (applies to next scheduled occurrence only)
 DELETE /api/recurring-rules/:id    # Delete rule (cancels future runs without deleting past recorded txns)
 
-# Financial Reports & Analytics (EPIC 8 - Future Scope)
-GET    /api/reports/position       # Financial position summary across wallets
-GET    /api/reports/comparison     # Monthly income vs expense comparison series
-GET    /api/reports/distribution   # Category expense distribution (pie chart percentages)
+# Financial Reports & Analytics (EPIC 8 - Sprint 3; all take walletIds, startDate, endDate)
+GET    /api/v1/reports/summary               # Total income, total expense, net cash flow, transaction count
+GET    /api/v1/reports/cash-flow             # Income vs expense per bucket (interval=daily|weekly|monthly)
+GET    /api/v1/reports/category-distribution # Income and expense share per category (percentages add up to 100)
+GET    /api/v1/reports/running-balance       # Opening, closing and per-point balance (interval=daily|weekly)
 ```
 
 ### 6.2 Relational Data Model Schema
@@ -1583,7 +1614,7 @@ interface WalletMember {
 | `CategoryManager` | `/categories` | US5-1 to US5-6 | Grouped list by Income/Expense, icon picker, custom category creation/editing, delete with re-assign to 'Not Chosen' dialog, default category protection |
 | `WalletManager` | `/wallets` | US6-1 to US6-6, US7-1 to US7-2 | Wallet switcher dropdown, Create Wallet modal, Saving Wallet toggle with goal input, eye-icon balance mask, cascade delete dialog, member invite modal, RBAC controls |
 | `RecurringManager` | `/recurring` | US4-1 to US4-5 | Active recurring rules list, calendar view with scheduled markers, weekly/monthly rule creator, update future instances only |
-| `AnalyticsDashboard` | `/reports` | US8-1 to US8-4 | Total financial position card, monthly comparison bar/line chart, spending distribution pie chart, custom date range picker |
+| `AnalyticsDashboard` | `/reports` | US8-1 to US8-5 | Wallet multi-select and period filter, summary cards, cash flow bar chart, income and expense category donuts, running balance line chart |
 
 ### 6.4 Verification Checklist for Antigravity Agents
 - [ ] **No Mocks**: Search codebase for `setTimeout` used as API simulations in frontend forms (`Register`, `Login`, `AddTransaction`, `AddCategory`) and ensure all forms invoke real API handlers.
