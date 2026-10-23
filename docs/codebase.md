@@ -139,3 +139,7 @@ Generators work without DB/secrets and resolve paths relative to their files. Ne
 Production builds explicitly use `next build --webpack`; this environment rejected Turbopack worker port creation (EPERM). Development still uses `next dev`.
 
 HTTP errors share one mapper and first-issue Zod field mapping. Unknown failures return `INTERNAL_ERROR`; server diagnostics include request ID, error type, numeric driver code and stack frames, excluding error messages and attached private payloads. Legacy transaction validation remains 422; malformed JSON is 400 in both versions. Category create/update reuse the shared Zod schemas. `TransactionResponseDTO` provides legacy and v1 mappings for transaction responses. Category HTTP and compatibility callers share one delete service instance.
+
+## Shared Wallet contract preparation
+
+[E7-01a target contract](api/shared-wallets.md) defines the upcoming Shared Wallet API. Shared behavior is not implemented yet; current endpoints remain personal-only.

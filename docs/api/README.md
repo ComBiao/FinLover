@@ -63,3 +63,5 @@ Auth policy changes from the old legacy API: cookie support is now shared with v
 Wallet saving (v1 only): `PATCH /api/v1/wallets/{id}/saving` with `{"isSaving":true,"goalAmount":10000}` turns Saving Wallet on; `goalAmount` must be greater than 0 (missing or 0 returns 400). `{"isSaving":false}` turns it off and clears the goal. The balance is never changed, a wallet owned by another user returns 404, and several wallets may be saving wallets at once.
 
 Delete wallet (v1 only): `DELETE /api/v1/wallets/{id}` returns `{ "status": true, "data": null }`. The wallet and all of its transactions are deleted in one UnitOfWork (MongoDB replica set required); if any step fails nothing is deleted. Other wallets' transactions are untouched, an invalid id returns 400, and a missing wallet or one owned by another user returns 404. Any owned wallet may be deleted, including the default or last wallet (no restriction is defined); deleted data cannot be recovered.
+
+See [E7-01a Shared Wallet target contract](shared-wallets.md) for the planned endpoints, types, permissions and rollout boundaries. These shared operations are not live yet.
