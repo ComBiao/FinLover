@@ -50,6 +50,10 @@ UserSchema.pre('findOneAndDelete', async function() {
   const Transaction = mongoose.model('Transaction');
   
   // A session must execute writes sequentially.
+  // Schedulers the user created, plus any (e.g. a member's) that post to a wallet being removed with the account.
+  const session = this.getOptions().session ?? undefined;
+  const walletIds = (await Wallet.find({ userId }).session(session ?? null).distinct('_id'));
+  await this.model.db.collection('schedulers').deleteMany({ $or: [{ userId }, { walletId: { $in: walletIds } }] }, { session });
   await Wallet.deleteMany({ userId }, { session: this.getOptions().session ?? undefined });
   await Category.deleteMany({ userId }, { session: this.getOptions().session ?? undefined });
   // Internal cascade deletes the owning wallet(s) too, so no balance survives.
