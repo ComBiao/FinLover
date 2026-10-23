@@ -31,7 +31,7 @@ export class SchedulerRepository implements SchedulerRepositoryPort {
     return doc ? record(doc) : null;
   }
   countByUser(userId: string, context: TransactionContext) {
-    return Scheduler.countDocuments({ userId }).session(sessionOf(context)!);
+    return Scheduler.countDocuments({ userId, status: { $in: ['active', 'paused'] } }).session(sessionOf(context)!);
   }
   async findDue(today: Date, limit: number) {
     const docs = await Scheduler.find({ status: 'active', nextDueDate: { $lte: today } }).sort({ nextDueDate: 1, _id: 1 }).limit(limit);

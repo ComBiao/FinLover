@@ -17,7 +17,7 @@ export class CreateSchedulerService {
       const today = todayBangkok(this.now());
       const categoryId = await resolveCategory(cmd, userId, this.wallets, this.categories, context);
       // shortcut: count-then-insert can overshoot the cap under concurrent requests; add a per-user lock if it matters.
-      if (await this.repo.countByUser(userId, context) >= MAX_SCHEDULERS_PER_USER) throw new AppError('CONFLICT', `You can have at most ${MAX_SCHEDULERS_PER_USER} schedulers`);
+      if (await this.repo.countByUser(userId, context) >= MAX_SCHEDULERS_PER_USER) throw new AppError('CONFLICT', `You can have at most ${MAX_SCHEDULERS_PER_USER} active or paused schedulers`);
       const { base, first } = describe(cmd, categoryId, today);
       if (base.end.endDate && first > base.end.endDate) throw new AppError('VALIDATION_ERROR', 'One or more fields are invalid', { 'end.endDate': 'No occurrence falls on or before the end date' });
       const created = await this.repo.create(userId, { ...base, status: 'active', createdCount: 0, nextDueDate: first }, context);

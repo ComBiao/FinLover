@@ -1,4 +1,4 @@
-import { beforeAll, afterAll, beforeEach, describe, it, expect } from 'vitest';
+import { beforeAll, afterAll, beforeEach, describe, it, expect, vi } from 'vitest';
 import mongoose from 'mongoose';
 import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import Wallet from '@/server/db/models/Wallet';
@@ -85,7 +85,7 @@ describe('create', () => {
   it('turns a span into a fixed end date and rejects an end before the first run', async () => {
     const s = await create.execute(user, cmd({ startDate: d('2026-10-12'), end: { type: 'span', value: 5, unit: 'months' } }));
     expect(s.end).toMatchObject({ type: 'endDate' });
-    expect(iso(s.end.endDate)).toBe('2027-03-12');
+    expect(iso(s.end.endDate)).toBe('2027-03-11'); // Oct..Feb: five months, the start month counts
     await expect(create.execute(user, cmd({ startDate: d('2026-10-05'), end: { type: 'endDate', endDate: d('2026-10-20') } }))).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
   });
   it('rejects a category of the wrong type, a foreign wallet and the 50 scheduler cap', async () => {
@@ -94,6 +94,14 @@ describe('create', () => {
     await expect(create.execute(other, cmd())).rejects.toMatchObject({ code: 'NOT_FOUND' });
     await Promise.all(Array.from({ length: 50 }, () => seed({ status: 'paused' })));
     await expect(create.execute(user, cmd({ categoryId: foodId }))).rejects.toMatchObject({ code: 'CONFLICT' });
+  });
+  it('rejects a span too large to be a date with the 50 year message', async () => {
+    const error = await create.execute(user, cmd({ end: { type: 'span', value: 5_000_000, unit: 'months' } })).catch(e => e);
+    expect(error).toMatchObject({ code: 'VALIDATION_ERROR', fields: { 'end.endDate': expect.stringContaining('50 years') } });
+  });
+  it('lets finished schedulers fall out of the cap', async () => {
+    await Promise.all(Array.from({ length: 50 }, () => seed({ status: 'completed', nextDueDate: null })));
+    await expect(create.execute(user, cmd({ startDate: d('2026-10-20') }))).resolves.toMatchObject({ status: 'active' });
   });
   it('completes after N occurrences', async () => {
     const s = await create.execute(user, cmd({ frequency: 'daily', end: { type: 'count', count: 1 } }));
@@ -114,6 +122,30 @@ describe('daily job', () => {
     await Promise.all([run.execute(), run.execute()]);
     await run.execute();
     expect(await txDates()).toEqual(['2026-10-07', '2026-10-08', '2026-10-09', '2026-10-10']);
+  });
+  it('keeps going when one scheduler fails, and rolls that one back', async () => {
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const failing = new RunDueSchedulersService(repo, wallets, { post: (u, input, ctx) => input.title === 'Boom' ? Promise.reject(new Error('boom')) : poster.post(u, input, ctx) }, uow, now);
+    const boom = await seed({ title: 'Boom', nextDueDate: d('2026-10-09'), startDate: d('2026-10-09'), anchorDay: 9 });
+    await seed({ title: 'Fine', nextDueDate: d('2026-10-09'), startDate: d('2026-10-09'), anchorDay: 9 });
+    expect(await failing.execute()).toMatchObject({ failed: 1, posted: 2 });
+    expect((await Transaction.find({ walletId })).map(t => t.title)).toEqual(['Fine', 'Fine']);
+    expect(await repo.findOwned(boom.id, user)).toMatchObject({ createdCount: 0 });
+    expect(iso((await repo.findOwned(boom.id, user))!.nextDueDate)).toBe('2026-10-09');
+    errors.mockRestore();
+  });
+  it('stops at 366 catch-up postings per scheduler and finishes on the next run', async () => {
+    await seed({ startDate: d('2025-09-05'), nextDueDate: d('2025-09-05'), anchorDay: 5 }); // 401 days due on 2026-10-10
+    expect(await run.execute()).toMatchObject({ posted: 366, deferred: 1 });
+    expect(await Transaction.countDocuments()).toBe(366);
+    expect(await run.execute()).toMatchObject({ posted: 35, deferred: 0 });
+    expect(await Transaction.countDocuments()).toBe(401);
+  }, 60000);
+  it('defers everything once the time budget is spent', async () => {
+    await seed();
+    const none = new RunDueSchedulersService(repo, wallets, poster, uow, now, -1);
+    expect(await none.execute()).toMatchObject({ posted: 0, deferred: 1 });
+    expect(await Transaction.countDocuments()).toBe(0);
   });
   it('completes on the end date and skips paused schedulers', async () => {
     await seed({ end: { type: 'endDate', endDate: d('2026-10-08') } });

@@ -39,7 +39,7 @@ export function describe(cmd: SchedulerCommand, categoryId: string, today: Date)
   else end = { type: 'never' };
   const limit = new Date(start);
   limit.setUTCFullYear(limit.getUTCFullYear() + MAX_END_YEARS);
-  if (end.endDate && end.endDate > limit) throw invalid({ 'end.endDate': `End date must be within ${MAX_END_YEARS} years of the start date` });
+  if (end.endDate && !(end.endDate <= limit)) throw invalid({ 'end.endDate': `End date must be within ${MAX_END_YEARS} years of the start date` });
   const base = {
     walletId: cmd.walletId, categoryId, type: cmd.type, amount: cmd.amount, title: cmd.title, note: cmd.note,
     startDate: start, anchorDay: start.getUTCDate(), frequency: cmd.frequency, interval: cmd.interval, end,

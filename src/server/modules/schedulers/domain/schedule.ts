@@ -38,10 +38,11 @@ export function firstDue(start: Date, today: Date, cadence: Cadence): Date {
   return due;
 }
 
-/** Turns "5 months" into a fixed inclusive end date, clamped like a monthly due date. */
+/** Turns "5 months" into a fixed inclusive end date. The start period counts as the first, so 5 monthly runs fit. */
 export function endDateFromSpan(start: Date, value: number, unit: 'weeks' | 'months' | 'years'): Date {
-  if (unit === 'weeks') return addDays(start, value * 7);
-  return monthDate(start.getUTCFullYear(), start.getUTCMonth() + (unit === 'months' ? value : value * 12), start.getUTCDate());
+  const after = unit === 'weeks' ? addDays(start, value * 7)
+    : monthDate(start.getUTCFullYear(), start.getUTCMonth() + (unit === 'months' ? value : value * 12), start.getUTCDate());
+  return addDays(after, -1);
 }
 
 /** Whether `next` (the date after the one just posted) falls outside the end rule. */

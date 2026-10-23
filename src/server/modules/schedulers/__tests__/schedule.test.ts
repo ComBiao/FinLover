@@ -25,10 +25,21 @@ describe('schedule date math', () => {
     expect(iso(firstDue(d('2026-10-10'), d('2026-10-10'), monthly(10)))).toBe('2026-10-10');
     expect(iso(firstDue(d('2026-12-01'), d('2026-10-10'), monthly(1)))).toBe('2026-12-01');
   });
-  it('computes an inclusive end date from a span', () => {
-    expect(iso(endDateFromSpan(d('2026-01-31'), 1, 'months'))).toBe('2026-02-28');
-    expect(iso(endDateFromSpan(d('2026-10-01'), 4, 'weeks'))).toBe('2026-10-29');
-    expect(iso(endDateFromSpan(d('2026-10-01'), 6, 'years'))).toBe('2032-10-01');
+  it('computes an inclusive end date from a span, counting the start period as the first', () => {
+    expect(iso(endDateFromSpan(d('2026-10-01'), 4, 'weeks'))).toBe('2026-10-28');
+    expect(iso(endDateFromSpan(d('2026-10-01'), 6, 'years'))).toBe('2032-09-30');
+    // N periods give exactly N runs.
+    const runs = (start: string, frequency: 'weekly' | 'monthly' | 'yearly', value: number, unit: 'weeks' | 'months' | 'years') => {
+      const end = endDateFromSpan(d(start), value, unit);
+      const cadence = { anchorDay: d(start).getUTCDate(), frequency, interval: 1 };
+      let n = 0;
+      for (let due = d(start); due <= end; due = nextAfter(due, cadence)) n++;
+      return n;
+    };
+    expect(runs('2026-10-01', 'monthly', 5, 'months')).toBe(5);
+    expect(runs('2026-01-31', 'monthly', 1, 'months')).toBe(1);
+    expect(runs('2026-10-01', 'weekly', 4, 'weeks')).toBe(4);
+    expect(runs('2026-10-12', 'yearly', 6, 'years')).toBe(6);
   });
   it('decides when a Scheduler is finished', () => {
     expect(isFinished({ type: 'never' }, 99, d('2030-01-01'))).toBe(false);
