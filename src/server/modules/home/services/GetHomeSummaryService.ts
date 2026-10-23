@@ -61,7 +61,11 @@ export class GetHomeSummaryService {
 
   async execute(userId: string, { month: requestedMonth, walletId }: HomeSummaryQuery) {
     const month = requestedMonth ?? currentMonth(this.now(), this.timezone());
-    const wallets = await this.wallets.list(userId);
+    const ownedWallets = await this.wallets.list(userId);
+    if (walletId !== 'all' && ownedWallets.some(wallet => wallet.id === walletId && wallet.isShared)) {
+      throw new AppError('CONFLICT', 'Shared wallet summaries are not available yet');
+    }
+    const wallets = ownedWallets.filter(wallet => !wallet.isShared);
     const scoped = walletId === 'all' ? wallets : wallets.filter(wallet => wallet.id === walletId);
     // The list is already limited to the caller, so an unknown or foreign id looks the same.
     if (walletId !== 'all' && scoped.length === 0) throw new AppError('NOT_FOUND', 'Wallet not found');
@@ -72,7 +76,7 @@ export class GetHomeSummaryService {
       this.categories.list(userId) as Promise<CategoryDoc[]>,
     ]);
     const monthTransactions = rows
-      .filter(transaction => walletId === 'all' || transaction.walletId === walletId);
+      .filter(transaction => scoped.some(wallet => wallet.id === transaction.walletId));
     const total = (type: 'income' | 'expense') => monthTransactions
       .filter(transaction => transaction.type === type)
       .reduce((sum, transaction) => sum + transaction.amount, 0);

@@ -1,4 +1,6 @@
 import mongoose, { Schema, Document } from 'mongoose';
+import WalletMember from './WalletMember';
+import { AppError } from '@/server/shared/kernel/AppError';
 
 export interface IUser extends Document {
   email: string;
@@ -10,6 +12,7 @@ export interface IUser extends Document {
 }
 
 const UserSchema: Schema = new Schema({
+  membershipVersion: { type: Number, default: 0 },
   email: { 
     type: String, 
     required: true, 
@@ -49,11 +52,28 @@ UserSchema.pre('findOneAndDelete', async function() {
   const Category = mongoose.model('Category');
   const Transaction = mongoose.model('Transaction');
   
+  // Account deletion must not orphan invitations or destroy a shared wallet
+  // after an invite has been accepted. Wallet writes serialize with accept.
+  const session = this.getOptions().session ?? undefined;
+  const owned = await Wallet.find({ userId }).select('_id isShared').session(session ?? null);
+  for (const wallet of owned) {
+    if (wallet.isShared) {
+      await Wallet.updateOne({ _id: wallet._id }, { $inc: { membershipVersion: 1 } }, { session });
+      if (await WalletMember.exists({ walletId: wallet._id, status: 'accepted' }).session(session ?? null)) {
+        throw new AppError('CONFLICT', 'Transfer ownership before deleting your account');
+      }
+    }
+  }
+  const ownedIds = owned.map(wallet => wallet._id);
+  await WalletMember.deleteMany({ $or: [{ userId }, { walletId: { $in: ownedIds } }] }, { session });
+  // Keep transactions in surviving shared wallets, including deleted authors.
+  const shared = await Wallet.find({ isShared: true, userId: { $ne: userId } }).select('_id').session(session ?? null);
+  const survivingSharedIds = shared.map(wallet => wallet._id);
   // A session must execute writes sequentially.
   await Wallet.deleteMany({ userId }, { session: this.getOptions().session ?? undefined });
   await Category.deleteMany({ userId }, { session: this.getOptions().session ?? undefined });
   // Internal cascade deletes the owning wallet(s) too, so no balance survives.
-  await Transaction.collection.deleteMany({ userId }, { session: this.getOptions().session ?? undefined });
+  await Transaction.collection.deleteMany({ $or: [{ walletId: { $in: ownedIds } }, { userId, walletId: { $nin: survivingSharedIds } }] }, { session: this.getOptions().session ?? undefined });
   
   // Omitting next() to maintain strict TypeScript hot-reload safety
 });

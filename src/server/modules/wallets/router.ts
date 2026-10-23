@@ -1,4 +1,7 @@
-import type { WalletRepositoryPort } from '@/server/shared/ports/wallets';
+import type { UnitOfWork } from '@/server/shared/ports/unit-of-work';
+import type { UserDirectoryPort } from '@/server/shared/ports/users';
+import type { WalletPresentationService } from './services/WalletPresentationService';
+import type { WalletRepositoryPort, WalletReaderPort } from '@/server/shared/ports/wallets';
 import { CreateWalletController } from './controllers/CreateWalletController';
 import { DeleteWalletController } from './controllers/DeleteWalletController';
 import { GetWalletController } from './controllers/GetWalletController';
@@ -12,10 +15,10 @@ import { UpdateWalletService } from './services/UpdateWalletService';
 import { UpdateWalletSavingController } from './controllers/UpdateWalletSavingController';
 import { UpdateWalletSavingService } from './services/UpdateWalletSavingService';
 
-export function createWalletRouter(repository: WalletRepositoryPort, deleteWalletService: DeleteWalletService) {
-  const create = new CreateWalletController(new CreateWalletService(repository));
-  const get = new GetWalletController(new GetWalletService(repository));
-  const list = new ListWalletsController(new ListWalletsService(repository));
+export function createWalletRouter(repository: WalletRepositoryPort & WalletReaderPort, deleteWalletService: DeleteWalletService, presentation: WalletPresentationService, users: UserDirectoryPort, uow: UnitOfWork) {
+  const create = new CreateWalletController(new CreateWalletService(repository, presentation, users, uow));
+  const get = new GetWalletController(new GetWalletService(repository, presentation));
+  const list = new ListWalletsController(new ListWalletsService(repository, presentation));
   const update = new UpdateWalletController(new UpdateWalletService(repository));
   const updateSaving = new UpdateWalletSavingController(new UpdateWalletSavingService(repository));
   const remove = new DeleteWalletController(deleteWalletService);
