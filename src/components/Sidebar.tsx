@@ -10,6 +10,7 @@ import {
   LayoutGrid,
   Menu,
   Receipt,
+  Repeat,
   User,
   Wallet,
   X,
@@ -28,6 +29,7 @@ type NavItem = {
 const NAV_ITEMS: NavItem[] = [
   { label: "Home", href: "/homepage", icon: Home },
   { label: "Transactions", href: "/transactions", icon: Receipt },
+  { label: "Recurring", href: "/recurring", icon: Repeat },
   { label: "Wallets", href: "/wallets", icon: Wallet },
   { label: "Category", href: "/category", icon: LayoutGrid },
   { label: "Reports", href: "/reports", icon: BarChart3 },
