@@ -32,7 +32,9 @@ export const categoryUpdate = categoryInput.partial();
 export const categoryListQuery = z.object({ type: z.enum(['income', 'expense']).optional() });
 export const transactionInput = z.object({ walletId: objectId, categoryId: objectId.nullable().optional(), type: z.enum(['income', 'expense']), amount: z.number().min(0.01), date: z.iso.date(), title: z.string().trim().min(1).max(100), note: z.string().max(255).optional() });
 export const transactionUpdate = transactionInput.omit({ walletId: true });
-export const transactionResponse = transactionInput.extend({ id: objectId, categoryId: objectId.nullable() });
+export const transactionAttribution = z.object({ id: objectId, name: z.string().min(1) });
+// Optional during the E7 contract-first rollout; personal responses omit attribution.
+export const transactionResponse = transactionInput.extend({ id: objectId, categoryId: objectId.nullable(), createdBy: transactionAttribution.optional(), editedBy: transactionAttribution.optional() });
 export const transactionMonthQuery = z.object({
   month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'month must use YYYY-MM format').optional(),
   // Case-insensitive substring match on title or note; blank means no search.
@@ -98,7 +100,18 @@ export const walletInput = z.object({
   goalAmount: z.number().min(0).optional(),
 });
 export const walletUpdate = walletInput.pick({ name: true, color: true, icon: true }).partial();
-export const walletResponse = walletInput.extend({ id: objectId, balance: z.number(), isDefault: z.boolean(), isSaving: z.boolean(), createdAt: z.iso.datetime(), updatedAt: z.iso.datetime() });
+export const walletRole = z.enum(['owner', 'contributor']);
+export const walletMemberStatus = z.enum(['pending', 'accepted']);
+export const walletSharingFields = {
+  isShared: z.boolean(),
+  role: walletRole,
+  memberCount: z.number().int().min(1),
+  membersPreview: z.array(transactionAttribution).max(3),
+  ownerName: z.string().min(1),
+};
+// Existing endpoints do not emit these fields until E7-01b/02. No defaults that
+// would make a missing implementation appear to return authoritative metadata.
+export const walletResponse = walletInput.extend({ id: objectId, balance: z.number(), isDefault: z.boolean(), isSaving: z.boolean(), createdAt: z.iso.datetime(), updatedAt: z.iso.datetime(), ...z.object(walletSharingFields).partial().shape });
 export const walletSavingUpdate = z.object({ isSaving: z.boolean(), goalAmount: z.number().optional() }).superRefine((value, ctx) => {
   if (value.isSaving && !(value.goalAmount !== undefined && value.goalAmount > 0)) ctx.addIssue({ code: 'custom', path: ['goalAmount'], message: 'Goal amount must be greater than 0 when saving is on' });
 });
@@ -126,3 +139,49 @@ export const legacyTransactionUpdate = z.object({
   title: z.string({ error: 'title is required' }).trim().min(1, 'title is required').max(100),
   note: z.string().max(255).optional(),
 });
+
+
+// E7-01a target contracts. These do not enable shared behavior in live handlers.
+export const sharedWalletInput = walletInput.extend({ isShared: z.literal(true) });
+export const walletCreateInput = walletInput.extend({ isShared: z.boolean().optional() });
+export const sharedWalletResponse = walletResponse.extend({ ...walletSharingFields, isShared: z.literal(true) });
+export const walletMemberResponse = z.discriminatedUnion('role', [
+  z.object({ userId: objectId, name: z.string().min(1), email: z.email(), role: z.literal('owner'), status: z.literal('accepted') }),
+  z.object({ userId: objectId, name: z.string().min(1), email: z.email(), role: z.literal('contributor'), status: walletMemberStatus }),
+]);
+export const walletMembersResponse = z.object({ members: z.array(walletMemberResponse) });
+export const walletInvitationInput = z.object({ email: z.string().trim().toLowerCase().pipe(z.email()) });
+export const walletInvitationResponse = z.object({
+  id: objectId, walletId: objectId, walletName: z.string().min(1),
+  invitedByName: z.string().min(1), createdAt: z.iso.datetime(),
+});
+export const myInvitationsResponse = z.object({ items: z.array(walletInvitationResponse), total: z.number().int().nonnegative() });
+export const transferOwnershipInput = z.object({ userId: objectId });
+// Strict target schemas reject categoryId, including null, and wallet moves.
+// Services must select these using the persisted wallet, never a client flag.
+export const sharedTransactionInput = transactionInput.omit({ categoryId: true }).strict();
+export const sharedTransactionUpdate = sharedTransactionInput.omit({ walletId: true }).strict();
+export const sharedTransactionResponse = transactionResponse.omit({ categoryId: true }).extend({
+  createdBy: transactionAttribution,
+}).strict();
+export const sharedHomeSummaryResponse = homeSummaryResponse.extend({
+  walletId: objectId, topCategories: z.array(z.never()).max(0),
+});
+export const invitationEmailError = apiError.extend({
+  code: z.literal('VALIDATION_ERROR'),
+  fields: z.object({ email: z.enum(['User not found', 'Cannot invite yourself']) }),
+});
+export type WalletRole = z.infer<typeof walletRole>;
+export type WalletMemberStatus = z.infer<typeof walletMemberStatus>;
+export type WalletCreateInput = z.infer<typeof walletCreateInput>;
+export type SharedWalletResponse = z.infer<typeof sharedWalletResponse>;
+export type WalletMemberResponse = z.infer<typeof walletMemberResponse>;
+export type WalletMembersResponse = z.infer<typeof walletMembersResponse>;
+export type WalletInvitationInput = z.infer<typeof walletInvitationInput>;
+export type WalletInvitationResponse = z.infer<typeof walletInvitationResponse>;
+export type MyInvitationsResponse = z.infer<typeof myInvitationsResponse>;
+export type TransferOwnershipInput = z.infer<typeof transferOwnershipInput>;
+export type SharedTransactionInput = z.infer<typeof sharedTransactionInput>;
+export type SharedTransactionUpdate = z.infer<typeof sharedTransactionUpdate>;
+export type SharedTransactionResponse = z.infer<typeof sharedTransactionResponse>;
+export type SharedHomeSummaryResponse = z.infer<typeof sharedHomeSummaryResponse>;
