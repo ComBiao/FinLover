@@ -13,6 +13,7 @@ export type WalletApiRecord = {
   goalAmount?: number;
   createdAt?: string;
   updatedAt?: string;
+  isShared?: boolean;
 };
 
 export type CreateWalletInput = {
@@ -50,6 +51,7 @@ export function mapWalletRecord(record: WalletApiRecord): Wallet {
     type: isSaving ? "savings" : "cash",
     icon: resolveWalletIcon(record.icon, isSaving),
     iconName: record.icon,
+    isShared: Boolean(record.isShared),
   };
 }
 

@@ -35,6 +35,7 @@ import { isFallbackCategory } from "@/features/categories/categoriesService";
 import { cn, formatEnglishDayMonth, todayISODate, toLocalISODate } from "@/lib/utils";
 import type { Category, TransactionType } from "@/types/category";
 import type { Wallet } from "@/types/wallet";
+import { isTodayLocalDate } from "@/client/api/schedulers";
 import { formatCadenceString, getWeekdayClosestToDate, parseISODateParts } from "../dateCadence";
 import type { EndConditionType, IntervalUnit, RecurringRule } from "../types";
 
@@ -88,10 +89,11 @@ export function CreateRuleModal({
   onCreateRule,
 }: CreateRuleModalProps) {
   const today = todayISODate();
+  const personalWallets = useMemo(() => wallets.filter((w) => !w.isShared), [wallets]);
   const [type, setType] = useState<TransactionType>("expense");
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
-  const [walletId, setWalletId] = useState<string | undefined>(wallets[0]?.id);
+  const [walletId, setWalletId] = useState<string | undefined>(personalWallets[0]?.id ?? wallets[0]?.id);
   const [categoryId, setCategoryId] = useState<string | undefined>(undefined);
   const [note, setNote] = useState("");
 
@@ -123,10 +125,13 @@ export function CreateRuleModal({
     return String(y + 1);
   });
 
-  // Flags
+  // Flags & Errors
   const [isShared, setIsShared] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  const effectiveWalletId = walletId ?? personalWallets[0]?.id ?? wallets[0]?.id;
 
   // Find fallback "Others" category for current type
   const fallbackCategory = useMemo(() => {
@@ -224,6 +229,7 @@ export function CreateRuleModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+    setFieldErrors({});
 
     if (!title.trim()) {
       setErrorMessage("Please enter a title or subscription name");
@@ -236,7 +242,7 @@ export function CreateRuleModal({
       return;
     }
 
-    if (!walletId) {
+    if (!effectiveWalletId) {
       setErrorMessage("Please select a target wallet");
       return;
     }
@@ -329,7 +335,7 @@ export function CreateRuleModal({
         title: title.trim(),
         amount: numAmount,
         type,
-        walletId,
+        walletId: effectiveWalletId,
         categoryId: effectiveCategoryId || null,
         note: note.trim() || undefined,
         intervalN: n,
@@ -352,6 +358,9 @@ export function CreateRuleModal({
       setAmount("");
       setNote("");
     } catch (err: unknown) {
+      if (err && typeof err === "object" && "fields" in err && (err as { fields?: Record<string, string> }).fields) {
+        setFieldErrors((err as { fields: Record<string, string> }).fields);
+      }
       setErrorMessage(err instanceof Error ? err.message : "Failed to create recurring rule");
     } finally {
       setIsSubmitting(false);
@@ -459,6 +468,9 @@ export function CreateRuleModal({
               className="h-9 text-xs"
               required
             />
+            {fieldErrors.title && (
+              <p className="text-[11px] text-destructive mt-0.5">{fieldErrors.title}</p>
+            )}
           </div>
 
           {/* 3. Amount */}
@@ -482,6 +494,9 @@ export function CreateRuleModal({
                 required
               />
             </div>
+            {fieldErrors.amount && (
+              <p className="text-[11px] text-destructive mt-0.5">{fieldErrors.amount}</p>
+            )}
           </div>
 
           {/* 4. Target Wallet & Category in a 2-column row */}
@@ -489,11 +504,16 @@ export function CreateRuleModal({
             <div className="space-y-1">
               <Label className="text-xs font-semibold text-foreground">Target Wallet *</Label>
               <WalletSelector
-                value={walletId}
+                value={effectiveWalletId}
                 onValueChange={(val) => setWalletId(val)}
-                wallets={wallets}
+                wallets={personalWallets}
                 placeholder="Choose wallet"
               />
+              {(fieldErrors.walletId || fieldErrors.wallet_id) && (
+                <p className="text-[11px] text-destructive mt-0.5">
+                  {fieldErrors.walletId || fieldErrors.wallet_id}
+                </p>
+              )}
             </div>
             <div className="space-y-1">
               <Label className="text-xs font-semibold text-foreground">Category</Label>
@@ -504,6 +524,11 @@ export function CreateRuleModal({
                 categories={categories}
                 placeholder="Category"
               />
+              {(fieldErrors.categoryId || fieldErrors.category_id) && (
+                <p className="text-[11px] text-destructive mt-0.5">
+                  {fieldErrors.categoryId || fieldErrors.category_id}
+                </p>
+              )}
             </div>
           </div>
 
@@ -561,6 +586,17 @@ export function CreateRuleModal({
                   onChange={(e) => setStartDate(e.target.value)}
                   className="h-9 font-mono text-xs"
                 />
+                {(fieldErrors.startDate || fieldErrors.start_date) && (
+                  <p className="text-[11px] text-destructive mt-0.5">
+                    {fieldErrors.startDate || fieldErrors.start_date}
+                  </p>
+                )}
+                {isTodayLocalDate(startDate) && (
+                  <p className="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1 mt-1 font-medium">
+                    <Info className="size-3.5 shrink-0" />
+                    <span>Starting today will immediately post the first transaction to your wallet.</span>
+                  </p>
+                )}
               </div>
             </div>
 

@@ -33,7 +33,7 @@ type EditRuleFormProps = {
   wallets: Wallet[];
   categories: Category[];
   onCancel: () => void;
-  onSave: (ruleId: string, updates: Partial<RecurringRule>) => void;
+  onSave: (ruleId: string, updates: Partial<RecurringRule>) => Promise<void> | void;
 };
 
 function EditRuleForm({
@@ -43,9 +43,12 @@ function EditRuleForm({
   onCancel,
   onSave,
 }: EditRuleFormProps) {
+  const personalWallets = useMemo(() => wallets.filter((w) => !w.isShared), [wallets]);
   const [title, setTitle] = useState(rule.title);
   const [amount, setAmount] = useState(String(rule.amount));
-  const [walletId, setWalletId] = useState<string | undefined>(rule.walletId);
+  const [walletId, setWalletId] = useState<string | undefined>(
+    personalWallets.some((w) => w.id === rule.walletId) ? rule.walletId : personalWallets[0]?.id
+  );
   const [categoryId, setCategoryId] = useState<string | undefined>(rule.categoryId || undefined);
   const [note, setNote] = useState(rule.note || "");
   const [intervalNStr, setIntervalNStr] = useState(String(rule.intervalN));
@@ -55,6 +58,8 @@ function EditRuleForm({
   const [endDate, setEndDate] = useState<string>(rule.endDate || "");
   const [endMonth, setEndMonth] = useState<string>(rule.endDate ? rule.endDate.slice(0, 7) : "");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [, , startDay] = parseISODateParts(rule.startDate);
 
@@ -70,9 +75,10 @@ function EditRuleForm({
     return endDate;
   }, [endType, intervalUnit, endMonth, endDate, startDay]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+    setFieldErrors({});
 
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
@@ -131,18 +137,28 @@ function EditRuleForm({
       }
     }
 
-    onSave(rule.id, {
-      title: title.trim(),
-      amount: numAmount,
-      walletId,
-      categoryId: categoryId || null,
-      note: note.trim() || undefined,
-      intervalN: n,
-      intervalUnit,
-      endType,
-      totalOccurrences: endType === "count" ? parseInt(totalOccurrencesStr, 10) : undefined,
-      endDate: endType === "date" ? effectiveEndDate : undefined,
-    });
+    setIsSubmitting(true);
+    try {
+      await onSave(rule.id, {
+        title: title.trim(),
+        amount: numAmount,
+        walletId,
+        categoryId: categoryId || null,
+        note: note.trim() || undefined,
+        intervalN: n,
+        intervalUnit,
+        endType,
+        totalOccurrences: endType === "count" ? parseInt(totalOccurrencesStr, 10) : undefined,
+        endDate: endType === "date" ? effectiveEndDate : undefined,
+      });
+    } catch (err: unknown) {
+      if (err && typeof err === "object" && "fields" in err && (err as { fields?: Record<string, string> }).fields) {
+        setFieldErrors((err as { fields: Record<string, string> }).fields);
+      }
+      setErrorMessage(err instanceof Error ? err.message : "Failed to update recurring rule");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const cadencePreview = formatCadenceString({
@@ -170,6 +186,9 @@ function EditRuleForm({
             className="h-9 text-xs"
             required
           />
+          {fieldErrors.title && (
+            <p className="text-[11px] text-destructive mt-0.5">{fieldErrors.title}</p>
+          )}
         </div>
 
         <div className="space-y-1">
@@ -184,6 +203,9 @@ function EditRuleForm({
             className="h-9 text-xs font-mono font-bold"
             required
           />
+          {fieldErrors.amount && (
+            <p className="text-[11px] text-destructive mt-0.5">{fieldErrors.amount}</p>
+          )}
         </div>
       </div>
 
@@ -193,9 +215,14 @@ function EditRuleForm({
           <WalletSelector
             value={walletId}
             onValueChange={(val) => setWalletId(val)}
-            wallets={wallets}
+            wallets={personalWallets}
             placeholder="Choose wallet"
           />
+          {(fieldErrors.walletId || fieldErrors.wallet_id) && (
+            <p className="text-[11px] text-destructive mt-0.5">
+              {fieldErrors.walletId || fieldErrors.wallet_id}
+            </p>
+          )}
         </div>
 
         <div className="space-y-1">
@@ -207,6 +234,11 @@ function EditRuleForm({
             categories={categories}
             placeholder="Category"
           />
+          {(fieldErrors.categoryId || fieldErrors.category_id) && (
+            <p className="text-[11px] text-destructive mt-0.5">
+              {fieldErrors.categoryId || fieldErrors.category_id}
+            </p>
+          )}
         </div>
       </div>
 
@@ -363,11 +395,12 @@ function EditRuleForm({
           type="button"
           variant="outline"
           onClick={onCancel}
+          disabled={isSubmitting}
         >
           Cancel
         </Button>
-        <Button type="submit">
-          Save Future Changes
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? "Saving..." : "Save Future Changes"}
         </Button>
       </DialogFooter>
     </form>
@@ -380,7 +413,7 @@ type EditRuleModalProps = {
   onOpenChange: (open: boolean) => void;
   wallets: Wallet[];
   categories: Category[];
-  onSave: (ruleId: string, updates: Partial<RecurringRule>) => void;
+  onSave: (ruleId: string, updates: Partial<RecurringRule>) => Promise<void> | void;
 };
 
 export function EditRuleModal({
@@ -393,8 +426,8 @@ export function EditRuleModal({
 }: EditRuleModalProps) {
   if (!rule) return null;
 
-  const handleSave = (ruleId: string, updates: Partial<RecurringRule>) => {
-    onSave(ruleId, updates);
+  const handleSave = async (ruleId: string, updates: Partial<RecurringRule>) => {
+    await onSave(ruleId, updates);
     onOpenChange(false);
   };
 
@@ -422,6 +455,9 @@ export function EditRuleModal({
             <p className="font-semibold text-primary">Future-Only Edit & Ledger Preservation</p>
             <p className="mt-0.5 text-muted-foreground text-[11px] leading-relaxed">
               Changes will only apply to future scheduled occurrences. Past recorded transactions remain unchanged.
+            </p>
+            <p className="mt-0.5 text-muted-foreground text-[11px] leading-relaxed">
+              Changes apply to future scheduled runs only. Past transactions in your ledger will not be modified.
             </p>
           </div>
         </div>

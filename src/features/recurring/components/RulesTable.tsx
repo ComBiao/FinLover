@@ -50,7 +50,7 @@ import {
 } from "@/components/ui/tooltip";
 import { CATEGORY_STYLES, resolveChipTone, WALLET_TYPE_STYLES } from "@/components/chipColor";
 import { FALLBACK_CATEGORY_NAME, isFallbackCategory } from "@/features/categories/categoriesService";
-import { cn, formatBaht } from "@/lib/utils";
+import { cn, formatBaht, todayISODate } from "@/lib/utils";
 import type { Category } from "@/types/category";
 import type { Wallet } from "@/types/wallet";
 import {
@@ -64,24 +64,26 @@ type RulesTableProps = {
   rules: RecurringRule[];
   wallets: Wallet[];
   categories: Category[];
-  simulatedDate: string;
+  simulatedDate?: string;
   onPause: (ruleId: string) => void;
   onResume: (ruleId: string) => void;
   onEdit: (rule: RecurringRule) => void;
   onDelete: (ruleId: string) => void;
   onOpenCreateModal: () => void;
+  pendingStatusId?: string | null;
 };
 
 export function RulesTable({
   rules,
   wallets,
   categories,
-  simulatedDate,
+  simulatedDate = todayISODate(),
   onPause,
   onResume,
   onEdit,
   onDelete,
   onOpenCreateModal,
+  pendingStatusId,
 }: RulesTableProps) {
   const [filterStatus, setFilterStatus] = useState<"all" | RecurringRuleStatus>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -329,7 +331,16 @@ export function RulesTable({
                       {/* Next Scheduled Posting Date */}
                       <TableCell className="py-3.5 whitespace-nowrap">
                         <div className="flex flex-col gap-0.5">
-                          <span className={cn("font-mono text-sm whitespace-nowrap", isDue ? "font-bold text-primary" : "text-foreground")}>
+                          <span
+                            className={cn(
+                              "font-mono text-sm whitespace-nowrap",
+                              rule.status === "paused"
+                                ? "text-muted-foreground opacity-60"
+                                : isDue
+                                ? "font-bold text-primary"
+                                : "text-foreground"
+                            )}
+                          >
                             {formatShortDateWithAbbrMonth(rule.nextRunDate)}
                           </span>
                           {isDue && (
@@ -377,8 +388,9 @@ export function RulesTable({
                                     variant="ghost"
                                     size="icon-sm"
                                     onClick={() => onPause(rule.id)}
+                                    disabled={pendingStatusId === rule.id}
                                     aria-label="Pause rule"
-                                    className="text-amber-600 hover:text-amber-700 hover:bg-amber-500/10"
+                                    className="text-amber-600 hover:text-amber-700 hover:bg-amber-500/10 disabled:opacity-50"
                                   />
                                 }
                               >
@@ -397,8 +409,9 @@ export function RulesTable({
                                     variant="ghost"
                                     size="icon-sm"
                                     onClick={() => onResume(rule.id)}
+                                    disabled={pendingStatusId === rule.id}
                                     aria-label="Resume rule"
-                                    className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10"
+                                    className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 disabled:opacity-50"
                                   />
                                 }
                               >
@@ -469,7 +482,7 @@ export function RulesTable({
                   Are you sure you want to delete &quot;{deleteCandidate?.title}&quot;?
                 </span>
                 <span className="block rounded-lg border border-border bg-muted/60 p-3 text-muted-foreground">
-                  Deleting this rule stops future occurrences. All past recorded transactions in your wallet ledger will be preserved.
+                  This will stop all future recurring transactions for this rule. All past recorded transactions in your wallet ledger will be preserved.
                 </span>
               </AlertDialogDescription>
             </AlertDialogHeader>
