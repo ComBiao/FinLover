@@ -4,6 +4,7 @@ import "server-only";
 import { TransactionRepository } from '../modules/transactions/repositories/TransactionRepository';
 import { DeleteCategoryService } from '../modules/categories/services/DeleteCategoryService';
 import { MongoUnitOfWork } from '@/server/db/unit-of-work';
+import { SchedulerRepository } from '../modules/schedulers/repositories/SchedulerRepository';
 import { CategoryRepository } from '../modules/categories/repositories/CategoryRepository';
 import { UserRepository } from '../modules/users/repositories/UserRepository';
 import { createAuthRouter } from '../modules/auth/router';
@@ -13,7 +14,15 @@ import { WalletRepository } from '../modules/wallets/repositories/WalletReposito
 export const walletRepository = new WalletRepository();
 const categoryRepository = new CategoryRepository();
 export const rawAuth = createAuthRouter(new UserRepository(), { hash: hashPassword, compare: comparePassword }, categoryRepository, new MongoUnitOfWork(), walletRepository);
-export const deleteCategoryService = new DeleteCategoryService(categoryRepository, new TransactionRepository(), new MongoUnitOfWork());
+const schedulerRepository = new SchedulerRepository();
+const transactionRepository = new TransactionRepository();
+// Deleting a category clears it from Transactions and moves Schedulers (which need a category) to "Others".
+export const deleteCategoryService = new DeleteCategoryService(categoryRepository, {
+  async clearCategory(id, userId, context) {
+    await transactionRepository.clearCategory(id, userId, context);
+    await schedulerRepository.reassignCategory(id, userId, type => categoryRepository.fallbackId(userId, type, context), context);
+  },
+}, new MongoUnitOfWork());
 export const rawCategories = createCategoryRouter(deleteCategoryService);
 import { createTransactionRouter } from '../modules/transactions/router';
 import { DeleteWalletService } from '../modules/wallets/services/DeleteWalletService';
@@ -21,6 +30,13 @@ import { createWalletRouter } from '../modules/wallets/router';
 export const deleteWalletService = new DeleteWalletService(walletRepository, new TransactionRepository(), new MongoUnitOfWork());
 export const rawWallets = createWalletRouter(walletRepository, deleteWalletService);
 export const rawTransactions = createTransactionRouter(walletRepository, categoryRepository, new MongoUnitOfWork());
+import { createSchedulerRouter } from '../modules/schedulers/router';
+import { CreateTransactionService } from '../modules/transactions/services/CreateTransactionService';
+export const rawSchedulers = createSchedulerRouter(
+  schedulerRepository, walletRepository, categoryRepository,
+  new CreateTransactionService(new TransactionRepository(), walletRepository, categoryRepository, new MongoUnitOfWork()),
+  new MongoUnitOfWork(),
+);
 import { createHomeRouter } from '../modules/home/router';
 export const rawHome = createHomeRouter(walletRepository, new TransactionRepository(), categoryRepository);
 import { connectDB } from '@/server/db/index';
