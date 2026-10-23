@@ -23,8 +23,8 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("Sidebar — profile link (#165)", () => {
-  it("links to /profile only through the user badge", async () => {
+describe("Sidebar — profile link", () => {
+  it("links to /profile through the Account item and keeps user badge unclickable", async () => {
     render(
       <QueryClientProvider client={new QueryClient()}>
         <Sidebar />
@@ -32,12 +32,17 @@ describe("Sidebar — profile link (#165)", () => {
     );
 
     const nav = screen.getByRole("navigation", { name: "Main" });
-    const badge = await within(nav).findByRole("link", { name: /alex/i });
+    const accountLink = within(nav).getByRole("link", { name: "Account" });
+    expect(accountLink).toHaveAttribute("href", "/profile");
+    expect(accountLink).toHaveAttribute("aria-current", "page");
+
     const profileLinks = within(nav)
       .getAllByRole("link")
       .filter((link) => link.getAttribute("href") === "/profile");
 
-    expect(profileLinks).toEqual([badge]);
-    expect(within(nav).queryByRole("link", { name: "Account" })).not.toBeInTheDocument();
+    expect(profileLinks).toEqual([accountLink]);
+
+    const userName = await within(nav).findByText("Alex");
+    expect(userName.closest("a")).toBeNull();
   });
 });

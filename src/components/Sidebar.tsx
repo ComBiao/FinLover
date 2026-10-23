@@ -10,6 +10,7 @@ import {
   LayoutGrid,
   Menu,
   Receipt,
+  User,
   Wallet,
   X,
   type LucideIcon,
@@ -32,11 +33,12 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Reports", href: "/reports", icon: BarChart3 },
 ];
 
+const BOTTOM_ITEMS: NavItem[] = [{ label: "Account", href: "/profile", icon: User }];
+
 /**
  * App navigation rail. Collapsed to icons by default, expands to show
  * labels on hover (desktop) or via the toggle button (mobile). Fixed
- * positioning makes it overlay page content instead of pushing it. The
- * user badge at the bottom is the only link to /profile.
+ * positioning makes it overlay page content instead of pushing it.
  */
 export function Sidebar() {
   const pathname = usePathname();
@@ -127,7 +129,8 @@ export function Sidebar() {
         </div>
 
         <div className="mb-3 flex flex-col gap-1 border-t border-border pt-3">
-          <UserMenu mobileOpen={mobileOpen} onNavigate={() => setMobileOpen(false)} />
+          {BOTTOM_ITEMS.map(renderItem)}
+          <UserMenu mobileOpen={mobileOpen} />
         </div>
       </nav>
     </>
