@@ -70,6 +70,8 @@ UserSchema.pre('findOneAndDelete', async function() {
   const shared = await Wallet.find({ isShared: true, userId: { $ne: userId } }).select('_id').session(session ?? null);
   const survivingSharedIds = shared.map(wallet => wallet._id);
   // A session must execute writes sequentially.
+  // Schedulers the user created, plus any (e.g. a member's) that post to a wallet removed with the account.
+  await this.model.db.collection('schedulers').deleteMany({ $or: [{ userId }, { walletId: { $in: ownedIds } }] }, { session });
   await Wallet.deleteMany({ userId }, { session: this.getOptions().session ?? undefined });
   await Category.deleteMany({ userId }, { session: this.getOptions().session ?? undefined });
   // Internal cascade deletes the owning wallet(s) too, so no balance survives.
