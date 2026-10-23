@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, Edit2, MoreVertical, PiggyBank, Target, Trash2, Wallet as WalletIcon } from "lucide-react";
+import { Edit2, MoreVertical, PiggyBank, Target, Trash2, Wallet as WalletIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,7 +29,6 @@ type WalletCardProps = {
 
 export function WalletCard({ wallet, onEdit, onEditSaving, onDelete }: WalletCardProps) {
   const activeWalletId = useActiveWallet((state) => state.activeWalletId);
-  const setActiveWalletId = useActiveWallet((state) => state.setActiveWalletId);
   const isVisible = useBalanceVisibility((state) => state.isVisible);
 
   const isActive = activeWalletId === wallet.id;
@@ -89,10 +88,6 @@ export function WalletCard({ wallet, onEdit, onEditSaving, onDelete }: WalletCar
                 }
               />
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setActiveWalletId(wallet.id)}>
-                  <Check className="mr-2 size-4" />
-                  Select as Active
-                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onEdit(wallet)}>
                   <Edit2 className="mr-2 size-4" />
                   Edit
