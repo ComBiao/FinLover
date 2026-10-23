@@ -3,11 +3,9 @@ import { Types, type QueryFilter } from 'mongoose';
 import type { TransactionContext } from '@/server/shared/ports/unit-of-work';
 import { sessionOf } from '@/server/db/unit-of-work';
 import Transaction, { type ITransaction } from '@/server/db/models/Transaction';
-import type { TransactionRepositoryPort, TransactionInput, TransactionRecord, TransactionSummaryFilter, TransactionSummaryReader } from '@/server/shared/ports/transactions';
+import type { TransactionRepositoryPort, TransactionInput, TransactionRecord, TransactionSummaryFilter, TransactionSummaryReader, WalletAccess, CategoryAccess } from '@/server/shared/ports/transactions';
 import { authorizeTransactionWrite } from '@/server/db/transaction-write-guard';
 import { validateReferences } from '../services/rules';
-import { WalletRepository } from '../../wallets/repositories/WalletRepository';
-import { CategoryRepository } from '../../categories/repositories/CategoryRepository';
 function record(doc: ITransaction): TransactionRecord {
   // `title` fallback (#108): documents saved before this field existed have
   // none — surface a placeholder rather than `undefined` so every response
@@ -20,6 +18,7 @@ function searchFilter(search: string) {
   return [{ title: pattern }, { notes: pattern }]; // `notes` is the stored path; the `note` alias isn't translated in query filters
 }
 export class TransactionRepository implements TransactionRepositoryPort, TransactionSummaryReader {
+  constructor(private wallets: WalletAccess, private categories: CategoryAccess) {}
   async findByDateRange(userId: string, start: Date, end: Date, search?: string) {
     const filter: QueryFilter<ITransaction> = { userId, date: { $gte: start, $lt: end } };
     if (search) filter.$or = searchFilter(search);
@@ -52,7 +51,7 @@ export class TransactionRepository implements TransactionRepositoryPort, Transac
   }
   async create(userId: string, input: TransactionInput, context: TransactionContext) {
     const doc = authorizeTransactionWrite(new Transaction({ ...input, userId }), context);
-    await validateReferences(input, userId, new WalletRepository(), new CategoryRepository(), context);
+    await validateReferences(input, userId, this.wallets, this.categories, context);
     return record(await doc.save({ session: sessionOf(context) }));
   }
   async update(id: string, userId: string, input: TransactionInput, context: TransactionContext) {
@@ -60,7 +59,7 @@ export class TransactionRepository implements TransactionRepositoryPort, Transac
     if (!doc) return null;
     Object.assign(doc, input);
     authorizeTransactionWrite(doc, context);
-    await validateReferences(record(doc), userId, new WalletRepository(), new CategoryRepository(), context);
+    await validateReferences(record(doc), userId, this.wallets, this.categories, context);
     return record(await doc.save({ session: sessionOf(context) }));
   }
   async remove(id: string, userId: string, context: TransactionContext) {

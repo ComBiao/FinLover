@@ -64,4 +64,4 @@ Wallet saving (v1 only): `PATCH /api/v1/wallets/{id}/saving` with `{"isSaving":t
 
 Delete wallet (v1 only): `DELETE /api/v1/wallets/{id}` returns `{ "status": true, "data": null }`. The wallet and all of its transactions are deleted in one UnitOfWork (MongoDB replica set required); if any step fails nothing is deleted. Other wallets' transactions are untouched, an invalid id returns 400, and a missing wallet or one owned by another user returns 404. Any owned wallet may be deleted, including the default or last wallet (no restriction is defined); deleted data cannot be recovered.
 
-See [E7-01a Shared Wallet target contract](shared-wallets.md) for the planned endpoints, types, permissions and rollout boundaries. These shared operations are not live yet.
+See [Shared Wallet API guide](shared-wallets.md) for implemented shared create/read and invitation APIs (E7-01b/02), examples, permissions, rollout guards and future target endpoints.

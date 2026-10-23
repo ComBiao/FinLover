@@ -1,6 +1,7 @@
 import type { SchedulerRecord, SchedulerRepositoryPort, SchedulerTransactionPoster } from '@/server/shared/ports/schedulers';
 import type { WalletAccess } from '@/server/shared/ports/transactions';
 import type { TransactionContext, UnitOfWork } from '@/server/shared/ports/unit-of-work';
+import { AppError } from '@/server/shared/kernel/AppError';
 import { todayBangkok } from '../domain/schedule';
 import { postOccurrence } from './posting';
 
@@ -41,9 +42,17 @@ export class RunDueSchedulersService {
     }
     return summary;
   }
+  /** A missing wallet or one the Creator may no longer use (removed from a shared wallet) both mean "stop for good". */
+  private async canUseWallet(s: SchedulerRecord, context: TransactionContext) {
+    try { return await this.wallets.exists(s.walletId, s.userId, context); }
+    catch (error) {
+      if (error instanceof AppError && (error.code === 'NOT_FOUND' || error.code === 'FORBIDDEN')) return false;
+      throw error;
+    }
+  }
   private async step(s: SchedulerRecord, context: TransactionContext) {
     // The Creator may have lost access to the wallet; such a Scheduler stops for good.
-    if (!await this.wallets.exists(s.walletId, s.userId, context)) {
+    if (!await this.canUseWallet(s, context)) {
       const progress = { createdCount: s.createdCount, nextDueDate: null, status: 'cancelled' as const };
       return await this.repo.advance(s.id, s.nextDueDate!, progress, context) ? { ...s, ...progress } : null;
     }

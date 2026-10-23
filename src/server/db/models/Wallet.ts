@@ -1,11 +1,14 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import mongooseLeanGetters from 'mongoose-lean-getters';
+import WalletMember from './WalletMember';
 
 export interface IWallet extends Document {
   userId: mongoose.Types.ObjectId;
   name: string;
   balance: number;
   isDefault: boolean;
+  isShared: boolean;
+  membershipVersion: number;
   color?: string;
   icon?: string;
   isSaving: boolean;
@@ -19,6 +22,8 @@ const WalletSchema: Schema = new Schema({
   name: { type: String, required: true, trim: true, maxlength: 50 },
   balance: { type: Number, required: true, default: 0 },
   isDefault: { type: Boolean, default: false },
+  isShared: { type: Boolean, default: false, immutable: true },
+  membershipVersion: { type: Number, default: 0 },
   color: { type: String, trim: true },
   icon: { type: String, trim: true },
   isSaving: { type: Boolean, default: false },
@@ -47,6 +52,8 @@ WalletSchema.pre('findOneAndDelete', async function() {
 
   // Its schedulers cannot outlive the wallet they post to. Raw collection access: internal cascade only.
   await this.model.db.collection('schedulers').deleteMany({ walletId: walletId }, { session: this.getOptions().session ?? undefined });
+
+  await WalletMember.deleteMany({ walletId }, { session: this.getOptions().session ?? undefined });
 
   // No next() needed here either!
 });

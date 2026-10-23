@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 
 import '../../src/server/db/models/User';
 import '../../src/server/db/models/Wallet';
+import '../../src/server/db/models/WalletMember';
 import '../../src/server/db/models/Category';
 import '../../src/server/db/models/Transaction';
 import '../../src/server/db/models/Scheduler';
@@ -20,6 +21,10 @@ const generateMermaid = () => {
   erd += '  User ||--o{ Scheduler : "creates"\n';
   erd += '  Wallet ||--o{ Scheduler : "targets"\n';
   erd += '  Category ||--o{ Scheduler : "categorizes"\n\n';
+
+  erd += '  Wallet ||--o{ WalletMember : "has"\n';
+  erd += '  User ||--o{ WalletMember : "joins"\n';
+  erd += '  User ||--o{ WalletMember : "invites"\n\n';
 
   // 2. Extract Entities and Fields
   for (const modelName of mongoose.modelNames()) {

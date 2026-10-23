@@ -19,7 +19,7 @@ export function createTransactionRouter(
   categories: CategoryAccess & Pick<CategoryRepositoryPort, 'findOwned'>,
   uow: UnitOfWork,
 ) {
-  const repo = new TransactionRepository();
+  const repo = new TransactionRepository(wallets, categories);
   const list = new GetTransactionsByMonthController(new GetTransactionsByMonthService(repo, () => new Date(), applicationTimezone));
   const summary = new GetTransactionSummaryController(new GetTransactionSummaryService(repo, wallets, categories));
   const create = new CreateTransactionController(new CreateTransactionService(repo, wallets, categories, uow));
