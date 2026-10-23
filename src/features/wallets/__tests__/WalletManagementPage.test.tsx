@@ -76,6 +76,7 @@ describe("WalletManagementPage UI", () => {
     expect(screen.queryByText("Daily Wallet")).not.toBeInTheDocument();
     expect(screen.queryByText("Saving Wallet")).not.toBeInTheDocument();
     expect(screen.queryByText("Set Active")).not.toBeInTheDocument();
+    expect(screen.queryByText("Select as Active")).not.toBeInTheDocument();
   });
 
   it("opens Create Wallet dialog when clicking Create Wallet button", async () => {
