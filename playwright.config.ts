@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const port = process.env.E2E_PORT ?? '3100';
+const port = process.env.E2E_PORT ?? '3000';
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -16,7 +16,7 @@ export default defineConfig({
     command: 'node tests/e2e/start-server.mjs',
     url: `http://localhost:${port}/login`,
     timeout: 180_000,
-    reuseExistingServer: false,
+    reuseExistingServer: true,
     env: { E2E_PORT: port },
   },
 });

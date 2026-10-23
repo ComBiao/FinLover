@@ -245,7 +245,7 @@ export function normalizeSchedulerPayload(
       ? (payload.categoryId ?? undefined)
       : (payload.category_id ?? undefined);
 
-  const type = payload.type;
+  const type = payload.type ?? "expense";
   const amount = payload.amount;
   const title = (payload.title ?? payload.description ?? "").trim() || "Recurring Transaction";
   const note = (payload.note ?? payload.description ?? "").trim() || undefined;

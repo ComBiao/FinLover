@@ -140,6 +140,7 @@ function EditRuleForm({
     setIsSubmitting(true);
     try {
       await onSave(rule.id, {
+        ...rule,
         title: title.trim(),
         amount: numAmount,
         walletId,
@@ -150,6 +151,8 @@ function EditRuleForm({
         endType,
         totalOccurrences: endType === "count" ? parseInt(totalOccurrencesStr, 10) : undefined,
         endDate: endType === "date" ? effectiveEndDate : undefined,
+        type: rule.type,
+        startDate: rule.startDate,
       });
     } catch (err: unknown) {
       if (err && typeof err === "object" && "fields" in err && (err as { fields?: Record<string, string> }).fields) {
