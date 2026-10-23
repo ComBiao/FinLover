@@ -1,3 +1,4 @@
+import { WalletMembershipRepository } from '@/server/modules/wallets/repositories/WalletMembershipRepository';
 // @vitest-environment node
 /** PATCH /api/v1/wallets/[id]/saving → src/app/api/v1/wallets/[id]/saving/route.ts */
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
@@ -20,7 +21,7 @@ let PATCH: typeof import('@/app/api/v1/wallets/[id]/saving/route').PATCH;
 const USER = new mongoose.Types.ObjectId();
 const OTHER = new mongoose.Types.ObjectId();
 const TOKEN = signToken({ userId: USER.toString() });
-const repo = new WalletRepository();
+const repo = new WalletRepository(new WalletMembershipRepository());
 let replSet: MongoMemoryReplSet;
 
 beforeAll(async () => {

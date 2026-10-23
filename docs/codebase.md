@@ -140,6 +140,8 @@ Production builds explicitly use `next build --webpack`; this environment reject
 
 HTTP errors share one mapper and first-issue Zod field mapping. Unknown failures return `INTERNAL_ERROR`; server diagnostics include request ID, error type, numeric driver code and stack frames, excluding error messages and attached private payloads. Legacy transaction validation remains 422; malformed JSON is 400 in both versions. Category create/update reuse the shared Zod schemas. `TransactionResponseDTO` provides legacy and v1 mappings for transaction responses. Category HTTP and compatibility callers share one delete service instance.
 
-## Shared Wallet contract preparation
+## Shared Wallet foundation and invitations
 
-[E7-01a target contract](api/shared-wallets.md) defines the upcoming Shared Wallet API. Shared behavior is not implemented yet; current endpoints remain personal-only.
+[Shared Wallet API guide](api/shared-wallets.md) documents implemented E7-01b/02 and future contracts. POST wallets accepts isShared; create/list/detail expose role, memberCount, membersPreview and ownerName. Wallet list/detail allow accepted Contributors; findOwned and wallet mutations remain Owner-only. Invitation create/inbox/accept/decline are implemented through wallet module controllers/services and repository ports. Pending has no access. New WalletMember unique/index definitions are in the model and generated ERD.
+
+Membership operations use wallet/user write locks inside UnitOfWork to serialize concurrent invitations, acceptance and deletion. Wallet deletion cleans memberships; account deletion blocks owned accepted Contributors and preserves transactions in surviving shared wallets. The existing transaction API uses PersonalWalletAccess to reject shared writes until E7-11. Home All excludes shared balances; selected shared summary remains pending E7-15. No production migration was run. Real HTTP validation is reproducible with `node infra-dev/scripts/smoke-shared-wallets.mjs` after a build, against a disposable database.

@@ -1,3 +1,4 @@
+import { WalletMembershipRepository } from '@/server/modules/wallets/repositories/WalletMembershipRepository';
 import { beforeAll, afterAll, beforeEach, describe, it, expect, vi } from 'vitest';
 import mongoose from 'mongoose';
 import { MongoMemoryReplSet } from 'mongodb-memory-server';
@@ -17,9 +18,9 @@ import type { TransactionInput } from '@/server/shared/ports/transactions';
 let mongo: MongoMemoryReplSet;
 const user = new mongoose.Types.ObjectId().toString();
 const other = new mongoose.Types.ObjectId().toString();
-const repo = new TransactionRepository();
-const wallets = new WalletRepository();
+const wallets = new WalletRepository(new WalletMembershipRepository());
 const categories = new CategoryRepository();
+const repo = new TransactionRepository(wallets, categories);
 const uow = new MongoUnitOfWork();
 const create = new CreateTransactionService(repo, wallets, categories, uow);
 const update = new UpdateTransactionService(repo, wallets, categories, uow);

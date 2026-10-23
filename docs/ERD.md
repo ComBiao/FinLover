@@ -8,7 +8,21 @@ erDiagram
   Wallet ||--o{ Transaction : "funds"
   Category ||--o{ Transaction : "categorizes"
 
+  Wallet ||--o{ WalletMember : "has"
+  User ||--o{ WalletMember : "joins"
+  User ||--o{ WalletMember : "invites"
+
+  WalletMember {
+    ObjectId walletId
+    ObjectId userId
+    String status
+    ObjectId invitedBy
+    ObjectId _id
+    Date createdAt
+  }
+
   User {
+    Number membershipVersion
     String email
     String name
     String passwordHash
@@ -23,6 +37,8 @@ erDiagram
     String name
     Number balance
     Boolean isDefault
+    Boolean isShared
+    Number membershipVersion
     String color
     String icon
     Boolean isSaving

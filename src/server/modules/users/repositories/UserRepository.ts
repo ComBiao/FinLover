@@ -5,6 +5,14 @@ import type { TransactionContext } from '@/server/shared/ports/unit-of-work';
 import { sessionOf } from '@/server/db/unit-of-work';
 
 export class UserRepository implements UserRepositoryPort {
+  async findPublicByIds(ids: string[], context?: TransactionContext) {
+    const users = await User.find({ _id: { $in: ids } }).select('name email').session(sessionOf(context) ?? null).lean();
+    return users.map(user => ({ id: String(user._id), name: user.name?.trim() || 'Unnamed user', email: user.email }));
+  }
+  async lockById(userId: string, context: TransactionContext) {
+    const user = await User.findOneAndUpdate({ _id: userId }, { $inc: { membershipVersion: 1 } }, { session: sessionOf(context), returnDocument: 'after' });
+    return user ? { id: String(user._id), name: user.name?.trim() || 'Unnamed user', email: user.email } : null;
+  }
   async findByEmail(email: string) { return User.findOne({ email }); }
   async findById(userId: string) { return User.findById(userId); }
   async create(input: { email: string; name?: string; passwordHash: string; dataPrivacyConsent: true }, context?: TransactionContext) {
