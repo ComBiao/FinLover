@@ -1,3 +1,6 @@
+import { createWalletMembersRouter } from '../modules/wallets/members-router';
+import { WalletMembersService } from '../modules/wallets/services/WalletMembersService';
+import { WalletMembersRepository } from '../modules/wallets/repositories/WalletMembersRepository';
 import { createWalletInvitationRouter } from '../modules/wallets/invitation-router';
 import { WalletInvitationService } from '../modules/wallets/services/WalletInvitationService';
 import { WalletInvitationRepository } from '../modules/wallets/repositories/WalletInvitationRepository';
@@ -66,3 +69,5 @@ export const accountExists = async (userId: string) => {
 configureAccountCheck(accountExists);
 
 export const rawInvitations = createWalletInvitationRouter(new WalletInvitationService(new WalletInvitationRepository(), new WalletMembershipRepository(), walletRepository, userRepository, new MongoUnitOfWork()));
+
+export const rawMembers = createWalletMembersRouter(new WalletMembersService(new WalletMembersRepository(), new WalletMembershipRepository(), walletRepository, userRepository, new WalletPresentationService(new WalletMembershipRepository(), userRepository), new MongoUnitOfWork()));

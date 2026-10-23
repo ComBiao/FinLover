@@ -12,6 +12,9 @@ import {
   walletInvitationInput,
   walletInvitationResponse,
   walletMemberResponse,
+  walletMembersResponse,
+  transferOwnershipInput,
+  sharedWalletResponse,
   myInvitationsResponse,
   walletUpdate,
   walletResponse,
@@ -46,6 +49,10 @@ const legacyCategory = obj({ _id: { type: 'string' }, userId: { type: 'string' }
 const legacyTxResponse = obj({ id: { type: 'string' }, wallet_id: { type: 'string' }, category_id: { type: ['string', 'null'] }, type: { enum: ['income', 'expense'] }, amount: { type: 'number' }, date: { type: 'string', format: 'date' }, title: { type: 'string' }, note: { type: 'string' } }, ['id', 'wallet_id', 'category_id', 'type', 'amount', 'date', 'title']);
 
 export const operations = [
+  { action: 'listWalletMembers', method: 'get', path: '/wallets/{id}/members', status: 200, errors: [400, 401, 403, 404, 409, 500], versions: ['v1'], description: 'Owner and accepted Contributors can read Owner, accepted members and pending invitations (userId/name/email/role/status). Pending invitees cannot access members. Read-only snapshot.' },
+  { action: 'removeWalletMember', method: 'delete', path: '/wallets/{id}/members/{userId}', status: 200, errors: [400, 401, 403, 404, 409, 500], versions: ['v1'], description: 'Owner removes an accepted Contributor or cancels a pending invitation. Removing Owner gives 409; missing member gives 404. Access is revoked, transactions and balance stay unchanged.' },
+  { action: 'leaveWallet', method: 'post', path: '/wallets/{id}/leave', status: 200, errors: [400, 401, 403, 404, 409, 500], versions: ['v1'], description: 'Accepted Contributor leaves at any balance. Owner receives 409: transfer first if Contributors remain, otherwise explicitly delete wallet. Transactions are preserved.' },
+  { action: 'transferWalletOwnership', method: 'post', path: '/wallets/{id}/transfer-ownership', status: 200, errors: [400, 401, 403, 404, 409, 500], versions: ['v1'], description: 'Owner transfers atomically to an accepted Contributor. Old Owner becomes accepted Contributor, new Owner has no membership row. Owner/name collision gives 409 with full rollback. Response role is relative to caller (contributor).' },
   { action: 'inviteWalletMember', method: 'post', path: '/wallets/{id}/invitations', status: 201, errors: [400, 401, 403, 404, 409, 500], versions: ['v1'], description: 'Owner invites an existing user to a shared wallet. Normalize email; unknown/self email gives 400 with fields.email User not found/Cannot invite yourself. Duplicate pending or accepted membership gives 409. No email delivery or expiration.' },
   { action: 'listInvitations', method: 'get', path: '/invitations', status: 200, errors: [401, 500], versions: ['v1'], description: 'List caller pending invitations newest first; items and total for the notification badge.' },
   { action: 'acceptInvitation', method: 'post', path: '/invitations/{id}/accept', status: 200, errors: [400, 401, 403, 404, 409, 500], versions: ['v1'], description: 'Invitee accepts atomically. Pending gives no access; accepted membership grants wallet reads. Already accepted gives 409; another invitee gives 403.' },
@@ -88,7 +95,8 @@ export function buildSpec(version: 'legacy' | 'v1') {
   for (const operation of operationsFor(version)) {
     const { action, method } = operation;
     const path = (v1 ? '/api/v1' : '/api') + (v1 ? operation.path.replace('/transaction', '/transactions') : operation.path);
-    const input = action === 'register' ? registerSchema
+    const input = action === 'transferWalletOwnership' ? transferOwnershipInput
+      : action === 'register' ? registerSchema
       : action === 'login' ? loginSchema
         : action === 'createCategory' ? categoryInput
           : action === 'updateCategory' ? categoryUpdate
@@ -99,7 +107,10 @@ export function buildSpec(version: 'legacy' | 'v1') {
                   : action === 'updateWallet' ? walletUpdate
                     : action === 'updateWalletSaving' ? walletSavingUpdate
                     : undefined;
-    const data = action === 'inviteWalletMember' ? schema(walletInvitationResponse)
+    const data = action === 'listWalletMembers' ? schema(walletMembersResponse)
+      : action === 'transferWalletOwnership' ? schema(sharedWalletResponse)
+      : action === 'removeWalletMember' || action === 'leaveWallet' ? { type: 'null' }
+      : action === 'inviteWalletMember' ? schema(walletInvitationResponse)
       : action === 'listInvitations' ? schema(myInvitationsResponse)
       : action === 'acceptInvitation' ? schema(walletMemberResponse)
       : action === 'declineInvitation' ? { type: 'null' }
@@ -132,7 +143,8 @@ export function buildSpec(version: 'legacy' | 'v1') {
     for (const code of errors) responses[code] = { description: ({ 400: 'Invalid JSON, fields, ID, or missing consent', 401: 'Missing, invalid, or expired credentials', 403: 'Forbidden resource, system category, or untrusted/missing Origin for cookie writes', 404: 'Not found or not owned', 409: v1 ? 'Duplicate email, category, wallet name or membership; state conflict or shared operation not yet available' : 'Duplicate email or category name', 415: 'Body-bearing cookie/browser-auth mutation requires application/json', 422: 'Invalid transaction fields, ID, or category', 500: 'Internal server error' } as Record<number, string>)[code], content: { 'application/json': { schema: error } } };
     const id = '507f1f77bcf86cd799439011';
     const transactionExample = v1 ? { walletId: id, categoryId: null, type: 'expense', amount: 42, date: '2026-09-27', title: 'Lunch', note: 'Lunch' } : { wallet_id: id, category_id: null, type: 'Expense', amount: 42, date: '2026-09-27', title: 'Lunch', note: 'Lunch' };
-    const example: Record<string, unknown> = action === 'inviteWalletMember' ? { email: 'friend@example.com' }
+    const example: Record<string, unknown> = action === 'transferWalletOwnership' ? { userId: id }
+      : action === 'inviteWalletMember' ? { email: 'friend@example.com' }
       : action === 'register' ? { name: 'Test User', email: 'test@example.com', password: 'Password1', confirmPassword: 'Password1', dataPrivacyConsent: true }
       : action === 'login' ? { email: 'test@example.com', password: 'Password1' }
         : action.includes('Category') ? { name: 'Food', type: 'expense', color: '#FF8800', icon: 'Utensils' }
@@ -144,6 +156,7 @@ export function buildSpec(version: 'legacy' | 'v1') {
     const authDescription = v1 ? ` Authorization takes precedence over cookie.${method === 'get' ? ' Cookie-authenticated GETs do not require an Origin.' : ' Cookie writes require an Origin in PUBLIC_ORIGINS; missing Origin is rejected.'} Implemented.` : ' Legacy response contract; auth is unified with v1. Cookie writes and login/register/logout require an exact trusted Origin; no Origin is rejected. A valid Bearer on protected APIs does not fall back to cookies.';
     const publicOperation = 'public' in operation;
     const parameters = [
+      ...(path.includes('{userId}') ? [{ name: 'userId', in: 'path', required: true, schema: { type: 'string', pattern: '^[a-fA-F0-9]{24}$' } }] : []),
       ...(path.includes('{id}') ? [{ name: 'id', in: 'path', required: true, schema: { type: 'string', pattern: '^[a-fA-F0-9]{24}$' } }] : []),
       ...(action === 'listCategories' ? [{ name: 'type', in: 'query', required: false, description: 'Only return categories of this type.', schema: { type: 'string', enum: ['income', 'expense'] }, example: 'expense' }] : []),
       ...(action === 'listTransactions' ? [{ name: 'month', in: 'query', required: false, schema: { type: 'string', pattern: '^\\d{4}-(0[1-9]|1[0-2])$' }, example: '2026-10' }, { name: 'search', in: 'query', required: false, description: 'Case-insensitive text matched against title or note (max 100 characters); combines with month.', schema: { type: 'string', maxLength: 100 }, example: 'lunch' }] : []),

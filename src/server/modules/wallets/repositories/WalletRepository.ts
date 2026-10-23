@@ -70,17 +70,19 @@ export class WalletRepository implements WalletAccess, WalletRepositoryPort {
     return toRecord(wallet);
   }
   async update(id: string, userId: string, input: WalletUpdateInput) {
-    const doc = await Wallet.findOne({ _id: id, userId });
-    if (!doc) return null;
-    Object.assign(doc, input);
-    return toRecord(await doc.save());
+    // Match Owner at the write, not only at a preceding read: transfer may
+    // commit between service authorization and this mutation.
+    const doc = await Wallet.findOneAndUpdate({ _id: id, userId }, { $set: input }, { returnDocument: 'after', runValidators: true });
+    if (!doc) { await this.findOwned(id, userId); return null; }
+    return toRecord(doc);
   }
   async setSaving(id: string, userId: string, input: WalletSavingInput) {
-    const doc = await Wallet.findOne({ _id: id, userId });
-    if (!doc) return null;
-    doc.isSaving = input.isSaving;
-    doc.goalAmount = input.isSaving ? input.goalAmount : undefined;
-    return toRecord(await doc.save());
+    const update = input.isSaving
+      ? { $set: { isSaving: true, goalAmount: input.goalAmount } }
+      : { $set: { isSaving: false }, $unset: { goalAmount: 1 } };
+    const doc = await Wallet.findOneAndUpdate({ _id: id, userId }, update, { returnDocument: 'after', runValidators: true });
+    if (!doc) { await this.findOwned(id, userId); return null; }
+    return toRecord(doc);
   }
   async delete(id: string, userId: string, context: TransactionContext) {
     await this.memberships.lockWallet(id, context);

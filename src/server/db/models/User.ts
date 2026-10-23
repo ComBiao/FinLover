@@ -65,6 +65,16 @@ UserSchema.pre('findOneAndDelete', async function() {
     }
   }
   const ownedIds = owned.map(wallet => wallet._id);
+  // Revoking a Contributor account must also conflict with in-flight balance
+  // writes on surviving wallets, not just with mutations of the member row.
+  const joined = await WalletMember.find({ userId }).select('walletId').sort({ walletId: 1 }).session(session ?? null).lean();
+  const ownedSet = new Set(ownedIds.map(id => String(id)));
+  for (const member of joined) {
+    if (!ownedSet.has(String(member.walletId))) {
+      await Wallet.updateOne({ _id: member.walletId, isShared: true }, { $inc: { membershipVersion: 1 } }, { session });
+    }
+  }
+  // TODO(Epic 4 / US7-6): cancel recurring schedules when memberships are removed.
   await WalletMember.deleteMany({ $or: [{ userId }, { walletId: { $in: ownedIds } }] }, { session });
   // Keep transactions in surviving shared wallets, including deleted authors.
   const shared = await Wallet.find({ isShared: true, userId: { $ne: userId } }).select('_id').session(session ?? null);

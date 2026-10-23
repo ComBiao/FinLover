@@ -36,4 +36,4 @@ Production builds explicitly use `next build --webpack`; this environment reject
 
 Transaction writes must use application services: repositories enforce reference checks and model write guards require an active transaction. See [codebase rules](docs/codebase.md) and [validation evidence](docs/refactor-validation.md).
 
-Shared Wallet foundation and invitation APIs: [implementation scope and examples](docs/api/shared-wallets.md). Real HTTP smoke test after building: `node infra-dev/scripts/smoke-shared-wallets.mjs` (disposable MongoDB only).
+Shared Wallet foundation, invitations and member management APIs: [implementation scope and examples](docs/api/shared-wallets.md). Real HTTP smoke test after building: `node infra-dev/scripts/smoke-shared-wallets.mjs` (disposable MongoDB only).

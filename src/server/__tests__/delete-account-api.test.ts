@@ -1,3 +1,8 @@
+import WalletMember from '@/server/db/models/WalletMember';
+import { seedSharedWallet } from '@/test/shared-wallet-fixture';
+import { seedUser } from '@/test/user-fixture';
+import { v1 } from '@/server/shared/http/versioned-handlers';
+import { UserRepository } from '@/server/modules/users/repositories/UserRepository';
 // @vitest-environment node
 /**
  * Real-database proof that DELETE /api/v1/auth/delete-account cascades.
@@ -59,6 +64,8 @@ beforeAll(async () => {
   });
   await mongoose.connect(replSet.getUri());
   await User.init();
+  await WalletMember.init();
+  await Wallet.init();
   await Category.init();
   await Transaction.init();
   ({ DELETE } = await import("@/app/api/v1/auth/delete-account/route"));
@@ -306,5 +313,73 @@ describe("DELETE /api/v1/auth/delete-account (real database)", () => {
     );
     expect(res.status).toBe(401);
     expect(await Category.countDocuments({ userId: USER_ID })).toBe(0);
+  });
+});
+
+
+describe('E7-04 shared account lifecycle', () => {
+  it('Owner with accepted Contributors receives 409 and keeps cookie and all data', async () => {
+    await seedUser(USER_ID); await seedUser(OTHER_USER_ID);
+    const { wallet } = await seedSharedWallet(USER_ID, [{ userId: OTHER_USER_ID }]);
+    const response = await DELETE(deleteRequest());
+    expect(response.status).toBe(409);
+    expect((await response.json()).error.message).toContain('Transfer ownership');
+    expect(cookieWasCleared()).toBe(false);
+    expect(await Wallet.findById(wallet._id)).not.toBeNull();
+    expect(await User.findById(USER_ID)).not.toBeNull();
+    expect(await WalletMember.countDocuments({ walletId: wallet._id })).toBe(1);
+  });
+  it('pending-only Owner can delete account, clearing invitations and every author transaction in owned wallets', async () => {
+    await seedUser(USER_ID); await seedUser(OTHER_USER_ID);
+    const { wallet } = await seedSharedWallet(USER_ID, [{ userId: OTHER_USER_ID, status: 'pending' }]);
+    // A former member may have recorded this before leaving.
+    await seedTransaction(new Transaction({ userId: OTHER_USER_ID, walletId: wallet._id, type: 'income', amount: 5, date: new Date(), title: 'Former member' }));
+    expect((await DELETE(deleteRequest())).status).toBe(200);
+    expect(cookieWasCleared()).toBe(true);
+    expect(await Wallet.findById(wallet._id)).toBeNull();
+    expect(await Transaction.countDocuments({ walletId: wallet._id })).toBe(0);
+    expect(await WalletMember.countDocuments({ walletId: wallet._id })).toBe(0);
+    expect(await User.findById(OTHER_USER_ID)).not.toBeNull();
+  });
+  it('Contributor account deletion removes memberships but preserves authorship and shared balance', async () => {
+    await seedUserWithData(USER_ID, 'author@example.com'); await seedUser(OTHER_USER_ID);
+    const { wallet } = await seedSharedWallet(OTHER_USER_ID, [{ userId: USER_ID }]);
+    await seedTransaction(new Transaction({ userId: USER_ID, walletId: wallet._id, type: 'income', amount: 9, date: new Date(), title: 'Keep author ID' }));
+    await Wallet.updateOne({ _id: wallet._id }, { balance: 9 });
+    expect((await DELETE(deleteRequest())).status).toBe(200);
+    const remaining = await Transaction.find({ userId: USER_ID });
+    expect(remaining).toHaveLength(1);
+    expect(String(remaining[0].walletId)).toBe(String(wallet._id));
+    expect((await Wallet.findById(wallet._id))!.balance).toBe(9);
+    expect(await WalletMember.countDocuments({ userId: USER_ID })).toBe(0);
+    expect(await new UserRepository().findPublicByIds([String(USER_ID)])).toEqual([]);
+    // E7-06 consumes this missing author lookup as "Deleted user"; no author ID is rewritten.
+    expect((await countsFor(USER_ID)).wallets).toBe(0);
+  });
+  it('after transfer the former Owner can delete account without deleting the shared wallet', async () => {
+    await seedUser(USER_ID); await seedUser(OTHER_USER_ID);
+    const { wallet } = await seedSharedWallet(USER_ID, [{ userId: OTHER_USER_ID }]);
+    const transferred = await v1.transferWalletOwnership(new NextRequest('http://localhost:3000/api/v1/wallets/id/transfer-ownership', { method: 'POST', headers: { authorization: `Bearer ${TOKEN}`, 'content-type': 'application/json' }, body: JSON.stringify({ userId: String(OTHER_USER_ID) }) }), { params: Promise.resolve({ id: String(wallet._id) }) });
+    expect(transferred.status).toBe(200);
+    expect((await DELETE(deleteRequest())).status).toBe(200);
+    expect(String((await Wallet.findById(wallet._id))!.userId)).toBe(String(OTHER_USER_ID));
+    expect(await WalletMember.countDocuments({ userId: USER_ID })).toBe(0);
+  });
+  it('commit failure restores membership alongside user and shared transactions', async () => {
+    await seedUser(USER_ID); await seedUser(OTHER_USER_ID);
+    const { wallet } = await seedSharedWallet(OTHER_USER_ID, [{ userId: USER_ID }]);
+    const session = await mongoose.startSession();
+    const start = vi.spyOn(mongoose, 'startSession').mockResolvedValueOnce(session);
+    const commit = vi.spyOn(session, 'commitTransaction').mockImplementationOnce(async () => {
+      expect(await WalletMember.countDocuments({ userId: USER_ID }).session(session)).toBe(0);
+      throw new Error('Injected shared cascade failure');
+    });
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      expect((await DELETE(deleteRequest())).status).toBe(500);
+      expect(cookieWasCleared()).toBe(false);
+      expect(await User.findById(USER_ID)).not.toBeNull();
+      expect(await WalletMember.countDocuments({ walletId: wallet._id, userId: USER_ID })).toBe(1);
+    } finally { start.mockRestore(); commit.mockRestore(); log.mockRestore(); await session.endSession(); }
   });
 });
