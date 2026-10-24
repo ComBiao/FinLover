@@ -88,7 +88,7 @@ export async function createTransaction(input: Omit<Transaction, "id">): Promise
   return toTransaction(created);
 }
 
-/** `PUT` replaces the editable fields; the wallet can't be changed, so it isn't sent. */
+/** `PUT` replaces the editable fields (including moving the transaction to a different wallet). */
 export async function updateTransaction(
   id: string,
   input: Omit<Transaction, "id">
@@ -108,6 +108,7 @@ export async function updateTransaction(
   }
 
   const updated = await putApi<TransactionDto>(`/api/v1/transactions/${id}`, {
+    walletId: input.walletId,
     categoryId: input.categoryId ?? null,
     type: input.type,
     amount: input.amount,

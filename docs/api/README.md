@@ -40,7 +40,7 @@ Example v1 wallet body:
 
 Wallet responses expose only `id`, `name`, `balance`, `isDefault`, `color`, `isSaving`, `goalAmount`, `createdAt` and `updatedAt`. Duplicate wallet names return 409 with `fields.name`. Object request schemas accept and strip unknown properties; they are not persisted.
 
-Legacy uses `wallet_id`, `category_id`, and request type `Expense`/`Income`. Responses persist lowercase types. v1 validates ISO calendar dates and minimum amount 0.01; legacy retains its original request parsing/status behavior. Legacy transaction field validation returns 422, malformed JSON returns 500, and DELETE returns empty 204. v1 validation returns 400 and DELETE returns `{ "status": true, "data": null }`. Category updates are partial; transaction updates replace editable fields and cannot move wallet through the HTTP API.
+Legacy uses `wallet_id`, `category_id`, and request type `Expense`/`Income`. Responses persist lowercase types. v1 validates ISO calendar dates and minimum amount 0.01; legacy retains its original request parsing/status behavior. Legacy transaction field validation returns 422, malformed JSON returns 500, and DELETE returns empty 204. v1 validation returns 400 and DELETE returns `{ "status": true, "data": null }`. Category updates are partial; transaction updates replace editable fields (including moving the transaction to a different wallet).
 
 Create/update/delete transaction and balance writes are atomic and require a MongoDB replica set. Category deletion sets linked category references to null without deleting transactions or changing wallet balances. Ownership checks exclude other users' records; system categories cannot be mutated.
 
