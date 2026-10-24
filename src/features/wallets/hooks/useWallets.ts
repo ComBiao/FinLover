@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
+import { inviteMember } from "@/features/wallets/shared/membersService";
 import {
   createWallet,
   deleteWallet,
@@ -13,6 +14,11 @@ import {
 } from "@/features/wallets/walletsService";
 
 export const WALLETS_QUERY_KEY = ["wallets"] as const;
+
+/** Create-wallet form values: the wallet itself plus, for a shared wallet, who to invite. */
+export type CreateWalletFormInput = CreateWalletInput & { inviteEmails?: string[] };
+
+export type InviteFailure = { email: string; message: string };
 
 export function useWallets() {
   return useQuery({
@@ -31,10 +37,31 @@ export function useCreateWallet() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (input: CreateWalletInput) => createWallet(input),
-    onSuccess: (created) => {
+    mutationFn: async ({ inviteEmails = [], ...input }: CreateWalletFormInput) => {
+      const wallet = await createWallet(input);
+      // Invitations go out one by one once the wallet exists; a failed one must not undo the wallet.
+      const inviteFailures: InviteFailure[] = [];
+      if (input.isShared) {
+        for (const email of inviteEmails) {
+          try {
+            await inviteMember(wallet.id, email);
+          } catch (error) {
+            inviteFailures.push({
+              email,
+              message: error instanceof Error && error.message ? error.message : "Couldn't send the invitation",
+            });
+          }
+        }
+      }
+      return { wallet, inviteFailures };
+    },
+    onSuccess: ({ wallet, inviteFailures }) => {
       invalidateWalletQueries(queryClient);
-      toast.success(`Wallet "${created.name}" created`);
+      queryClient.invalidateQueries({ queryKey: ["wallet-members"] });
+      toast.success(`${wallet.isShared ? "Shared wallet" : "Wallet"} "${wallet.name}" created`);
+      for (const failure of inviteFailures) {
+        toast.error(`Couldn't invite ${failure.email}: ${failure.message}`);
+      }
     },
     onError: (error) => {
       toast.error(error instanceof Error ? error.message : "Couldn't create wallet");

@@ -1,6 +1,8 @@
 import { resolveCategoryIcon } from "@/features/categories/categoryIcons";
 import type { MonthKey } from "@/features/homepage/month";
 import { getApi } from "@/lib/api/client";
+import { isMockTarget } from "@/features/wallets/shared/mockFlag";
+import { mockHomeSummary } from "@/features/wallets/shared/mock/sharedWalletMockStore";
 import type { Category } from "@/types/category";
 
 export type HomeSavingGoal = {
@@ -47,6 +49,9 @@ type HomeSummaryDto = Omit<HomeSummary, "topCategories"> & {
  * either every wallet ("all") or one wallet.
  */
 export async function getHomeSummary(month: MonthKey, walletId: string): Promise<HomeSummary> {
+  // TODO(backend E7-15): remove; the same endpoint will answer for a shared wallet id (members only, no top categories).
+  if (isMockTarget(walletId)) return mockHomeSummary(month, walletId);
+
   const params = new URLSearchParams({ month, walletId });
   const dto = await getApi<HomeSummaryDto>(`/api/v1/home/summary?${params}`);
   return {
