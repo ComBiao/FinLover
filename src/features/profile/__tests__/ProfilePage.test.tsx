@@ -108,5 +108,66 @@ describe("ProfilePage", () => {
       expect(await screen.findByRole("heading", { name: "Delete your account?" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Delete my account" })).toBeInTheDocument();
     });
+
+    describe("an Owner of a shared wallet that still has members (409)", () => {
+      function mockDeleteConflict(message?: string) {
+        fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+          if (String(url).endsWith("/api/v1/auth/me")) {
+            return Response.json({ status: true, data: { user: { id: "u1", email: "boss2@gmail.com", name: "boss2" } } });
+          }
+          if (String(url).endsWith("/api/v1/auth/delete-account") && init?.method === "DELETE") {
+            return Response.json(
+              { status: false, error: { code: "CONFLICT", ...(message ? { message } : {}) } },
+              { status: 409 }
+            );
+          }
+          return Response.json({ status: false }, { status: 404 });
+        });
+      }
+
+      async function confirmDelete() {
+        fireEvent.click(await screen.findByRole("button", { name: "Delete account" }));
+        fireEvent.click(await screen.findByRole("button", { name: "Delete my account" }));
+      }
+
+      it("keeps the dialog open and tells the user to transfer ownership first", async () => {
+        mockDeleteConflict("Transfer ownership of “Housemate Fund” before deleting your account");
+        mount();
+
+        await confirmDelete();
+
+        expect(await screen.findByRole("alert")).toHaveTextContent(
+          "Transfer ownership of “Housemate Fund” before deleting your account"
+        );
+        expect(screen.getByRole("heading", { name: "Delete your account?" })).toBeInTheDocument();
+        expect(router.replace).not.toHaveBeenCalled();
+        expect(toast.success).not.toHaveBeenCalled();
+      });
+
+      it("falls back to a generic message when the server sends none", async () => {
+        mockDeleteConflict();
+        mount();
+
+        await confirmDelete();
+
+        expect(await screen.findByRole("alert")).toHaveTextContent(
+          "You still own a shared wallet with other members. Transfer ownership before deleting your account."
+        );
+      });
+
+      it("clears the message when the dialog is opened again", async () => {
+        mockDeleteConflict("Transfer ownership first");
+        mount();
+
+        await confirmDelete();
+        expect(await screen.findByRole("alert")).toBeInTheDocument();
+        fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+        await waitFor(() => expect(screen.queryByRole("heading", { name: "Delete your account?" })).not.toBeInTheDocument());
+
+        fireEvent.click(screen.getByRole("button", { name: "Delete account" }));
+        expect(await screen.findByRole("heading", { name: "Delete your account?" })).toBeInTheDocument();
+        expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+      });
+    });
   });
 });

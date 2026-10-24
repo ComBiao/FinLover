@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, ChevronDown, Wallet as WalletIcon } from "lucide-react";
+import { Check, ChevronDown, Users, Wallet as WalletIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -36,8 +36,61 @@ function walletGoalLabel(wallet: Wallet) {
 export function WalletDropdown({ wallets, value, onValueChange, className }: WalletDropdownProps) {
   const [open, setOpen] = React.useState(false);
   const selectedWallet = wallets.find((wallet) => wallet.id === value);
-  const totalBalance = wallets.reduce((sum, wallet) => sum + wallet.balance, 0);
+  // "All wallets" is the personal view: shared wallets are pooled with other people and listed separately.
+  const personalWallets = wallets.filter((wallet) => !wallet.isShared);
+  const sharedWallets = wallets.filter((wallet) => wallet.isShared);
+  const totalBalance = personalWallets.reduce((sum, wallet) => sum + wallet.balance, 0);
   const selectedColor = selectedWallet?.color ?? ALL_WALLETS_COLOR;
+
+  const renderOption = (wallet: Wallet) => {
+    const isSelected = value === wallet.id;
+    const color = wallet.color ?? ALL_WALLETS_COLOR;
+    const textColor = shadeHex(color, 0.6);
+    const goalLabel = walletGoalLabel(wallet);
+    const memberLabel = wallet.isShared
+      ? `${wallet.memberCount ?? 0} ${wallet.memberCount === 1 ? "member" : "members"}`
+      : null;
+    const subLabel = goalLabel ?? memberLabel;
+
+    return (
+      <button
+        key={wallet.id}
+        type="button"
+        role="option"
+        aria-selected={isSelected}
+        onClick={() => {
+          onValueChange(wallet.id);
+          setOpen(false);
+        }}
+        className="mt-1 flex w-full items-center gap-3 rounded-xl border-2 p-2.5 text-left transition-colors"
+        style={{
+          borderColor: isSelected ? hexToRgba(color, 0.7) : "transparent",
+          backgroundColor: isSelected ? hexToRgba(color, 0.14) : "transparent",
+        }}
+      >
+        <span
+          className="flex size-[38px] shrink-0 items-center justify-center rounded-[10px] text-white"
+          style={{ backgroundColor: color }}
+        >
+          <wallet.icon className="size-5" />
+        </span>
+        <span className="flex-1">
+          <span className="block text-sm font-bold" style={{ color: textColor }}>
+            {wallet.name}
+          </span>
+          {subLabel ? (
+            <span className="block text-xs text-muted-foreground">{subLabel}</span>
+          ) : null}
+        </span>
+        <span className="text-sm font-bold text-foreground">
+          {formatBaht(wallet.balance)}
+        </span>
+        <span className="flex w-5 shrink-0 justify-center" style={{ color: textColor }}>
+          {isSelected ? <Check className="size-4.5" strokeWidth={2.6} /> : null}
+        </span>
+      </button>
+    );
+  };
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -96,6 +149,9 @@ export function WalletDropdown({ wallets, value, onValueChange, className }: Wal
           </span>
           <span className="flex-1">
             <span className="block text-sm font-bold text-foreground">All wallets</span>
+            {sharedWallets.length > 0 ? (
+              <span className="block text-xs text-muted-foreground">Personal only</span>
+            ) : null}
           </span>
           <span className="text-sm font-bold text-foreground">{formatBaht(totalBalance)}</span>
           <span className="flex w-5 shrink-0 justify-center">
@@ -103,51 +159,17 @@ export function WalletDropdown({ wallets, value, onValueChange, className }: Wal
           </span>
         </button>
 
-        {wallets.map((wallet) => {
-          const isSelected = value === wallet.id;
-          const color = wallet.color ?? ALL_WALLETS_COLOR;
-          const textColor = shadeHex(color, 0.6);
-          const goalLabel = walletGoalLabel(wallet);
+        {personalWallets.map(renderOption)}
 
-          return (
-            <button
-              key={wallet.id}
-              type="button"
-              role="option"
-              aria-selected={isSelected}
-              onClick={() => {
-                onValueChange(wallet.id);
-                setOpen(false);
-              }}
-              className="mt-1 flex w-full items-center gap-3 rounded-xl border-2 p-2.5 text-left transition-colors"
-              style={{
-                borderColor: isSelected ? hexToRgba(color, 0.7) : "transparent",
-                backgroundColor: isSelected ? hexToRgba(color, 0.14) : "transparent",
-              }}
-            >
-              <span
-                className="flex size-[38px] shrink-0 items-center justify-center rounded-[10px] text-white"
-                style={{ backgroundColor: color }}
-              >
-                <wallet.icon className="size-5" />
-              </span>
-              <span className="flex-1">
-                <span className="block text-sm font-bold" style={{ color: textColor }}>
-                  {wallet.name}
-                </span>
-                {goalLabel ? (
-                  <span className="block text-xs text-muted-foreground">{goalLabel}</span>
-                ) : null}
-              </span>
-              <span className="text-sm font-bold text-foreground">
-                {formatBaht(wallet.balance)}
-              </span>
-              <span className="flex w-5 shrink-0 justify-center" style={{ color: textColor }}>
-                {isSelected ? <Check className="size-4.5" strokeWidth={2.6} /> : null}
-              </span>
-            </button>
-          );
-        })}
+        {sharedWallets.length > 0 ? (
+          <>
+            <div className="mt-2 flex items-center gap-1.5 border-t border-border px-2.5 pt-2.5 pb-1 text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
+              <Users className="size-3.5" aria-hidden />
+              Shared wallets
+            </div>
+            {sharedWallets.map(renderOption)}
+          </>
+        ) : null}
       </PopoverContent>
     </Popover>
   );

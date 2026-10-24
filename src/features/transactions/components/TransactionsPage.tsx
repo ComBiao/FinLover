@@ -18,6 +18,7 @@ import {
 } from "@/features/transactions/hooks/useTransactionMutations";
 import { filterTransactions, withFallbackCategory } from "@/features/transactions/transactions";
 import { useCategories } from "@/features/categories/hooks/useCategories";
+import { useWallets } from "@/features/wallets/hooks/useWallets";
 import { periodMonthKeys } from "@/features/transactions/period";
 import { useTransactionFilters } from "@/features/transactions/store/useTransactionFilters";
 import { useTransactionModal } from "@/features/transactions/store/useTransactionModal";
@@ -37,6 +38,7 @@ export default function TransactionsPage() {
   const months = useMemo(() => periodMonthKeys(period), [period]);
   const { data: transactions = [] } = useTransactions(months);
   const { data: categories = [] } = useCategories();
+  const { data: wallets = [] } = useWallets();
   const createTransaction = useCreateTransaction();
   const updateTransaction = useUpdateTransaction();
   const deleteTransaction = useDeleteTransaction();
@@ -52,11 +54,32 @@ export default function TransactionsPage() {
   const closeDeleteModal = useTransactionModal((state) => state.closeDeleteModal);
   const deletingTransaction = useTransactionModal((state) => state.deletingTransaction);
 
-  const { data: summary, isPending: isSummaryPending } = useTransactionSummary(period, filters);
+  // Shared wallets live on Home, never on this page: a shared id left in the wallet
+  // filter (picked on Home) is ignored, and rows of shared wallets are not listed.
+  const sharedWalletIds = useMemo(
+    () => new Set(wallets.filter((wallet) => wallet.isShared).map((wallet) => wallet.id)),
+    [wallets]
+  );
+  const effectiveFilters = useMemo(
+    () =>
+      filters.walletId && sharedWalletIds.has(filters.walletId)
+        ? { ...filters, walletId: undefined }
+        : filters,
+    [filters, sharedWalletIds]
+  );
+
+  const { data: summary, isPending: isSummaryPending } = useTransactionSummary(period, effectiveFilters);
 
   const filteredTransactions = useMemo(
-    () => filterTransactions(withFallbackCategory(transactions, categories), filters),
-    [transactions, categories, filters]
+    () =>
+      filterTransactions(
+        withFallbackCategory(
+          transactions.filter((transaction) => !sharedWalletIds.has(transaction.walletId)),
+          categories
+        ),
+        effectiveFilters
+      ),
+    [transactions, categories, effectiveFilters, sharedWalletIds]
   );
 
   function handleDeleteTransaction(id: string) {
@@ -98,7 +121,7 @@ export default function TransactionsPage() {
         <SummaryCards summary={summary} period={period} isLoading={isSummaryPending} />
 
         <TransactionFilterBar
-          value={filters}
+          value={effectiveFilters}
           categories={categories}
           onValueChange={setFilters}
           period={period}

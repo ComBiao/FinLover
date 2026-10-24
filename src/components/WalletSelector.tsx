@@ -21,6 +21,11 @@ function walletTone(wallet: Wallet) {
   return resolveChipTone(wallet.color, WALLET_TYPE_STYLES, wallet.type ?? wallet.id);
 }
 
+/** Small "Shared" marker next to a shared wallet's name. */
+function SharedTag() {
+  return <span className="text-[10px] font-semibold tracking-wide uppercase opacity-70">Shared</span>;
+}
+
 export type WalletSelectorProps = {
   id?: string;
   name?: string;
@@ -32,6 +37,12 @@ export type WalletSelectorProps = {
   className?: string;
   allowAll?: boolean;
   allLabel?: string;
+  /**
+   * Whether shared wallets are selectable. On by default (you can record into a
+   * shared wallet); the Transactions page filter turns it off because that page
+   * only lists personal wallets.
+   */
+  includeShared?: boolean;
 };
 
 function WalletSelectorBase({
@@ -45,7 +56,9 @@ function WalletSelectorBase({
   className,
   allowAll = false,
   allLabel = "All wallets",
+  includeShared = true,
 }: WalletSelectorProps) {
+  const selectableWallets = includeShared ? wallets : wallets.filter((wallet) => !wallet.isShared);
   const selectValue = value ? encodeOptionValue(value) : allowAll ? ALL_VALUE : "";
 
   return (
@@ -67,7 +80,7 @@ function WalletSelectorBase({
           {(selectedValue: string) => {
             if (allowAll && selectedValue === ALL_VALUE) return allLabel;
             const selectedId = decodeOptionValue(selectedValue);
-            const selected = wallets.find((wallet) => wallet.id === selectedId);
+            const selected = selectableWallets.find((wallet) => wallet.id === selectedId);
             if (!selected) return placeholder;
             const Icon = selected.icon;
             const tone = walletTone(selected);
@@ -79,6 +92,7 @@ function WalletSelectorBase({
               >
                 <Icon className="size-3" />
                 {selected.name}
+                {selected.isShared ? <SharedTag /> : null}
               </Badge>
             );
           }}
@@ -86,7 +100,7 @@ function WalletSelectorBase({
       </SelectTrigger>
       <SelectContent>
         {allowAll ? <SelectItem value={ALL_VALUE}>{allLabel}</SelectItem> : null}
-        {wallets.map((wallet) => {
+        {selectableWallets.map((wallet) => {
           const Icon = wallet.icon;
           const tone = walletTone(wallet);
           return (
@@ -98,6 +112,7 @@ function WalletSelectorBase({
               >
                 <Icon className="size-3" />
                 {wallet.name}
+                {wallet.isShared ? <SharedTag /> : null}
               </Badge>
             </SelectItem>
           );
