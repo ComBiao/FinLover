@@ -1,6 +1,6 @@
 # Epic 7 — Shared Wallet contract (E7-01a)
 
-E7-01a contracts plus **E7-01b/02 implemented**: shared create, accessible wallet list/detail, invitation create/inbox/accept/decline, membership model/index/port and test fixture. Generated OpenAPI lists implemented operations only. The endpoint table below also describes future target operations; E7-07/11/13/15 routes are not enabled here.
+E7-01a contracts plus **E7-01b/02/07 and E7-04 account lifecycle implemented**: shared create, accessible wallet list/detail, invitation create/inbox/accept/decline, membership model/index/port and test fixture. Generated OpenAPI lists implemented operations only. The endpoint table below also describes future target operations; E7-11/13/15 routes are not enabled here. Members list/removal, leave and transfer are now enabled.
 
 Import schemas and inferred types from `@/shared/contracts`. Create/list/detail emit sharing metadata; `sharedWalletResponse` requires it. Existing update/saving responses retain the rollout-compatible optional metadata schema. Creation adopts walletCreateInput; isShared defaults to false. Future shared transaction responses use sharedTransactionResponse, not personal transactionResponse.
 
@@ -8,18 +8,18 @@ Import schemas and inferred types from `@/shared/contracts`. Create/list/detail 
 
 - Membership-aware WalletRepository.exists/adjust are available for E7-11. Current transaction handlers and repository rechecks use PersonalWalletAccess, rejecting shared operations with 409 instead of enabling incomplete category/attribution behavior. Personal APIs remain operational.
 - Home All excludes shared wallets. Selected owned shared Home summary returns 409 until E7-15; the old owned-only summary still returns 404 for non-owned wallets. E7-15 will introduce shared membership-aware summary access. Personal transaction read isolation for pre-existing shared rows remains E7-10; this release cannot create shared transactions through the API.
-- Existing Owner-only wallet deletion cleans memberships together with its transaction cascade. Account deletion blocks Owner with accepted Contributors, removes pending invitations, and preserves shared transactions in surviving wallets. These necessary lifecycle safeguards do not mark all E7-04/E7-09 acceptance criteria complete.
-- Wallet/user membershipVersion counters are internal concurrency fields, never response data. Invite/accept/decline acquire a real wallet write in UnitOfWork; user locks serialize invites/shared creation with account deletion. Future remove/transfer/shared writes must use the same wallet lock discipline.
+- Existing Owner-only wallet deletion cleans memberships together with its transaction cascade. Account deletion blocks Owner with accepted Contributors, removes pending invitations, and preserves shared transactions in surviving wallets. E7-04 lifecycle now has dedicated HTTP/DB tests. E7-09 full sign-off remains separate. Deleted-author response attribution remains dependent on E7-06; account deletion preserves the author ID for that lookup.
+- Wallet/user membershipVersion counters are internal concurrency fields, never response data. Invite/accept/decline acquire a real wallet write in UnitOfWork; user locks serialize invites/shared creation with account deletion. Remove/leave/transfer and account revocation use the same wallet lock discipline. Future shared transaction writes must retain it.
 - Existing accounts without a display name use **Unnamed user**; missing accounts use **Deleted user**. Card preview never includes email.
-- No frontend changes, notification delivery, recurring behavior, transfer or leave endpoints are included.
+- No frontend changes, notification delivery or recurring behavior are included. Owner leave returns 409 and never implicitly deletes a wallet.
 
 ### Database rollout (not executed against a real database)
 
-No backfill is required for correctness: missing isShared reads as false; internal counters start at zero and $inc creates them on first use. Before production enablement, provision WalletMember indexes `(walletId,userId)` unique and `(userId,status,createdAt)` for inbox queries; inspect any existing collection for duplicate pairs before building the unique index. Mongoose auto-indexing initializes these in local/test environments. If production disables autoIndex, index creation is an explicit deployment operation. Optional backfill may set isShared=false only where absent, in a separately approved maintenance step. This change never runs a migration on installation/build/startup.
+E7-07/04 adds no new fields/indexes; no migration is needed for this increment. No backfill is required for correctness: missing isShared reads as false; internal counters start at zero and $inc creates them on first use. Before production enablement, provision WalletMember indexes `(walletId,userId)` unique and `(userId,status,createdAt)` for inbox queries; inspect any existing collection for duplicate pairs before building the unique index. Mongoose auto-indexing initializes these in local/test environments. If production disables autoIndex, index creation is an explicit deployment operation. Optional backfill may set isShared=false only where absent, in a separately approved maintenance step. This change never runs a migration on installation/build/startup.
 
 ### Verification
 
-Run `npm test -- src/server/__tests__/shared-wallet-invitations-api.test.ts` for disposable-replica-set tests. After `npm run build`, run `node infra-dev/scripts/smoke-shared-wallets.mjs` for real HTTP tests with four synthetic users and an automatically stopped disposable MongoDB. The smoke runner overrides MONGODB_URI and never accesses the configured application database.
+Run `npm test -- src/server/__tests__/shared-wallet-invitations-api.test.ts src/server/__tests__/shared-wallet-members-api.test.ts src/server/__tests__/delete-account-api.test.ts` for disposable-replica-set tests. After `npm run build`, run `node infra-dev/scripts/smoke-shared-wallets.mjs` for real HTTP tests with four synthetic users and an automatically stopped disposable MongoDB. The smoke runner overrides MONGODB_URI and never accesses the configured application database.
 
 ## Data and decisions
 
@@ -85,3 +85,14 @@ Shared transaction response data:
 ## Implementation dependencies
 
 E7-01a precedes adoption of these schemas. E7-01b supplies membership and access ports; E7-06 supplies attribution; E7-11 requires both, then E7-13 and E7-15 follow E7-11. Preserve owner-only repository methods; add separate access operations. Recheck permissions in database transactions and serialize access changes with transaction writes. No production migration has been executed.
+
+## E7-07 / E7-04 implementation notes
+
+- `GET /wallets/{id}/members` returns `{members:[{userId,name,email,role,status}]}` to Owner/accepted members. Owner is first; pending invitations are included. GET uses a read-only transaction snapshot and does not increment any lock counter.
+- `DELETE /wallets/{id}/members/{userId}` removes an accepted member or cancels pending. Only Owner; self-removal as Owner gives 409, missing target gives 404. Success is `200 {status:true,data:null}`.
+- `POST /wallets/{id}/leave` accepts bodyless requests; Contributors leave at any balance and retain prior transactions. Owner receives 409 directing transfer or explicit wallet deletion when no Contributors remain.
+- `POST /wallets/{id}/transfer-ownership` body `{userId}` requires an accepted Contributor. Success returns the shared wallet card relative to caller (`role:contributor`). Wallet.userId change, target membership removal and former-owner accepted membership are atomic. Duplicate owner/name or invalid target returns 409 with rollback.
+- Metadata/saving mutations match the Owner in the database write, preventing stale authorization from surviving a transfer. Account deletion locks joined shared wallets to invalidate pre-authorized balance writes on retry.
+- Deleting a Contributor account removes memberships but keeps shared transactions and balances; the original author ID remains. Owner with accepted Contributors gets 409 without clearing the cookie. Owner with pending-only invitations can delete account, cascading owned wallets and every author's transactions in them.
+- Former Owner can delete their account after transfer. The shared wallet remains owned by the new Owner. The new Owner still cannot delete account while Contributors remain.
+- The former Owner's new accepted row records the initiating former Owner in invitedBy; no new pending invitation/notification is created. Recurring cancellation is explicitly deferred to Epic 4/US7-6.

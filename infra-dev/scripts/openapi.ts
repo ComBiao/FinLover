@@ -38,7 +38,7 @@ for (const version of ['legacy', 'v1'] as const) {
   await SwaggerParser.validate(JSON.parse(text));
   const ajv = new Ajv({ strict: false }); addFormats(ajv);
   for (const [route, methods] of Object.entries(spec.paths)) {
-    const source = path.resolve(import.meta.dirname, '../../src/app', route.slice(1).replaceAll('{id}', '[id]'), 'route.ts');
+    const source = path.resolve(import.meta.dirname, '../../src/app', route.slice(1).replace(/\{([^}]+)\}/g, '[$1]'), 'route.ts');
     const contents = await readFile(source, 'utf8');
     for (const [method, value] of Object.entries(methods)) {
       if (!contents.includes(`export const ${method.toUpperCase()}`)) throw new Error(`Missing handler for ${method} ${route}`);
