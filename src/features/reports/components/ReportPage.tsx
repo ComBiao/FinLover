@@ -6,10 +6,11 @@ import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CashFlowSection } from "@/features/reports/components/CashFlowSection";
+import { CategoryDistributionSection } from "@/features/reports/components/CategoryDistributionSection";
 import { ReportEmpty, ReportError, ReportSkeleton, errorMessageOf } from "@/features/reports/components/ReportStates";
 import { ReportFilterBar } from "@/features/reports/components/ReportFilterBar";
-import { ReportSlot } from "@/features/reports/components/ReportSlot";
 import { ReportSummaryCards } from "@/features/reports/components/ReportSummaryCards";
+import { RunningBalanceSection } from "@/features/reports/components/RunningBalanceSection";
 import { useReportFilter } from "@/features/reports/hooks/useReportFilter";
 import { useWallets } from "@/features/wallets/hooks/useWallets";
 import { cn } from "@/lib/utils";
@@ -78,10 +79,8 @@ export default function ReportPage() {
       <>
         <ReportSummaryCards filter={applied} />
         <CashFlowSection filter={applied} />
-        {/* SLOT:CategoryDistribution (Ice) — replace with <CategoryDistributionSection {...sectionProps} /> */}
-        <ReportSlot title="Category distribution" />
-        {/* SLOT:RunningBalance (Ice) — replace with <RunningBalanceSection {...sectionProps} /> */}
-        <ReportSlot title="Running balance" />
+        <CategoryDistributionSection {...sectionProps} />
+        <RunningBalanceSection {...sectionProps} />
       </>
     );
   }
