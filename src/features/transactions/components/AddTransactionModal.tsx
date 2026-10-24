@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowDownRight, ArrowUpRight, Check, Trash2, X, type LucideIcon } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Check, Info, Trash2, X, type LucideIcon } from "lucide-react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 
@@ -23,6 +23,8 @@ import { ApiClientError } from "@/lib/api/client";
 import { cn, todayISODate, toLocalISODate } from "@/lib/utils";
 import { isFallbackCategory } from "@/features/categories/categoriesService";
 import { useCategories } from "@/features/categories/hooks/useCategories";
+import { displayName, useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
+import { useWallets } from "@/features/wallets/hooks/useWallets";
 import { useTransactionModal } from "@/features/transactions/store/useTransactionModal";
 import type { TransactionType } from "@/types/category";
 import type { Transaction } from "@/types/transaction";
@@ -179,6 +181,18 @@ function toFormValues(
   };
 }
 
+/** Shared wallets only: tells the user whose name the transaction will carry. Its own component so the user query only runs for shared wallets. */
+function LoggedByNote({ transaction }: { transaction: Transaction | null | undefined }) {
+  const { data: currentUser } = useCurrentUser();
+  const name = transaction?.createdBy?.name ?? displayName(currentUser);
+  if (!name) return null;
+  return (
+    <p className="text-xs text-muted-foreground">
+      {transaction?.createdBy ? `Logged by ${name}` : `Will be logged by ${name}`}
+    </p>
+  );
+}
+
 /**
  * Modal form for creating a new income/expense transaction, or (when given
  * `initialData`) editing an existing one — both share this one form, opened
@@ -193,6 +207,7 @@ export function AddTransactionModal({
   const { isOpen, defaultType, defaultWalletId, editingTransaction, closeModal, openDeleteModal } =
     useTransactionModal();
   const { data: categories = [] } = useCategories();
+  const { data: wallets = [] } = useWallets();
   const effectiveInitialData = initialData ?? editingTransaction;
   const isEditMode = Boolean(effectiveInitialData);
 
@@ -213,7 +228,10 @@ export function AddTransactionModal({
   const type = useWatch({ control, name: "type" });
   const watchedValues = useWatch({ control });
   const categoryIdValue = useWatch({ control, name: "categoryId" });
+  const walletIdValue = useWatch({ control, name: "walletId" });
   const mode = MODE_STYLES[type];
+  // Shared wallets have no categories: the field is replaced by a note and nothing is sent.
+  const isSharedWallet = Boolean(wallets.find((wallet) => wallet.id === walletIdValue)?.isShared);
 
   React.useEffect(() => {
     if (isOpen) {
@@ -249,7 +267,7 @@ export function AddTransactionModal({
       amount: Number(values.amount),
       date: parseLocalISODate(values.date),
       walletId: values.walletId,
-      categoryId: values.categoryId ? values.categoryId : undefined,
+      categoryId: !isSharedWallet && values.categoryId ? values.categoryId : undefined,
       note: values.note ? values.note : undefined,
     };
 
@@ -287,10 +305,15 @@ export function AddTransactionModal({
   // and leaves the field empty if this user has no seeded "Others".
   const fallbackCategoryId = fallbackCategory?.id;
   React.useEffect(() => {
-    if (isOpen && !categoryIdValue && fallbackCategoryId) {
+    if (isOpen && !isSharedWallet && !categoryIdValue && fallbackCategoryId) {
       setValue("categoryId", fallbackCategoryId);
     }
-  }, [isOpen, categoryIdValue, fallbackCategoryId, setValue]);
+  }, [isOpen, isSharedWallet, categoryIdValue, fallbackCategoryId, setValue]);
+
+  // Picking a shared wallet drops any category chosen for a personal one.
+  React.useEffect(() => {
+    if (isSharedWallet && categoryIdValue) setValue("categoryId", "");
+  }, [isSharedWallet, categoryIdValue, setValue]);
 
   const categoryChips = orderedCategories.map((category) => {
     const selected = categoryIdValue === category.id;
@@ -492,35 +515,42 @@ export function AddTransactionModal({
               </div>
             </div>
 
-            <div role="radiogroup" aria-label="Category" className="flex flex-col gap-1.5">
-              <Label>Category</Label>
-              <div className="flex flex-wrap gap-2">
-                {categoryChips.map((chip) => {
-                  // The check swaps in for the category icon (same size, same
-                  // weight text) so selecting a chip never changes its width —
-                  // a wider chip would re-wrap the row and make chips jump.
-                  const Icon = chip.selected ? Check : chip.icon;
-                  return (
-                    <button
-                      key={chip.id}
-                      type="button"
-                      role="radio"
-                      aria-checked={chip.selected}
-                      onClick={() => setValue("categoryId", chip.id)}
-                      className="inline-flex h-10 items-center gap-1.5 rounded-full border-2 px-3.5 text-sm font-semibold transition-colors"
-                      style={{
-                        backgroundColor: chip.backgroundColor,
-                        color: chip.textColor,
-                        borderColor: chip.borderColor,
-                      }}
-                    >
-                      <Icon className="size-4" strokeWidth={chip.selected ? 3 : undefined} />
-                      {chip.name}
-                    </button>
-                  );
-                })}
+            {isSharedWallet ? (
+              <div className="flex items-center gap-2.5 rounded-xl bg-muted px-3 py-2.5 text-xs text-muted-foreground">
+                <Info className="size-4 shrink-0" aria-hidden />
+                Shared wallets don&apos;t use categories, so there&apos;s no category field here.
               </div>
-            </div>
+            ) : (
+              <div role="radiogroup" aria-label="Category" className="flex flex-col gap-1.5">
+                <Label>Category</Label>
+                <div className="flex flex-wrap gap-2">
+                  {categoryChips.map((chip) => {
+                    // The check swaps in for the category icon (same size, same
+                    // weight text) so selecting a chip never changes its width —
+                    // a wider chip would re-wrap the row and make chips jump.
+                    const Icon = chip.selected ? Check : chip.icon;
+                    return (
+                      <button
+                        key={chip.id}
+                        type="button"
+                        role="radio"
+                        aria-checked={chip.selected}
+                        onClick={() => setValue("categoryId", chip.id)}
+                        className="inline-flex h-10 items-center gap-1.5 rounded-full border-2 px-3.5 text-sm font-semibold transition-colors"
+                        style={{
+                          backgroundColor: chip.backgroundColor,
+                          color: chip.textColor,
+                          borderColor: chip.borderColor,
+                        }}
+                      >
+                        <Icon className="size-4" strokeWidth={chip.selected ? 3 : undefined} />
+                        {chip.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="transaction-note">Note</Label>
@@ -531,6 +561,8 @@ export function AddTransactionModal({
                 {...register("note")}
               />
             </div>
+
+            {isSharedWallet ? <LoggedByNote transaction={effectiveInitialData} /> : null}
 
             {errors.root ? (
               <p className="text-destructive text-sm" role="alert">
