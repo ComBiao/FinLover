@@ -3,8 +3,8 @@
  *
  * Only the service seams import this file (walletsService, transactionsService,
  * homeService, membersService, invitationsService). Components never know it
- * exists. Delete this folder when the backend endpoints are live — see
- * docs/epic7-frontend-handoff.md.
+ * exists. Delete this folder when the backend endpoints are live — see the
+ * header of `../mockFlag.ts`.
  *
  * State lives in module memory, so it resets on a full page reload.
  */

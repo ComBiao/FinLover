@@ -3,7 +3,7 @@
  *
  * TODO(backend E7-01a): these mirror what the UI needs. The backend owns the
  * real contract in `src/shared/contracts`; when it lands, replace/align these
- * types with it (see docs/epic7-frontend-handoff.md).
+ * types with it (the `TODO(backend` comments in the services list the endpoints).
  */
 
 export type WalletRole = "owner" | "contributor";
