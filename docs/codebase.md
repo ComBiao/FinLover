@@ -107,6 +107,7 @@ Logout clears the browser cookie but does not revoke a stateless JWT already iss
 | BCRYPT_SALT_ROUNDS | Existing 4–31 validation/fallback, default 10 |
 | PUBLIC_ORIGINS | Exact comma-separated local/production origins |
 | PREVIEW_ORIGINS | Optional explicit preview aliases; production origins are not inherited in preview |
+| CRON_SECRET | Bearer secret Vercel Cron sends to `/api/internal/cron/schedulers`; with none set the route always returns 401 |
 | VERCEL_ENV / VERCEL_URL / VERCEL_BRANCH_URL | Platform-owned metadata used for exact preview deployment/branch origins |
 
 Never trust request Host/X-Forwarded-Host as an origin allowlist. No wildcard *.vercel.app. System deployment URLs are hostnames and become HTTPS origins. Verify aliases and deployment protection on a real preview before release.
@@ -114,6 +115,16 @@ Never trust request Host/X-Forwarded-Host as an origin allowlist. No wildcard *.
 Deploy the repository root as one native Next.js Vercel project with npm ci and npm run build. Browser API calls are relative and need no BACKEND_URL/rewrite. Use external managed MongoDB such as Atlas, with separate preview/prod credentials and data. Decide Atlas IP allowlisting/egress using the actual Vercel plan before production. A single app does not remove that network requirement.
 
 Database connections are cached per warm instance, not globally across deployments. Atomicity depends on MongoDB transactions, never process-local locks. Existing Google fonts require network access during builds. Swagger assets must be included in deployed function output and verified on preview. No Vercel deployment has been performed by this change.
+
+### Schedulers (repeating transactions)
+
+A **Scheduler** (see `GLOSSARY.md`, [ADR 0001](adr/0001-scheduler-entity-and-fixed-thai-business-date.md)) creates a Transaction every N days, weeks, months or years until its end condition (never, after N, an inclusive end date, or a span converted to an end date). It lives in the `schedulers` collection (`src/server/db/models/Scheduler.ts`); `Transaction.recurrence` was removed (operational migration `npm run db:migrate:unset-transaction-recurrence`, never run automatically).
+
+- API: `/api/v1/schedulers` (GET, POST), `/{id}` (GET, PUT, DELETE), `/{id}/status` (PATCH `pause` / `resume`). Only the Creator can see or change a Scheduler; `canManage` marks it for the future shared-wallet view. At most 50 active or paused per user. A span counts the start period as the first (5 months = 5 monthly runs).
+- Dates are calendar dates in Asia/Bangkok. `vercel.json` runs `/api/internal/cron/schedulers` daily at `0 17 * * *` UTC (00:00 Bangkok; Hobby cron may drift up to an hour, same date). The route requires `Authorization: Bearer $CRON_SECRET`, is not part of the OpenAPI product API, and returns a run summary.
+- Each occurrence is posted by `RunDueSchedulersService` through `CreateTransactionService.post` in one UnitOfWork with a compare-and-set advance of `nextDueDate`, so repeated or concurrent runs never duplicate. Missed days are caught up with their original dates (up to 366 per Scheduler per run). Balances may go negative. A start date of today posts at creation; a past start date waits for the next cycle. Month-end days clamp (31 Jan, 28 Feb, 31 Mar).
+- Pause skips the paused period on resume. Completed (end reached) and cancelled (the Creator lost wallet access; `SchedulerRepository.cancelByCreatorAndWallet` is the hook for shared wallets) are terminal. Edits apply to future Transactions only.
+- Cascades: deleting a wallet or account deletes the related Schedulers; deleting a category moves them to the type's "Others". Generated Transactions carry no `schedulerId`; deleting a Scheduler keeps them.
 
 ## 7. Conventions and CI
 
@@ -141,3 +152,13 @@ Generators work without DB/secrets and resolve paths relative to their files. Ne
 Production builds explicitly use `next build --webpack`; this environment rejected Turbopack worker port creation (EPERM). Development still uses `next dev`.
 
 HTTP errors share one mapper and first-issue Zod field mapping. Unknown failures return `INTERNAL_ERROR`; server diagnostics include request ID, error type, numeric driver code and stack frames, excluding error messages and attached private payloads. Legacy transaction validation remains 422; malformed JSON is 400 in both versions. Category create/update reuse the shared Zod schemas. `TransactionResponseDTO` provides legacy and v1 mappings for transaction responses. Category HTTP and compatibility callers share one delete service instance.
+
+## Shared Wallet foundation and invitations
+
+[Shared Wallet API guide](api/shared-wallets.md) documents implemented E7-01b/02 and future contracts. POST wallets accepts isShared; create/list/detail expose role, memberCount, membersPreview and ownerName. Wallet list/detail allow accepted Contributors; findOwned and wallet mutations remain Owner-only. Invitation create/inbox/accept/decline are implemented through wallet module controllers/services and repository ports. Pending has no access. New WalletMember unique/index definitions are in the model and generated ERD.
+
+Membership operations use wallet/user write locks inside UnitOfWork to serialize concurrent invitations, acceptance and deletion. Wallet deletion cleans memberships; account deletion blocks owned accepted Contributors and preserves transactions in surviving shared wallets. The existing transaction API uses PersonalWalletAccess to reject shared writes until E7-11. Home All excludes shared balances; selected shared summary remains pending E7-15. No production migration was run. Real HTTP validation is reproducible with `node infra-dev/scripts/smoke-shared-wallets.mjs` after a build, against a disposable database.
+
+### Shared member management (E7-07 / E7-04)
+
+Members GET, member DELETE (including pending cancellation), leave and ownership transfer are implemented. The membership management port is separate from existing invitation/access ports; all mutations reuse wallet locks and UnitOfWork. Transfer locks both user accounts, changes Wallet.userId, removes the new Owner's member row and creates the former Owner's accepted membership atomically. Name collisions roll back with 409. Wallet metadata/saving writes match current Owner atomically. User deletion locks joined wallets before revocation so stale shared balance writes retry authorization. No new schema or migration is needed for this increment; response attribution for deleted authors remains E7-06. See the [Shared Wallet API guide](api/shared-wallets.md).

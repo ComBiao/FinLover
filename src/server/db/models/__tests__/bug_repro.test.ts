@@ -1,3 +1,4 @@
+import { WalletMembershipRepository } from '@/server/modules/wallets/repositories/WalletMembershipRepository';
 import { seedTransaction } from '@/test/transaction-fixture';
 import mongoose from 'mongoose';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
@@ -46,7 +47,7 @@ describe('Transaction categoryId validation bug', () => {
     // Try to update the transaction's category to an expense category
     let err: Error | null = null;
     try {
-      const service = new UpdateTransactionService(new TransactionRepository(), new WalletRepository(), new CategoryRepository(), new MongoUnitOfWork());
+      const service = new UpdateTransactionService(new TransactionRepository(new WalletRepository(new WalletMembershipRepository()), new CategoryRepository()), new WalletRepository(new WalletMembershipRepository()), new CategoryRepository(), new MongoUnitOfWork());
       await service.execute(String(tx._id), String(user._id), { walletId: String(wallet._id), categoryId: String(expenseCat._id), type: tx.type, amount: tx.amount, date: tx.date, title: tx.title ?? 'Test transaction' });
     } catch (e) {
       err = e as Error;

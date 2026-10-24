@@ -45,6 +45,16 @@ describe('shared principal and mutation policy', () => {
     expect(handler).not.toHaveBeenCalled();
     expect((await protectedRoute(request({ cookie, origin, 'content-type': 'application/json' }, '{}'))).status).toBe(200);
   });
+  it('allows empty runtime streams but checks actual bytes and still requires trusted Origin', async () => {
+    const empty = request({ cookie, origin, 'content-length': '0' }, '');
+    expect(empty.body).not.toBeNull();
+    expect((await protectedRoute(empty)).status).toBe(200);
+    expect((await protectedRoute(request({ cookie, origin }, ''))).status).toBe(200);
+    expect((await protectedRoute(new Request(`${origin}/api/wallets/id`, { method: 'DELETE', headers: { cookie, origin }, body: '' }))).status).toBe(200);
+    expect((await protectedRoute(request({ cookie, origin, 'content-length': '0' }, '{}'))).status).toBe(415);
+    expect((await protectedRoute(request({ cookie, 'content-length': '0' }, ''))).status).toBe(403);
+    expect((await protectedRoute(request({ cookie, origin, 'content-length': '2' }, '{}'))).status).toBe(415);
+  });
   it('allows safe authenticated reads without Origin', async () => {
     expect((await protectedRoute(new Request(`${origin}/api/example`, { headers: { cookie } }))).status).toBe(200);
   });

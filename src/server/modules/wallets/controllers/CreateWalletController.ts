@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { connectDB } from '@/server/db';
-import { walletInput } from '@/shared/contracts';
+import { walletCreateInput } from '@/shared/contracts';
 import { apiErrorResponse, errorResponse, readJsonBody, validationFields } from '@/server/shared/http/errors';
 import type { RouteContext } from '@/server/shared/http/policy';
 import type { CreateWalletService } from '../services/CreateWalletService';
@@ -10,7 +10,7 @@ export class CreateWalletController {
 
   async handle(request: Request, { principal }: RouteContext) {
     try {
-      const parsed = walletInput.safeParse(await readJsonBody(request));
+      const parsed = walletCreateInput.safeParse(await readJsonBody(request));
       if (!parsed.success) return errorResponse(400, 'VALIDATION_ERROR', 'One or more fields are invalid', validationFields(parsed.error));
       await connectDB();
       // Parse through the shared schema before persistence so owner and balance fields cannot be assigned by the client.

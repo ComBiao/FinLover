@@ -4,39 +4,6 @@ import { assertTransactionWrite } from '../transaction-write-guard';
 
 
 // ---------------------------------------------------------------------------
-// Recurrence sub-document
-// ---------------------------------------------------------------------------
-export interface IRecurrence {
-  isRecurring: boolean;
-  frequency?: 'weekly' | 'monthly';
-  startDate?: Date;
-  parentId?: mongoose.Types.ObjectId | null;
-}
-
-const RecurrenceSchema = new Schema<IRecurrence>(
-  {
-    isRecurring: { type: Boolean, default: false },
-    frequency: {
-      type: String,
-      enum: ['weekly', 'monthly'],
-      required: [
-        function (this: IRecurrence) { return this.isRecurring; },
-        'recurrence.frequency is required when isRecurring is true',
-      ],
-    },
-    startDate: {
-      type: Date,
-      required: [
-        function (this: IRecurrence) { return this.isRecurring; },
-        'recurrence.startDate is required when isRecurring is true',
-      ],
-    },
-    parentId: { type: Schema.Types.ObjectId, ref: 'Transaction', default: null },
-  },
-  { _id: false }
-);
-
-// ---------------------------------------------------------------------------
 // Transaction document interface
 // ---------------------------------------------------------------------------
 export interface ITransaction extends Document {
@@ -56,7 +23,6 @@ export interface ITransaction extends Document {
   title?: string;
   notes?: string;
   note?: string;
-  recurrence: IRecurrence;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -84,7 +50,6 @@ const TransactionSchema: Schema = new Schema({
   date: { type: Date, required: true },
   title: { type: String, required: true, trim: true, maxlength: 100 },
   notes: { type: String, maxlength: 255, alias: 'note' },
-  recurrence: { type: RecurrenceSchema, default: () => ({ isRecurring: false }) },
 }, {
   timestamps: true,
   toJSON: { getters: true },
@@ -98,7 +63,6 @@ TransactionSchema.index({ userId: 1, date: -1, _id: -1 });
 TransactionSchema.index({ walletId: 1, date: -1 });
 TransactionSchema.index({ walletId: 1, userId: 1 });
 TransactionSchema.index({ categoryId: 1 });
-TransactionSchema.index({ 'recurrence.parentId': 1 });
 
 // No balance hooks: reject unsupported writes instead of silently drifting balances.
 TransactionSchema.pre('save', function () { assertTransactionWrite(this, this.$session()); });
