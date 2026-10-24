@@ -162,6 +162,7 @@ test('private pages and API reject anonymous visitors', async ({ page }) => {
 test('a session that ends mid-use sends the user back to /login', async ({ page, context }) => {
   const email = uniqueEmail();
   await register(page, email);
+  await expect(page).toHaveURL(/registered=1/, { timeout: 30_000 });
   await login(page, email);
   await expect(page).toHaveURL(/\/homepage$/);
 
