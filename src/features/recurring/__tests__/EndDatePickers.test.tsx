@@ -177,8 +177,8 @@ describe("EndDatePickers", () => {
     });
   });
 
-  describe("WeeklyIphoneClockPicker UI (iOS-Style Wheel)", () => {
-    it("renders weekly occurrences and steps by interval week with stepper buttons", async () => {
+  describe("WeeklyIphoneClockPicker UI (iOS-Style Dual Wheel)", () => {
+    it("renders weekly occurrences with month selector and steps month with stepper buttons", async () => {
       const user = userEvent.setup();
       const onChange = vi.fn();
 
@@ -193,20 +193,20 @@ describe("EndDatePickers", () => {
 
       // Verify region and initial display
       expect(screen.getByRole("region", { name: /weekly end date iphone clock wheel selector/i })).toBeInTheDocument();
-      expect(screen.getAllByText(/Sun, 10 Jan 2027/).length).toBeGreaterThanOrEqual(1);
-      expect(screen.getByText(/Week 1 · Ends after 1 occurrence/)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Select month" })).toHaveTextContent("Jan 2027");
+      expect(screen.getByText(/Sun, 10 Jan · Week 1/)).toBeInTheDocument();
 
-      // Prev week button is disabled on the first occurrence
-      const prevBtn = screen.getByRole("button", { name: "Previous occurrence week" });
+      // Prev month button is disabled on the first occurrence month
+      const prevBtn = screen.getByRole("button", { name: "Previous occurrence month" });
       expect(prevBtn).toBeDisabled();
 
-      // Next week button steps to Week 2 (2027-01-17)
-      const nextBtn = screen.getByRole("button", { name: "Next occurrence week" });
+      // Next month button steps to February 2027
+      const nextBtn = screen.getByRole("button", { name: "Next occurrence month" });
       await user.click(nextBtn);
-      expect(onChange).toHaveBeenCalledWith("2027-01-17");
+      expect(onChange).toHaveBeenCalledWith("2027-02-07");
     });
 
-    it("allows clicking a quick jump preset chip like +4 Wks", async () => {
+    it("allows selecting a month from the left Month drum roller", async () => {
       const user = userEvent.setup();
       const onChange = vi.fn();
 
@@ -219,11 +219,54 @@ describe("EndDatePickers", () => {
         />
       );
 
-      const plus4Btn = screen.getByRole("button", { name: "+4 Wks" });
-      await user.click(plus4Btn);
+      // Click on March in the month drum
+      const marDrumBtn = screen.getByRole("button", { name: "Month Mar 2027" });
+      await user.click(marDrumBtn);
 
-      // 4 weeks from 2027-01-03 is 2027-01-31
-      expect(onChange).toHaveBeenCalledWith("2027-01-31");
+      expect(onChange).toHaveBeenCalledWith("2027-03-07");
+    });
+
+    it("allows opening the month popover and selecting any month", async () => {
+      const user = userEvent.setup();
+      const onChange = vi.fn();
+
+      render(
+        <WeeklyIphoneClockPicker
+          startDate="2027-01-03"
+          intervalN={1}
+          value="2027-01-10"
+          onChange={onChange}
+        />
+      );
+
+      // Open month popover
+      const selectMonthBtn = screen.getByRole("button", { name: "Select month" });
+      await user.click(selectMonthBtn);
+
+      // Dialog is open with 12 months, click "May"
+      const mayBtn = screen.getByRole("button", { name: "May" });
+      await user.click(mayBtn);
+
+      expect(onChange).toHaveBeenCalledWith("2027-05-02");
+    });
+
+    it("allows clicking a quick jump preset chip like +1 Mo", async () => {
+      const user = userEvent.setup();
+      const onChange = vi.fn();
+
+      render(
+        <WeeklyIphoneClockPicker
+          startDate="2027-01-03"
+          intervalN={1}
+          value="2027-01-10"
+          onChange={onChange}
+        />
+      );
+
+      const plus1MoBtn = screen.getByRole("button", { name: "+1 Mo" });
+      await user.click(plus1MoBtn);
+
+      expect(onChange).toHaveBeenCalledWith("2027-02-07");
     });
 
     it("allows clicking any occurrence row in the drum to select it", async () => {
