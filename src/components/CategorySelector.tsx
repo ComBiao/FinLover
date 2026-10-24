@@ -68,6 +68,15 @@ function CategorySelectorBase({
   allLabel = "All categories",
 }: CategorySelectorProps) {
   const options = type ? categories.filter((category) => category.type === type) : categories;
+
+  // Place selected category first, followed by the remaining categories below it
+  const orderedOptions = React.useMemo(() => {
+    if (!value) return options;
+    const selected = options.find((category) => category.id === value);
+    if (!selected) return options;
+    return [selected, ...options.filter((category) => category.id !== value)];
+  }, [options, value]);
+
   // Without a `type`, income and expense categories are listed together, and
   // the seeded "Others" exists once per type — so group the list by type and
   // name the type on the trigger whenever the picked name exists in both.
@@ -128,7 +137,7 @@ function CategorySelectorBase({
         {allowAll ? <SelectItem value={ALL_VALUE}>{allLabel}</SelectItem> : null}
         {groupByType
           ? TYPE_GROUPS.map(({ type: groupType, label, Icon, className: labelClassName }, index) => {
-              const groupOptions = options.filter((option) => option.type === groupType);
+              const groupOptions = orderedOptions.filter((option) => option.type === groupType);
               if (groupOptions.length === 0) return null;
               const hasItemsAbove = allowAll || index > 0;
               return (
@@ -146,7 +155,7 @@ function CategorySelectorBase({
                 </React.Fragment>
               );
             })
-          : options.map(renderItem)}
+          : orderedOptions.map(renderItem)}
       </SelectContent>
     </Select>
   );

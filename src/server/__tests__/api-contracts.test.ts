@@ -584,7 +584,6 @@ describe('v1 monthly transaction reads', () => {
       type: 'expense',
       amount: 10,
       date: new Date('2026-10-05'),
-      recurrence: { isRecurring: false },
       createdAt: new Date(),
       updatedAt: new Date(),
     });

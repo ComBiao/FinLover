@@ -49,7 +49,10 @@ WalletSchema.pre('findOneAndDelete', async function() {
   // Automatically delete all transactions linked to this wallet to prevent orphaned data
   // Internal cascade deletes the owning wallet(s) too, so no balance survives.
   await Transaction.collection.deleteMany({ walletId: walletId }, { session: this.getOptions().session ?? undefined });
-  
+
+  // Its schedulers cannot outlive the wallet they post to. Raw collection access: internal cascade only.
+  await this.model.db.collection('schedulers').deleteMany({ walletId: walletId }, { session: this.getOptions().session ?? undefined });
+
   await WalletMember.deleteMany({ walletId }, { session: this.getOptions().session ?? undefined });
 
   // No next() needed here either!

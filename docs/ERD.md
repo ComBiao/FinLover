@@ -7,6 +7,9 @@ erDiagram
   User ||--o{ Transaction : "makes"
   Wallet ||--o{ Transaction : "funds"
   Category ||--o{ Transaction : "categorizes"
+  User ||--o{ Scheduler : "creates"
+  Wallet ||--o{ Scheduler : "targets"
+  Category ||--o{ Scheduler : "categorizes"
 
   Wallet ||--o{ WalletMember : "has"
   User ||--o{ WalletMember : "joins"
@@ -69,7 +72,29 @@ erDiagram
     Date date
     String title
     String notes
-    Embedded recurrence
+    ObjectId _id
+    Date createdAt
+    Date updatedAt
+  }
+
+  Scheduler {
+    ObjectId userId
+    ObjectId walletId
+    ObjectId categoryId
+    String type
+    Number amount
+    String title
+    String notes
+    Date startDate
+    Number anchorDay
+    String frequency
+    Number interval
+    String endType
+    Number endCount
+    Date endDate
+    String status
+    Number createdCount
+    Date nextDueDate
     ObjectId _id
     Date createdAt
     Date updatedAt

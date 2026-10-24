@@ -165,6 +165,10 @@ npm run dev
 <td>Optional explicit preview aliases; production origins are not inherited in preview</td>
 </tr>
 <tr>
+<td>CRON_SECRET</td>
+<td>Bearer secret Vercel Cron sends to <code>/api/internal/cron/schedulers</code>; with none set the route always returns 401</td>
+</tr>
+<tr>
 <td>VERCEL_ENV / VERCEL_URL / VERCEL_BRANCH_URL</td>
 <td>Platform-owned metadata used for exact preview deployment/branch origins</td>
 </tr>
@@ -172,6 +176,15 @@ npm run dev
 <p>Never trust request Host/X-Forwarded-Host as an origin allowlist. No wildcard *.vercel.app. System deployment URLs are hostnames and become HTTPS origins. Verify aliases and deployment protection on a real preview before release.</p>
 <p>Deploy the repository root as one native Next.js Vercel project with npm ci and npm run build. Browser API calls are relative and need no BACKEND_URL/rewrite. Use external managed MongoDB such as Atlas, with separate preview/prod credentials and data. Decide Atlas IP allowlisting/egress using the actual Vercel plan before production. A single app does not remove that network requirement.</p>
 <p>Database connections are cached per warm instance, not globally across deployments. Atomicity depends on MongoDB transactions, never process-local locks. Existing Google fonts require network access during builds. Swagger assets must be included in deployed function output and verified on preview. No Vercel deployment has been performed by this change.</p>
+<h3>Schedulers (repeating transactions)</h3>
+<p>A <strong>Scheduler</strong> (see <code>GLOSSARY.md</code>, <a href="adr/0001-scheduler-entity-and-fixed-thai-business-date.md">ADR 0001</a>) creates a Transaction every N days, weeks, months or years until its end condition (never, after N, an inclusive end date, or a span converted to an end date). It lives in the <code>schedulers</code> collection (<code>src/server/db/models/Scheduler.ts</code>); <code>Transaction.recurrence</code> was removed (operational migration <code>npm run db:migrate:unset-transaction-recurrence</code>, never run automatically).</p>
+<ul>
+<li>API: <code>/api/v1/schedulers</code> (GET, POST), <code>/{id}</code> (GET, PUT, DELETE), <code>/{id}/status</code> (PATCH <code>pause</code> / <code>resume</code>). Only the Creator can see or change a Scheduler; <code>canManage</code> marks it for the future shared-wallet view. At most 50 active or paused per user. A span counts the start period as the first (5 months = 5 monthly runs).</li>
+<li>Dates are calendar dates in Asia/Bangkok. <code>vercel.json</code> runs <code>/api/internal/cron/schedulers</code> daily at <code>0 17 * * *</code> UTC (00:00 Bangkok; Hobby cron may drift up to an hour, same date). The route requires <code>Authorization: Bearer $CRON_SECRET</code>, is not part of the OpenAPI product API, and returns a run summary.</li>
+<li>Each occurrence is posted by <code>RunDueSchedulersService</code> through <code>CreateTransactionService.post</code> in one UnitOfWork with a compare-and-set advance of <code>nextDueDate</code>, so repeated or concurrent runs never duplicate. Missed days are caught up with their original dates (up to 366 per Scheduler per run). Balances may go negative. A start date of today posts at creation; a past start date waits for the next cycle. Month-end days clamp (31 Jan, 28 Feb, 31 Mar).</li>
+<li>Pause skips the paused period on resume. Completed (end reached) and cancelled (the Creator lost wallet access; <code>SchedulerRepository.cancelByCreatorAndWallet</code> is the hook for shared wallets) are terminal. Edits apply to future Transactions only.</li>
+<li>Cascades: deleting a wallet or account deletes the related Schedulers; deleting a category moves them to the type&#39;s &quot;Others&quot;. Generated Transactions carry no <code>schedulerId</code>; deleting a Scheduler keeps them.</li>
+</ul>
 <h2>7. Conventions and CI</h2>
 <p>Commit: <code>tag: message</code>, case-insensitive, optional space after colon. Tags: init, feat, fix, chore, docs, refactor, test, style, perf, ci, build, revert. Branch: <code>tag/issue-id-slug</code> (convention). PR headings: <code>### Issue ID</code>, <code>### Description</code>, <code>### Image</code>. Commit/push/deployment are separate actions and require task authorization.</p>
 <p>Husky commit-msg calls <code>infra-dev/scripts/check-commit-msg.js</code>; pre-commit runs lint/type-check. CI uses Node.js 24, npm ci, API/docs checks, lint, typegen/type-check, tests, ERD sync and one app build. Commit lint and gitleaks remain. MongoDB test binary version is pinned to 8.2.6 in CI; first test run may download it.</p>

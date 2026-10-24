@@ -34,5 +34,11 @@ export const v1 = {
   getWallet: versioned(rawWallets.get, { protected: true, output: walletOutput }),
   updateWallet: versioned(rawWallets.update, { protected: true, output: walletOutput }),
   updateWalletSaving: versioned(rawWallets.updateSaving, { protected: true, schema: walletSavingUpdate, output: walletOutput }),
+  listSchedulers: versioned(rawSchedulers.list, { protected: true }),
+  createScheduler: versioned(rawSchedulers.create, { protected: true }),
+  getScheduler: versioned(rawSchedulers.get, { protected: true }),
+  updateScheduler: versioned(rawSchedulers.update, { protected: true }),
+  setSchedulerStatus: versioned(rawSchedulers.setStatus, { protected: true }),
+  deleteScheduler: versioned(rawSchedulers.remove, { protected: true }),
   homeSummary: versioned(rawHome.summary, { protected: true }),
 };

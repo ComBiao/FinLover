@@ -20,7 +20,7 @@ function operationKeysFromRoutes(files: string[], root: string, version: 'legacy
   return Promise.all(files.map(async file => {
     const relative = path.relative(root, path.dirname(file));
     const segments = relative === '' ? [] : relative.split(path.sep);
-    if (version === 'legacy' && ['v1', 'docs', 'openapi'].includes(segments[0] ?? '')) return [];
+    if (version === 'legacy' && ['v1', 'docs', 'openapi', 'internal'].includes(segments[0] ?? '')) return [];
     const route = `${version === 'v1' ? '/api/v1' : '/api'}${segments.length ? `/${segments.map(segment => segment.replace(/^\[(.+)\]$/, '{$1}')).join('/')}` : ''}`;
     const contents = await readFile(file, 'utf8');
     return [...contents.matchAll(/export\s+(?:const|(?:async\s+)?function)\s+(GET|POST|PUT|PATCH|DELETE|OPTIONS|HEAD)\b/g)]
@@ -68,8 +68,8 @@ for (const file of await routeFiles(apiRoot)) {
   const relativeDirectory = path.relative(apiRoot, path.dirname(file));
   const suffix = relativeDirectory === '.' ? '' : `/${relativeDirectory.split(path.sep).map(segment => segment.replace(/^\[(.+)\]$/, '{$1}')).join('/')}`;
   const route = `/api${suffix}`;
-  // Swagger UI and spec-serving routes are documentation infrastructure, not product API operations.
-  if (route === '/api/docs' || route.startsWith('/api/docs/') || route === '/api/openapi' || route.startsWith('/api/openapi/')) continue;
+  // Swagger UI, spec-serving and platform-cron routes are infrastructure, not product API operations.
+  if (route === '/api/docs' || route.startsWith('/api/docs/') || route === '/api/openapi' || route.startsWith('/api/openapi/') || route.startsWith('/api/internal/')) continue;
   const contents = await readFile(file, 'utf8');
   const handlers = contents.matchAll(/export\s+(?:(?:async\s+)?function\s+|const\s+)(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\b/g);
   for (const [, method] of handlers) {

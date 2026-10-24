@@ -24,6 +24,9 @@ import {
   loginSchema,
   registerSchema,
   apiError,
+  schedulerInput,
+  schedulerResponse,
+  schedulerStatusInput,
 } from '@/shared/contracts';
 
 const schema = (value: z.ZodType): Record<string, unknown> => {
@@ -47,6 +50,10 @@ const loginUser = obj({ id: { type: 'string' }, email: { type: 'string', format:
 const currentUser = obj({ id: { type: 'string' }, email: { type: 'string', format: 'email' }, name: { type: 'string' } }, ['id', 'email']);
 const legacyCategory = obj({ _id: { type: 'string' }, userId: { type: 'string' }, name: { type: 'string' }, type: { enum: ['income', 'expense'] }, isSystem: { type: 'boolean' }, createdAt: { type: 'string' }, updatedAt: { type: 'string' }, color: { type: 'string' }, icon: { type: 'string' }, __v: { type: 'integer' } }, ['_id', 'userId', 'name', 'type', 'isSystem', 'createdAt', 'updatedAt']);
 const legacyTxResponse = obj({ id: { type: 'string' }, wallet_id: { type: 'string' }, category_id: { type: ['string', 'null'] }, type: { enum: ['income', 'expense'] }, amount: { type: 'number' }, date: { type: 'string', format: 'date' }, title: { type: 'string' }, note: { type: 'string' } }, ['id', 'wallet_id', 'category_id', 'type', 'amount', 'date', 'title']);
+
+const schedulerExample = { walletId: '507f1f77bcf86cd799439011', categoryId: '507f1f77bcf86cd799439012', type: 'expense', amount: 179, title: 'YouTube Premium', note: 'Family plan', startDate: '2026-11-05', frequency: 'monthly', interval: 1, end: { type: 'span', value: 12, unit: 'months' } };
+const schedulerResponseExample = { id: '507f1f77bcf86cd799439013', walletId: '507f1f77bcf86cd799439011', categoryId: '507f1f77bcf86cd799439012', type: 'expense', amount: 179, title: 'YouTube Premium', note: 'Family plan', startDate: '2026-11-05', frequency: 'monthly', interval: 1, end: { type: 'endDate', endDate: '2027-11-05' }, status: 'active', createdCount: 0, nextDueDate: '2026-11-05', canManage: true };
+const schedulerRules = ' Due dates are calendar dates in Asia/Bangkok, posted by a daily job at 00:00 Bangkok time (17:00 UTC). Only the Creator can read or change a scheduler.';
 
 export const operations = [
   { action: 'listWalletMembers', method: 'get', path: '/wallets/{id}/members', status: 200, errors: [400, 401, 403, 404, 409, 500], versions: ['v1'], description: 'Owner and accepted Contributors can read Owner, accepted members and pending invitations (userId/name/email/role/status). Pending invitees cannot access members. Read-only snapshot.' },
@@ -77,6 +84,12 @@ export const operations = [
   { action: 'updateTransaction', method: 'put', path: '/transaction/{id}', status: 200, errors: [400, 401, 403, 404, 409, 422, 500], description: 'Replace editable fields of an owned transaction; reverse old and apply new balance atomically. wallet cannot be changed by this API. Shared writes return 409 until E7-11.' },
   { action: 'deleteTransaction', method: 'delete', path: '/transaction/{id}', status: 204, errors: [400, 401, 403, 404, 409, 422, 500], description: 'Delete an owned transaction and reverse its balance atomically. Legacy success has no body. Shared balance changes return 409 until E7-11 and deletion rolls back.' },
   { action: 'deleteWallet', method: 'delete', path: '/wallets/{id}', status: 204, errors: [400, 401, 404, 500], versions: ['v1'], description: 'Delete an owned wallet and all of its transactions atomically in one UnitOfWork; nothing is deleted if any step fails. Other wallets and their transactions are untouched. Any owned wallet may be deleted, including the default or last wallet. Data cannot be recovered.' },
+  { action: 'listSchedulers', method: 'get', path: '/schedulers', status: 200, errors: [400, 401, 500], versions: ['v1'], description: "List the caller's schedulers, upcoming first (completed and cancelled last), optionally filtered by wallet or status. Each item has canManage, true for the Creator." + schedulerRules },
+  { action: 'createScheduler', method: 'post', path: '/schedulers', status: 201, errors: [400, 401, 404, 409, 415, 500], versions: ['v1'], description: 'Create a scheduler that posts a transaction every N days, weeks, months or years (interval up to 365 days, 52 weeks, 60 months or 5 years). End: never, after N transactions (1-1000), on an inclusive endDate, or a span in weeks/months/years that the server converts to endDate (the start period counts as the first, so 5 months is 5 monthly runs). categoryId defaults to the Others category of the type. A start date of today posts the first transaction immediately; a past start date is not back-filled and waits for the next cycle; month-end days clamp (31 Jan, 28 Feb, 31 Mar). Balances may go negative. At most 50 active or paused schedulers per user (409).' + schedulerRules },
+  { action: 'getScheduler', method: 'get', path: '/schedulers/{id}', status: 200, errors: [400, 401, 404, 500], versions: ['v1'], description: "Get a scheduler by ID. A missing scheduler, or another user's, returns 404." + schedulerRules },
+  { action: 'updateScheduler', method: 'put', path: '/schedulers/{id}', status: 200, errors: [400, 401, 404, 409, 415, 500], versions: ['v1'], description: 'Replace the editable fields. Changes apply to future transactions only; past transactions are untouched. Changing the start date, frequency or interval restarts the next due date from today, and an end condition that is already met completes the scheduler. Completed and cancelled schedulers cannot be edited (409).' + schedulerRules },
+  { action: 'setSchedulerStatus', method: 'patch', path: '/schedulers/{id}/status', status: 200, errors: [400, 401, 404, 409, 415, 500], versions: ['v1'], description: 'Pause an active scheduler or resume a paused one. Resuming skips everything missed while paused and continues from the next scheduled date on or after today (or completes it if the end is already met). Any other transition returns 409; cancelled is set only by the system.' + schedulerRules },
+  { action: 'deleteScheduler', method: 'delete', path: '/schedulers/{id}', status: 204, errors: [400, 401, 404, 500], versions: ['v1'], description: 'Delete a scheduler in any state. Transactions it already created stay in the ledger.' + schedulerRules },
   { action: 'getHomeSummary', method: 'get', path: '/home/summary', status: 200, errors: [400, 401, 404, 409, 500], versions: ['v1'], description: "Home page figures for an optional YYYY-MM month (defaulting to the current month in APPLICATION_TIMEZONE) and either every owned wallet (walletId=all, the default) or one owned wallet. All excludes shared wallets; selecting an owned shared wallet returns 409 until E7-15. totalBalance sums the scoped wallets' current balances; hasWallets reports whether the caller owns any wallet; savingGoal shows the selected wallet's progress (percent floored to 0–100) when it is a saving wallet with a goal, otherwise null, and is always null for walletId=all. income and expense total the scoped transactions dated in that month; net is income minus expense with status surplus, overspending or even. topCategories lists up to three expense categories by amount spent (ties by name); expenses without a category count toward the seeded expense Others. An invalid walletId returns 400; another user's or a missing wallet returns 404." },
 ] as const;
 
@@ -126,7 +139,7 @@ export function buildSpec(version: 'legacy' | 'v1') {
                   : action === 'listTransactions' ? { type: 'array', items: schema(transactionResponse) }
                     : action === 'getHomeSummary' ? schema(homeSummaryResponse)
                       : action === 'getTransactionSummary' ? schema(transactionSummaryResponse)
-                    : (v1 ? schema(transactionResponse) : legacyTxResponse);
+                    : (v1 ? schema(transactionResponse) : legacyTxResponse));
     const success = v1 ? obj({ status: { const: true }, data }) : action.includes('Category') || action.includes('Transaction') ? obj({ data }) : data;
     const error = v1 ? obj({ status: { const: false }, error: schema(apiError), timestamp: { type: 'string', format: 'date-time' }, path: { type: 'string' } }) : obj({ error: schema(apiError) });
     const status = v1 && operation.status === 204 ? 200 : operation.status;
@@ -134,13 +147,15 @@ export function buildSpec(version: 'legacy' | 'v1') {
     const responseExample = action === 'listWallets' ? { status: true, data: [walletExample] }
       : action === 'getWallet' || action === 'updateWallet' || action === 'updateWalletSaving' ? { status: true, data: walletExample }
         : action === 'getTransactionSummary' ? { status: true, data: { totalIncome: 60300, totalExpense: 7495, netBalance: 52805 } }
+        : action === 'listSchedulers' ? { status: true, data: [schedulerResponseExample] }
+        : action === 'createScheduler' || action === 'getScheduler' || action === 'updateScheduler' || action === 'setSchedulerStatus' ? { status: true, data: schedulerResponseExample }
         : action === 'getHomeSummary' ? { status: true, data: { month: '2026-10', walletId: 'all', balance: { hasWallets: true, totalBalance: 1250.5, savingGoal: null }, income: 30000, expense: 7495, net: { net: 22505, status: 'surplus' }, topCategories: [{ rank: 1, categoryId: '507f1f77bcf86cd799439012', name: 'Food & Drinks', icon: 'Utensils', color: '#F97316', amount: 4200 }] } }
         : undefined;
     const responses: Record<string, unknown> = { [status]: { description: 'Success', ...(status === 204 ? {} : { content: { 'application/json': { schema: success, ...(responseExample ? { example: responseExample } : {}) } } }) } };
     const errors = new Set<number>(operation.errors.map(value => v1 && value === 422 ? 400 : value));
     if (method !== 'get') { errors.add(403); errors.add(415); }
     if (v1) errors.add(500);
-    for (const code of errors) responses[code] = { description: ({ 400: 'Invalid JSON, fields, ID, or missing consent', 401: 'Missing, invalid, or expired credentials', 403: 'Forbidden resource, system category, or untrusted/missing Origin for cookie writes', 404: 'Not found or not owned', 409: v1 ? 'Duplicate email, category, wallet name or membership; state conflict or shared operation not yet available' : 'Duplicate email or category name', 415: 'Body-bearing cookie/browser-auth mutation requires application/json', 422: 'Invalid transaction fields, ID, or category', 500: 'Internal server error' } as Record<number, string>)[code], content: { 'application/json': { schema: error } } };
+    for (const code of errors) responses[code] = { description: ({ 400: 'Invalid JSON, fields, ID, or missing consent', 401: 'Missing, invalid, or expired credentials', 403: 'Forbidden resource, system category, or untrusted/missing Origin for cookie writes', 404: 'Not found or not owned', 409: v1 ? 'Duplicate email, category, wallet name or membership; state conflict, scheduler limit reached or shared operation not yet available' : 'Duplicate email or category name', 415: 'Body-bearing cookie/browser-auth mutation requires application/json', 422: 'Invalid transaction fields, ID, or category', 500: 'Internal server error' } as Record<number, string>)[code], content: { 'application/json': { schema: error } } };
     const id = '507f1f77bcf86cd799439011';
     const transactionExample = v1 ? { walletId: id, categoryId: null, type: 'expense', amount: 42, date: '2026-09-27', title: 'Lunch', note: 'Lunch' } : { wallet_id: id, category_id: null, type: 'Expense', amount: 42, date: '2026-09-27', title: 'Lunch', note: 'Lunch' };
     const example: Record<string, unknown> = action === 'transferWalletOwnership' ? { userId: id }
@@ -168,6 +183,10 @@ export function buildSpec(version: 'legacy' | 'v1') {
         { name: 'type', in: 'query', required: false, schema: { type: 'string', enum: ['income', 'expense'] } },
         { name: 'search', in: 'query', required: false, description: 'Case-insensitive text matched against title or note (max 100 characters).', schema: { type: 'string', maxLength: 100 }, example: 'lunch' },
       ] : []),
+      ...(action === 'listSchedulers' ? [
+        { name: 'walletId', in: 'query', required: false, schema: { type: 'string', pattern: '^[a-fA-F0-9]{24}$' } },
+        { name: 'status', in: 'query', required: false, schema: { type: 'string', enum: ['active', 'paused', 'completed', 'cancelled'] } },
+      ] : []),
       ...(action === 'getHomeSummary' ? [{ name: 'month', in: 'query', required: false, schema: { type: 'string', pattern: '^\\d{4}-(0[1-9]|1[0-2])$' }, example: '2026-10' }, { name: 'walletId', in: 'query', required: false, description: 'all (default) or the id of an owned wallet.', schema: { type: 'string', pattern: '^(all|[a-fA-F0-9]{24})$' }, example: 'all' }] : []),
     ];
     paths[path] ??= {};
@@ -183,7 +202,7 @@ export function buildSpec(version: 'legacy' | 'v1') {
     };
   }
 
-  const walletStatus = v1 ? 'Wallet create, list, detail, update, saving-status and delete operations are available on v1.' : 'The legacy API has no wallet operations.';
+  const walletStatus = v1 ? 'Wallet create, list, detail, update, saving-status and delete operations and scheduler (repeating transaction) operations are available on v1.' : 'The legacy API has no wallet operations.';
   const unimplemented = v1 ? 'Monthly transaction reads, the transaction and home summaries, category lists and the current-user endpoint are available; reports are not implemented.' : 'Wallet endpoints, remaining GET lists, reports and the current-user endpoint are not implemented.';
   return {
     openapi: '3.1.0',
