@@ -31,7 +31,7 @@ export const categoryInput = z.object({
 export const categoryUpdate = categoryInput.partial();
 export const categoryListQuery = z.object({ type: z.enum(['income', 'expense']).optional() });
 export const transactionInput = z.object({ walletId: objectId, categoryId: objectId.nullable().optional(), type: z.enum(['income', 'expense']), amount: z.number().min(0.01), date: z.iso.date(), title: z.string().trim().min(1).max(100), note: z.string().max(255).optional() });
-export const transactionUpdate = transactionInput.omit({ walletId: true });
+export const transactionUpdate = transactionInput.extend({ walletId: objectId.optional() });
 export const transactionAttribution = z.object({ id: objectId, name: z.string().min(1) });
 // Optional during the E7 contract-first rollout; personal responses omit attribution.
 export const transactionResponse = transactionInput.extend({ id: objectId, categoryId: objectId.nullable(), createdBy: transactionAttribution.optional(), editedBy: transactionAttribution.optional() });
@@ -130,6 +130,7 @@ export const legacyTransactionInput = z.object({
 });
 
 export const legacyTransactionUpdate = z.object({
+  wallet_id: z.string().min(1).optional(),
   category_id: z.string().min(1).optional().nullable(),
   type: z.enum(['Income', 'Expense'], {
     error: 'type is required and must be "Income" or "Expense"',

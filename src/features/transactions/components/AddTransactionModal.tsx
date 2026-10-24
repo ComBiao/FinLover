@@ -481,8 +481,7 @@ export function AddTransactionModal({
                       id="transaction-wallet"
                       value={field.value}
                       onValueChange={(nextWalletId) => field.onChange(nextWalletId ?? "")}
-                      // The update API can't move a transaction between wallets.
-                      disabled={isEditMode}
+                      disabled={isSubmitting}
                     />
                   )}
                 />
