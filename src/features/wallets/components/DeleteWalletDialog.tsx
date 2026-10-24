@@ -57,8 +57,10 @@ export function DeleteWalletDialog({ wallet, open, onOpenChange }: DeleteWalletD
               Are you sure you want to delete &ldquo;{wallet?.name}&rdquo;?
             </p>
             <p className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-              <strong>Warning:</strong> All transactions associated with this wallet will be permanently
-              deleted from your account. This action cannot be undone.
+              <strong>Warning:</strong>{" "}
+              {wallet?.isShared
+                ? `Every transaction from all ${wallet.memberCount ?? "the"} members will be permanently deleted, and the wallet disappears from everyone's dashboard. This action cannot be undone.`
+                : "All transactions associated with this wallet will be permanently deleted from your account. This action cannot be undone."}
             </p>
           </AlertDialogDescription>
         </AlertDialogHeader>

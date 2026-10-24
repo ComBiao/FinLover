@@ -15,6 +15,8 @@ const server = spawn(isWin ? 'npx.cmd' : 'npx', ['next', 'dev', '-p', port], {
     MONGODB_URI: mongo.getUri(),
     JWT_SECRET: 'e2e-secret-key',
     PUBLIC_ORIGINS: `http://localhost:${port}`,
+    // e2e talks to the real API only; the shared-wallet mock layer must stay off.
+    NEXT_PUBLIC_SHARED_WALLET_MOCKS: 'false',
   },
 });
 

@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import type { TransactionAuthor } from "@/features/wallets/shared/types";
 import type { TransactionType } from "@/types/category";
 import type { DateRange } from "@/types/dateRange";
 
@@ -26,6 +27,10 @@ export type Transaction = {
   walletId: string;
   date: Date;
   note?: string;
+  /** Shared wallets only: who logged this transaction. Absent for personal wallets. */
+  createdBy?: TransactionAuthor;
+  /** Shared wallets only: who last edited it, when that is not the author. */
+  editedBy?: TransactionAuthor;
 };
 
 /** Filter criteria for the Transactions list — `undefined`/empty means "no filter". */

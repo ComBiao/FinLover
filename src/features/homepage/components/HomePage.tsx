@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Plus } from "lucide-react";
+import { Plus, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import { AddTransactionModal } from "@/features/transactions/components/AddTransactionModal";
@@ -15,6 +15,9 @@ import {
   useUpdateTransaction,
 } from "@/features/transactions/hooks/useTransactionMutations";
 import { useWallets } from "@/features/wallets/hooks/useWallets";
+import { MembersDialog } from "@/features/wallets/components/MembersDialog";
+import { NotificationBell } from "@/features/wallets/components/NotificationBell";
+import { useSharedWalletTransactions } from "@/features/wallets/shared/hooks";
 import { useTransactionModal } from "@/features/transactions/store/useTransactionModal";
 import type { Transaction } from "@/types/transaction";
 
@@ -61,7 +64,18 @@ export function HomePage() {
   }, [isWalletsLoaded, wallets, walletId, setWalletId]);
   // Memoized so the query key stays stable between renders (avoids refetch loops)
   const months = React.useMemo(() => [month], [month]);
-  const { data: transactions = [], isPending: isTransactionsPending } = useTransactions(months);
+  const { data: personalRows = [], isPending: isPersonalPending } = useTransactions(months);
+
+  // A shared wallet's rows come from every member, so they have their own query.
+  const selectedWallet = wallets.find((wallet) => wallet.id === walletId);
+  const isSharedSelected = Boolean(selectedWallet?.isShared);
+  const { data: sharedRows = [], isPending: isSharedPending } = useSharedWalletTransactions(
+    isSharedSelected ? walletId : undefined,
+    month
+  );
+  const transactions = isSharedSelected ? sharedRows : personalRows;
+  const isTransactionsPending = isSharedSelected ? isSharedPending : isPersonalPending;
+  const [membersOpen, setMembersOpen] = React.useState(false);
   const {
     data: summary,
     isPending: isSummaryPending,
@@ -86,16 +100,21 @@ export function HomePage() {
   const closeDeleteModal = useTransactionModal((state) => state.closeDeleteModal);
   const deletingTransaction = useTransactionModal((state) => state.deletingTransaction);
 
+  const sharedWalletIds = React.useMemo(
+    () => new Set(wallets.filter((wallet) => wallet.isShared).map((wallet) => wallet.id)),
+    [wallets]
+  );
   const monthTransactions = React.useMemo(
     () =>
       transactions
         .filter(
           (transaction) =>
-            (walletId === "all" || transaction.walletId === walletId) &&
+            // "All wallets" is the personal view: rows logged into shared wallets stay out of it.
+            (walletId === "all" ? !sharedWalletIds.has(transaction.walletId) : transaction.walletId === walletId) &&
             isDateInMonth(transaction.date, month)
         )
         .sort((a, b) => b.date.getTime() - a.date.getTime()),
-    [transactions, walletId, month]
+    [transactions, walletId, month, sharedWalletIds]
   );
 
   const monthLabel = monthKeyLabel(month);
@@ -142,16 +161,31 @@ export function HomePage() {
             <div className="flex flex-wrap items-center gap-2.5">
               <MonthPicker value={month} onValueChange={setMonth} />
               <WalletDropdown wallets={wallets} value={walletId} onValueChange={setWalletId} />
+              {isSharedSelected ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-[54px] gap-2 px-3.5 font-bold"
+                  onClick={() => setMembersOpen(true)}
+                >
+                  <Users className="size-4" />
+                  {selectedWallet?.memberCount ?? 0}{" "}
+                  {selectedWallet?.memberCount === 1 ? "member" : "members"}
+                </Button>
+              ) : null}
             </div>
           </div>
 
-          <Button
-            type="button"
-            onClick={() => openModal(undefined, walletId === "all" ? undefined : walletId)}
-          >
-            <Plus className="size-4" />
-            Add Transaction
-          </Button>
+          <div className="flex items-center gap-2">
+            <NotificationBell />
+            <Button
+              type="button"
+              onClick={() => openModal(undefined, walletId === "all" ? undefined : walletId)}
+            >
+              <Plus className="size-4" />
+              Add Transaction
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-[18px] md:grid-cols-3">
@@ -172,11 +206,14 @@ export function HomePage() {
             expense={summary?.expense ?? 0}
             isLoading={isSummaryPending}
           />
-          <TopCategoriesCard
-            monthLabel={monthLabel}
-            topCategories={summary?.topCategories ?? []}
-            isLoading={isSummaryPending}
-          />
+          {/* Shared wallets have no categories, so there is nothing to rank. */}
+          {isSharedSelected ? null : (
+            <TopCategoriesCard
+              monthLabel={monthLabel}
+              topCategories={summary?.topCategories ?? []}
+              isLoading={isSummaryPending}
+            />
+          )}
         </div>
 
         <div className="flex items-baseline justify-between gap-3">
@@ -212,6 +249,12 @@ export function HomePage() {
           />
         )}
       </div>
+
+      <MembersDialog
+        wallet={isSharedSelected ? (selectedWallet ?? null) : null}
+        open={membersOpen && isSharedSelected}
+        onOpenChange={setMembersOpen}
+      />
 
       <AddTransactionModal
         initialData={editingTransaction}
