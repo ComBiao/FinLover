@@ -27,9 +27,12 @@ test.describe.serial("EPIC 4: Recurring Transactions E2E Suite (US4-1 to US4-5 &
   });
 
   test.afterAll(async () => {
-    if (mongoose.connection.readyState !== 0) {
-      await mongoose.disconnect();
-    }
+    try {
+      if (mongoose.connection.readyState !== 0) {
+        await mongoose.connection.close(true);
+        await mongoose.disconnect();
+      }
+    } catch {}
   });
 
   test.beforeEach(async ({ page }) => {

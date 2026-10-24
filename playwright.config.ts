@@ -16,7 +16,7 @@ export default defineConfig({
     command: 'node tests/e2e/start-server.mjs',
     url: `http://localhost:${port}/login`,
     timeout: 180_000,
-    reuseExistingServer: true,
+    reuseExistingServer: false,
     env: { E2E_PORT: port },
   },
 });
