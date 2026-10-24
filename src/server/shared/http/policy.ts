@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { resolvePrincipal, type AuthenticatedPrincipal } from './auth';
 import { logError } from './logging';
 import { publicOrigins } from '@/server/shared/config/env';
-export interface RouteContext { params: Promise<{ id: string }>; principal?: AuthenticatedPrincipal }
+export interface RouteContext { params: Promise<{ id: string; userId?: string }>; principal?: AuthenticatedPrincipal }
 export type Handler = (request: Request, context: RouteContext) => Promise<Response>;
 export interface Policy {
   protected?: boolean;

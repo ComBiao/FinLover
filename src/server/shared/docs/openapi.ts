@@ -12,6 +12,9 @@ import {
   walletInvitationInput,
   walletInvitationResponse,
   walletMemberResponse,
+  walletMembersResponse,
+  transferOwnershipInput,
+  sharedWalletResponse,
   myInvitationsResponse,
   walletUpdate,
   walletResponse,
@@ -53,6 +56,10 @@ const schedulerResponseExample = { id: '507f1f77bcf86cd799439013', walletId: '50
 const schedulerRules = ' Due dates are calendar dates in Asia/Bangkok, posted by a daily job at 00:00 Bangkok time (17:00 UTC). Only the Creator can read or change a scheduler.';
 
 export const operations = [
+  { action: 'listWalletMembers', method: 'get', path: '/wallets/{id}/members', status: 200, errors: [400, 401, 403, 404, 409, 500], versions: ['v1'], description: 'Owner and accepted Contributors can read Owner, accepted members and pending invitations (userId/name/email/role/status). Pending invitees cannot access members. Read-only snapshot.' },
+  { action: 'removeWalletMember', method: 'delete', path: '/wallets/{id}/members/{userId}', status: 200, errors: [400, 401, 403, 404, 409, 500], versions: ['v1'], description: 'Owner removes an accepted Contributor or cancels a pending invitation. Removing Owner gives 409; missing member gives 404. Access is revoked, transactions and balance stay unchanged.' },
+  { action: 'leaveWallet', method: 'post', path: '/wallets/{id}/leave', status: 200, errors: [400, 401, 403, 404, 409, 500], versions: ['v1'], description: 'Accepted Contributor leaves at any balance. Owner receives 409: transfer first if Contributors remain, otherwise explicitly delete wallet. Transactions are preserved.' },
+  { action: 'transferWalletOwnership', method: 'post', path: '/wallets/{id}/transfer-ownership', status: 200, errors: [400, 401, 403, 404, 409, 500], versions: ['v1'], description: 'Owner transfers atomically to an accepted Contributor. Old Owner becomes accepted Contributor, new Owner has no membership row. Owner/name collision gives 409 with full rollback. Response role is relative to caller (contributor).' },
   { action: 'inviteWalletMember', method: 'post', path: '/wallets/{id}/invitations', status: 201, errors: [400, 401, 403, 404, 409, 500], versions: ['v1'], description: 'Owner invites an existing user to a shared wallet. Normalize email; unknown/self email gives 400 with fields.email User not found/Cannot invite yourself. Duplicate pending or accepted membership gives 409. No email delivery or expiration.' },
   { action: 'listInvitations', method: 'get', path: '/invitations', status: 200, errors: [401, 500], versions: ['v1'], description: 'List caller pending invitations newest first; items and total for the notification badge.' },
   { action: 'acceptInvitation', method: 'post', path: '/invitations/{id}/accept', status: 200, errors: [400, 401, 403, 404, 409, 500], versions: ['v1'], description: 'Invitee accepts atomically. Pending gives no access; accepted membership grants wallet reads. Already accepted gives 409; another invitee gives 403.' },
@@ -102,7 +109,8 @@ export function buildSpec(version: 'legacy' | 'v1') {
     const { action, method } = operation;
     const path = (v1 ? '/api/v1' : '/api') + (v1 ? operation.path.replace('/transaction', '/transactions') : operation.path);
     const schedulerBody = action === 'createScheduler' || action === 'updateScheduler' ? schedulerInput : action === 'setSchedulerStatus' ? schedulerStatusInput : undefined;
-    const input = schedulerBody ?? (action === 'register' ? registerSchema
+    const input = schedulerBody ?? (action === 'transferWalletOwnership' ? transferOwnershipInput
+      : action === 'register' ? registerSchema
       : action === 'login' ? loginSchema
         : action === 'createCategory' ? categoryInput
           : action === 'updateCategory' ? categoryUpdate
@@ -116,7 +124,10 @@ export function buildSpec(version: 'legacy' | 'v1') {
     const schedulerData = action === 'listSchedulers' ? { type: 'array', items: schema(schedulerResponse) }
       : action === 'deleteScheduler' ? { type: 'null' }
         : action.endsWith('Scheduler') || action === 'setSchedulerStatus' ? schema(schedulerResponse) : undefined;
-    const data = schedulerData ?? (action === 'inviteWalletMember' ? schema(walletInvitationResponse)
+    const data = schedulerData ?? (action === 'listWalletMembers' ? schema(walletMembersResponse)
+      : action === 'transferWalletOwnership' ? schema(sharedWalletResponse)
+      : action === 'removeWalletMember' || action === 'leaveWallet' ? { type: 'null' }
+      : action === 'inviteWalletMember' ? schema(walletInvitationResponse)
       : action === 'listInvitations' ? schema(myInvitationsResponse)
       : action === 'acceptInvitation' ? schema(walletMemberResponse)
       : action === 'declineInvitation' ? { type: 'null' }
@@ -153,6 +164,7 @@ export function buildSpec(version: 'legacy' | 'v1') {
     const transactionExample = v1 ? { walletId: id, categoryId: null, type: 'expense', amount: 42, date: '2026-09-27', title: 'Lunch', note: 'Lunch' } : { wallet_id: id, category_id: null, type: 'Expense', amount: 42, date: '2026-09-27', title: 'Lunch', note: 'Lunch' };
     const example: Record<string, unknown> = action === 'createScheduler' || action === 'updateScheduler' ? schedulerExample
       : action === 'setSchedulerStatus' ? { action: 'pause' }
+      : action === 'transferWalletOwnership' ? { userId: id }
       : action === 'inviteWalletMember' ? { email: 'friend@example.com' }
       : action === 'register' ? { name: 'Test User', email: 'test@example.com', password: 'Password1', confirmPassword: 'Password1', dataPrivacyConsent: true }
       : action === 'login' ? { email: 'test@example.com', password: 'Password1' }
@@ -165,6 +177,7 @@ export function buildSpec(version: 'legacy' | 'v1') {
     const authDescription = v1 ? ` Authorization takes precedence over cookie.${method === 'get' ? ' Cookie-authenticated GETs do not require an Origin.' : ' Cookie writes require an Origin in PUBLIC_ORIGINS; missing Origin is rejected.'} Implemented.` : ' Legacy response contract; auth is unified with v1. Cookie writes and login/register/logout require an exact trusted Origin; no Origin is rejected. A valid Bearer on protected APIs does not fall back to cookies.';
     const publicOperation = 'public' in operation;
     const parameters = [
+      ...(path.includes('{userId}') ? [{ name: 'userId', in: 'path', required: true, schema: { type: 'string', pattern: '^[a-fA-F0-9]{24}$' } }] : []),
       ...(path.includes('{id}') ? [{ name: 'id', in: 'path', required: true, schema: { type: 'string', pattern: '^[a-fA-F0-9]{24}$' } }] : []),
       ...(action === 'listCategories' ? [{ name: 'type', in: 'query', required: false, description: 'Only return categories of this type.', schema: { type: 'string', enum: ['income', 'expense'] }, example: 'expense' }] : []),
       ...(action === 'listTransactions' ? [{ name: 'month', in: 'query', required: false, schema: { type: 'string', pattern: '^\\d{4}-(0[1-9]|1[0-2])$' }, example: '2026-10' }, { name: 'search', in: 'query', required: false, description: 'Case-insensitive text matched against title or note (max 100 characters); combines with month.', schema: { type: 'string', maxLength: 100 }, example: 'lunch' }] : []),
