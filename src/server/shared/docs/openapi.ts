@@ -108,7 +108,8 @@ export function buildSpec(version: 'legacy' | 'v1') {
   for (const operation of operationsFor(version)) {
     const { action, method } = operation;
     const path = (v1 ? '/api/v1' : '/api') + (v1 ? operation.path.replace('/transaction', '/transactions') : operation.path);
-    const input = action === 'transferWalletOwnership' ? transferOwnershipInput
+    const schedulerBody = action === 'createScheduler' || action === 'updateScheduler' ? schedulerInput : action === 'setSchedulerStatus' ? schedulerStatusInput : undefined;
+    const input = schedulerBody ?? (action === 'transferWalletOwnership' ? transferOwnershipInput
       : action === 'register' ? registerSchema
       : action === 'login' ? loginSchema
         : action === 'createCategory' ? categoryInput
@@ -119,8 +120,11 @@ export function buildSpec(version: 'legacy' | 'v1') {
                   : action === 'inviteWalletMember' ? walletInvitationInput
                   : action === 'updateWallet' ? walletUpdate
                     : action === 'updateWalletSaving' ? walletSavingUpdate
-                    : undefined;
-    const data = action === 'listWalletMembers' ? schema(walletMembersResponse)
+                    : undefined);
+    const schedulerData = action === 'listSchedulers' ? { type: 'array', items: schema(schedulerResponse) }
+      : action === 'deleteScheduler' ? { type: 'null' }
+        : action.endsWith('Scheduler') || action === 'setSchedulerStatus' ? schema(schedulerResponse) : undefined;
+    const data = schedulerData ?? (action === 'listWalletMembers' ? schema(walletMembersResponse)
       : action === 'transferWalletOwnership' ? schema(sharedWalletResponse)
       : action === 'removeWalletMember' || action === 'leaveWallet' ? { type: 'null' }
       : action === 'inviteWalletMember' ? schema(walletInvitationResponse)
@@ -158,7 +162,9 @@ export function buildSpec(version: 'legacy' | 'v1') {
     for (const code of errors) responses[code] = { description: ({ 400: 'Invalid JSON, fields, ID, or missing consent', 401: 'Missing, invalid, or expired credentials', 403: 'Forbidden resource, system category, or untrusted/missing Origin for cookie writes', 404: 'Not found or not owned', 409: v1 ? 'Duplicate email, category, wallet name or membership; state conflict, scheduler limit reached or shared operation not yet available' : 'Duplicate email or category name', 415: 'Body-bearing cookie/browser-auth mutation requires application/json', 422: 'Invalid transaction fields, ID, or category', 500: 'Internal server error' } as Record<number, string>)[code], content: { 'application/json': { schema: error } } };
     const id = '507f1f77bcf86cd799439011';
     const transactionExample = v1 ? { walletId: id, categoryId: null, type: 'expense', amount: 42, date: '2026-09-27', title: 'Lunch', note: 'Lunch' } : { wallet_id: id, category_id: null, type: 'Expense', amount: 42, date: '2026-09-27', title: 'Lunch', note: 'Lunch' };
-    const example: Record<string, unknown> = action === 'transferWalletOwnership' ? { userId: id }
+    const example: Record<string, unknown> = action === 'createScheduler' || action === 'updateScheduler' ? schedulerExample
+      : action === 'setSchedulerStatus' ? { action: 'pause' }
+      : action === 'transferWalletOwnership' ? { userId: id }
       : action === 'inviteWalletMember' ? { email: 'friend@example.com' }
       : action === 'register' ? { name: 'Test User', email: 'test@example.com', password: 'Password1', confirmPassword: 'Password1', dataPrivacyConsent: true }
       : action === 'login' ? { email: 'test@example.com', password: 'Password1' }

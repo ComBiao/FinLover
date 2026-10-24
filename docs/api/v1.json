@@ -358,7 +358,7 @@
             }
           },
           "409": {
-            "description": "Duplicate email, category, wallet name or membership; state conflict or shared operation not yet available",
+            "description": "Duplicate email, category, wallet name or membership; state conflict, scheduler limit reached or shared operation not yet available",
             "content": {
               "application/json": {
                 "schema": {
@@ -738,7 +738,7 @@
             }
           },
           "409": {
-            "description": "Duplicate email, category, wallet name or membership; state conflict or shared operation not yet available",
+            "description": "Duplicate email, category, wallet name or membership; state conflict, scheduler limit reached or shared operation not yet available",
             "content": {
               "application/json": {
                 "schema": {
@@ -1162,7 +1162,7 @@
             }
           },
           "409": {
-            "description": "Duplicate email, category, wallet name or membership; state conflict or shared operation not yet available",
+            "description": "Duplicate email, category, wallet name or membership; state conflict, scheduler limit reached or shared operation not yet available",
             "content": {
               "application/json": {
                 "schema": {
@@ -1709,7 +1709,7 @@
             }
           },
           "409": {
-            "description": "Duplicate email, category, wallet name or membership; state conflict or shared operation not yet available",
+            "description": "Duplicate email, category, wallet name or membership; state conflict, scheduler limit reached or shared operation not yet available",
             "content": {
               "application/json": {
                 "schema": {
