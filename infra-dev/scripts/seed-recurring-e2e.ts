@@ -8,15 +8,25 @@ import WalletMember from "../../src/server/db/models/WalletMember";
 import Category from "../../src/server/db/models/Category";
 import { DEFAULT_CATEGORIES } from "../../src/server/modules/auth/default-categories";
 
+import fs from "node:fs";
+
 dotenv.config();
 dotenv.config({ path: ".env.local" });
 
-const MONGODB_URI = process.env.MONGODB_URI ?? "mongodb://localhost:27017/finlover";
+export function getMongoUri() {
+  if (fs.existsSync(".e2e-mongo-uri")) {
+    const fileUri = fs.readFileSync(".e2e-mongo-uri", "utf-8").trim();
+    if (fileUri) return fileUri;
+  }
+  return process.env.MONGODB_URI ?? "mongodb://localhost:27017/finlover";
+}
 
 export async function seedRecurringE2EData() {
-  if (mongoose.connection.readyState === 0) {
-    await mongoose.connect(MONGODB_URI);
+  const uri = getMongoUri();
+  if (mongoose.connection.readyState !== 0) {
+    await mongoose.disconnect();
   }
+  await mongoose.connect(uri);
 
   const USER_EMAIL = "user@example.com";
   const SECONDARY_EMAIL = "tul@example.com";
@@ -132,3 +142,4 @@ if (process.argv[1] && process.argv[1].endsWith("seed-recurring-e2e.ts")) {
       process.exit(1);
     });
 }
+

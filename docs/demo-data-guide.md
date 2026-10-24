@@ -12,7 +12,7 @@ This guide details the demo user data created for **FinLover Sprint 2**, perfect
 
 | Account Purpose | Email | Password | Name | Initial State |
 | :--- | :--- | :--- | :--- | :--- |
-| **Primary Demo User** | `demo@finlover.com` | `Password123` | Alex Demo (FinLover) | 5 Wallets, 17 Categories, 28 Transactions |
+| **Primary Demo User** | `demo@finlover.com` | `Password123` | Alex Demo (FinLover) | 5 Wallets, 17 Categories, 28 Transactions, 7 Recurring Rules |
 | **Disposable User (US1-4 Delete Demo)** | `delete-demo@finlover.com` | `Password123` | Disposable Test User | 1 Wallet, 1 Transaction (Safe for deletion demo) |
 
 > **Password Note**: `Password123` satisfies all US1-1 complexity constraints (at least 1 uppercase letter, 1 lowercase letter, 1 number, and $\ge 8$ characters).
@@ -67,6 +67,18 @@ All dashboard metrics are populated with the exact figures specified in the Spri
 | **US3-4** | **Delete Transaction** | Click `⋮` $\rightarrow$ **Delete** $\rightarrow$ confirms deletion dialog $\rightarrow$ transaction removed and wallet balance atomically recalculated. | **US3-4 Scenario 1**. |
 | **US3-5** | **"Not Chosen" Category Fallback** | Look at the transaction **"ATM Service Fee"** ($฿20.00$ on `Cash` wallet) $\rightarrow$ displayed as **"Not Chosen"** because it was submitted without a category. | **US3-5 Scenario 2**: *"category of the transaction as 'Not Chosen'"*. |
 | **US3-6** | **Filter-Aware Summary Cards** | Change filters (e.g. filter by "Shopping") $\rightarrow$ Summary cards at the top of `/transactions` dynamically recalculate totals for only that filter. | **US3-6 Scenario 1**. |
+
+---
+
+### EPIC 4: Recurring Transactions (`/recurring`)
+
+| Story ID | Feature | How to Demo with Seeded Data | Backlog AC Reference |
+| :--- | :--- | :--- | :--- |
+| **US4-1** | **Create Recurring Rule & Cadence Models** | Click **"Create Recurring Transaction"** $\rightarrow$ fill title, amount, interval & unit (`Day(s)`, `Week(s)`, `Month(s)`, `Year(s)`), start date, and end condition (`Never`, `On Date`, `After Count`). Pre-seeded examples demonstrate monthly (`Netflix 4K`, `Condo Rental`), quarterly (`Tech Magazine`), and yearly (`Cloud Storage 2TB`) cadences with month-end anchor day clamping. Immediate posting triggers if `startDate === today`. | **US4-1 Scenario 1 & 2** (Cadence models, anchor-day calculation, immediate execution on today's start date). |
+| **US4-2** | **Automated Execution & Completion** | Inspect **"Fitness Club 3-Month Trial"**: all 3 occurrences posted (`3 of 3 posted`), status is `Completed`, and `Next Due Date` is `null` / dash (`—`). When the backend cron runs or final occurrence posts, rules cleanly transition to `Completed` without further executions. | **US4-2 Scenario 1 & 2** (Cron execution, count/date completion, overdraft-tolerant execution). |
+| **US4-3** | **View & Manage Unified Recurring Rules List** | Navigate to `/recurring`. View unified schedules list displaying category chip, title, amount, wallet tag, frequency badge (`"Every 1 Month"`, `"Every 3 Months"`, `"Every 1 Year"`), next scheduled due date, progress counter (`"2 of 12 posted"`), and status badge (`Active`, `Paused`, `Completed`). | **US4-3 Scenario 1** (Unified list view, responsive badges, loading & empty states). |
+| **US4-4** | **Pause & Resume Recurring Rule** | 1. Click **Pause** on an active rule $\rightarrow$ status badge optimistically changes to `Paused`.<br>2. Inspect seeded **"Spotify Family Plan"** (Paused with past due date `2026-09-20`) $\rightarrow$ click **Resume** $\rightarrow$ status reverts to `Active` and `Next Due Date` advances forward to the upcoming cycle without retroactively posting missed occurrences. | **US4-4 Scenario 1 & 2** (Pause halts scheduler; Resume advances overdue cycle without backfill). |
+| **US4-5** | **Forward-Only Edit & Safe Delete** | 1. **Edit Rule**: Click `⋮` $\rightarrow$ **Edit Rule** on **"Condo Rental Fee"** $\rightarrow$ update amount from `฿12,000` to `฿12,500` $\rightarrow$ save. Future scheduled runs use the new amount while historical ledger entries in `/transactions` remain untouched at `฿12,000`.<br>2. **Delete Rule**: Click `⋮` $\rightarrow$ **Delete Rule** on **"Netflix 4K Premium"** $\rightarrow$ confirms dialog $\rightarrow$ rule is removed, stopping future executions while all past transactions are preserved.<br>3. **Wallet Cascade**: Deleting wallet **"Old Fund"** under `/wallets` automatically cascade-deletes **"Tech Magazine Quarterly"** rule. | **US4-5 Scenario 1 & 2** (Future-only edits preserve past ledger; safe deletion stops future runs without destroying past transaction history). |
 
 ---
 
@@ -133,4 +145,18 @@ All dashboard metrics are populated with the exact figures specified in the Spri
 
 ### November 2026 (Future Month)
 - **0 Transactions**, **฿0.00 Totals**, clean empty-state placeholder (US2-1 Scenario 2).
+
+---
+
+## 5. Seeded Recurring Rules Summary
+
+| Rule Name | Type | Category | Wallet | Cadence | Next Due Date | End Condition / Progress | Status | Purpose in Demo |
+| :--- | :---: | :--- | :--- | :--- | :---: | :---: | :---: | :--- |
+| **Netflix 4K Premium** | Expense | Entertainment | Main Bank | Every 1 Month (Day 15) | 2026-11-15 | Never / 2 posted | `Active` | Indefinite active monthly entertainment expense (US4-1, US4-3) |
+| **Condo Rental Fee** | Expense | Essentials | Main Bank | Every 1 Month (Day 1) | 2026-11-01 | After 12 / 2 of 12 posted | `Active` | Count-based end condition & future-only edit demo (US4-1, US4-5) |
+| **Tech Corp Monthly Salary** | Income | Salary | Main Bank | Every 1 Month (Day 1) | 2026-11-01 | Never / 2 posted | `Active` | Regular recurring income automation rule (US4-1, US4-3) |
+| **Spotify Family Plan** | Expense | Entertainment | Main Bank | Every 1 Month (Day 20) | 2026-09-20 (Overdue) | Never / 1 posted | `Paused` | Paused rule with overdue date for cycle advancement demo (US4-4) |
+| **Cloud Storage 2TB** | Expense | Utilities | Main Bank | Every 1 Year (Oct 10) | 2027-10-10 | Until 2029-10-10 / 1 posted | `Active` | Yearly interval with date-based end condition (US4-1, US4-3) |
+| **Fitness Club 3-Month Trial** | Expense | Health | Main Bank | Every 1 Month (Day 5) | — (`null`) | After 3 / 3 of 3 posted | `Completed` | Completed rule with null next due date & stopped scheduler (US4-2) |
+| **Tech Magazine Quarterly** | Expense | Shopping | Old Fund | Every 3 Months (Day 1) | 2026-12-01 | Never / 1 posted | `Active` | Quarterly interval (3 months); cascade deletion target with `Old Fund` (US6-5) |
 
