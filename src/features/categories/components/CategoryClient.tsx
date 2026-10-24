@@ -15,7 +15,7 @@ import type { CategoryIcon } from "@/shared/contracts";
 import type { Category } from "@/types/category";
 import { z } from "zod";
 import type { LucideIcon } from "lucide-react";
-import { Plus, Utensils, Car, Home, ShoppingCart, Zap, HeartPulse, Film, MoreHorizontal, Wallet, Banknote, Gift, Award, PieChart, Star, Smile, Check, Pencil, GraduationCap, Briefcase, CreditCard } from "lucide-react";
+import { Plus, Utensils, Car, Home, ShoppingCart, Zap, HeartPulse, Film, MoreHorizontal, Wallet, Banknote, Gift, Award, PieChart, Star, Smile, Check, Pencil, GraduationCap, Briefcase, CreditCard, ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -178,107 +178,118 @@ export function CategoryClient() {
   };
 
   return (
-    <main className="p-6 sm:p-8 max-w-5xl mx-auto w-full">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Category</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage your income and expense category</p>
-        </div>
+    <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
+      <div className="mx-auto flex max-w-6xl flex-col gap-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-extrabold text-foreground sm:text-2xl">Category</h1>
+            <p className="mt-0.5 text-sm text-muted-foreground">Manage your income and expense category</p>
+          </div>
 
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-          <DialogTrigger render={<Button className="shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground gap-2 rounded-xl" />}>
-            <Plus className="size-4" />
-            Add new category
-          </DialogTrigger>
+          <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger
+              render={
+                <Button className="gap-2">
+                  <Plus className="size-4" />
+                  <span>Add new category</span>
+                </Button>
+              }
+            />
 
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Create New Category</DialogTitle>
-              <DialogDescription>
-                Add a new category for your {type === "expense" ? "expenses" : "incomes"}.
-              </DialogDescription>
-            </DialogHeader>
+            <DialogContent className="rounded-2xl sm:max-w-[425px] max-h-[calc(100vh-2rem)] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Create New Category</DialogTitle>
+                <DialogDescription>
+                  Add a new category for your {type === "expense" ? "expenses" : "incomes"}.
+                </DialogDescription>
+              </DialogHeader>
 
-            <div className="grid gap-6 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="name">Name</Label>
-                <Input
-                  id="name"
-                  value={newName}
-                  onChange={(e) => {
-                    setNewName(e.target.value);
-                    if (errors.name) setErrors({});
-                  }}
-                  placeholder="e.g. Subscriptions"
-                  aria-invalid={Boolean(errors.name)}
-                />
-                {errors.name && (
-                  <p className="text-[13px] font-medium text-destructive">{errors.name[0]}</p>
-                )}
-              </div>
+              <div className="flex flex-col gap-4 py-2">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="name">Name</Label>
+                  <Input
+                    id="name"
+                    value={newName}
+                    onChange={(e) => {
+                      setNewName(e.target.value);
+                      if (errors.name) setErrors({});
+                    }}
+                    placeholder="e.g. Subscriptions"
+                    aria-invalid={Boolean(errors.name)}
+                  />
+                  {errors.name && (
+                    <p className="text-[13px] font-medium text-destructive">{errors.name[0]}</p>
+                  )}
+                </div>
 
-              <div className="grid gap-2">
-                <Label>Icon</Label>
-                <div className="grid grid-cols-5 gap-2 max-h-[140px] overflow-y-auto p-1">
-                  {ICONS.map((iconObj) => {
-                    const IconComp = iconObj.icon;
-                    const isSelected = newIcon === iconObj.name;
-                    return (
-                      <button
-                        key={iconObj.name}
-                        onClick={() => setNewIcon(iconObj.name)}
-                        aria-label={iconObj.name}
-                        aria-pressed={isSelected}
-                        className={cn(
-                          "flex items-center justify-center p-2 rounded-lg border transition-all",
-                          isSelected ? "border-primary bg-primary/10 text-primary shadow-sm" : "border-border hover:bg-muted text-muted-foreground"
-                        )}
-                      >
-                        <IconComp className="size-5" />
-                      </button>
-                    );
-                  })}
+                <div className="flex flex-col gap-2">
+                  <Label>Icon</Label>
+                  <div className="grid grid-cols-6 gap-2 pt-1">
+                    {ICONS.map((iconObj) => {
+                      const IconComp = iconObj.icon;
+                      const isSelected = newIcon === iconObj.name;
+                      return (
+                        <button
+                          key={iconObj.name}
+                          type="button"
+                          onClick={() => setNewIcon(iconObj.name)}
+                          aria-label={iconObj.name}
+                          aria-pressed={isSelected}
+                          className={cn(
+                            "flex w-full aspect-square items-center justify-center rounded-xl border transition-all hover:scale-105",
+                            isSelected
+                              ? "border-primary bg-primary/10 text-primary shadow-sm"
+                              : "border-border hover:bg-muted text-muted-foreground"
+                          )}
+                        >
+                          <IconComp className="size-5" />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <Label>Color Background</Label>
+                  <div className="flex flex-wrap gap-2.5 pt-1">
+                    {COLORS.map((color) => {
+                      const isSelected = newColor === color;
+                      return (
+                        <button
+                          key={color}
+                          type="button"
+                          onClick={() => setNewColor(color)}
+                          aria-label={color}
+                          aria-pressed={isSelected}
+                          style={swatchStyle(color)}
+                          className={cn(
+                            "flex size-8 items-center justify-center rounded-full transition-transform hover:scale-110",
+                            isSelected
+                              ? "ring-2 ring-primary ring-offset-2 ring-offset-background"
+                              : "opacity-80 hover:opacity-100"
+                          )}
+                        >
+                          {isSelected && <Check className="size-4" />}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
-              <div className="grid gap-2">
-                <Label>Color Background</Label>
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {COLORS.map((color) => {
-                    const isSelected = newColor === color;
-                    return (
-                      <button
-                        key={color}
-                        onClick={() => setNewColor(color)}
-                        aria-label={color}
-                        aria-pressed={isSelected}
-                        style={swatchStyle(color)}
-                        className={cn(
-                          "size-8 rounded-full flex items-center justify-center transition-transform hover:scale-110",
-                          isSelected ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "opacity-80 hover:opacity-100"
-                        )}
-                      >
-                        {isSelected && <Check className="size-4" />}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            <DialogFooter>
-              <DialogClose render={<Button variant="outline" />}>
-                Cancel
-              </DialogClose>
-              <Button onClick={handleCreate} disabled={createMutation.isPending}>{createMutation.isPending ? "Creating..." : "Create Category"}</Button>
-            </DialogFooter>
-          </DialogContent>
+              <DialogFooter className="gap-2 pt-2 sm:gap-0">
+                <DialogClose render={<Button variant="outline" type="button" />}>
+                  Cancel
+                </DialogClose>
+                <Button onClick={handleCreate} disabled={createMutation.isPending}>{createMutation.isPending ? "Creating..." : "Create Category"}</Button>
+              </DialogFooter>
+            </DialogContent>
         </Dialog>
       </div>
 
       {/* Edit Category Dialog */}
       <Dialog open={categoryToEdit !== null} onOpenChange={(open) => !open && setCategoryToEdit(null)}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="rounded-2xl sm:max-w-[425px] max-h-[calc(100vh-2rem)] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Category</DialogTitle>
             <DialogDescription>
@@ -286,8 +297,8 @@ export function CategoryClient() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-6 py-4">
-            <div className="grid gap-2">
+          <div className="flex flex-col gap-4 py-2">
+            <div className="flex flex-col gap-2">
               <Label htmlFor="edit-name">Name</Label>
               <Input
                 id="edit-name"
@@ -304,21 +315,24 @@ export function CategoryClient() {
               )}
             </div>
 
-            <div className="grid gap-2">
+            <div className="flex flex-col gap-2">
               <Label>Icon</Label>
-              <div className="grid grid-cols-5 gap-2 max-h-[140px] overflow-y-auto p-1">
+              <div className="grid grid-cols-6 gap-2 pt-1">
                 {ICONS.map((iconObj) => {
                   const IconComp = iconObj.icon;
                   const isSelected = editIcon === iconObj.name;
                   return (
                     <button
                       key={`edit-${iconObj.name}`}
+                      type="button"
                       onClick={() => setEditIcon(iconObj.name)}
                       aria-label={iconObj.name}
                       aria-pressed={isSelected}
                       className={cn(
-                        "flex items-center justify-center p-2 rounded-lg border transition-all",
-                        isSelected ? "border-primary bg-primary/10 text-primary shadow-sm" : "border-border hover:bg-muted text-muted-foreground"
+                        "flex w-full aspect-square items-center justify-center rounded-xl border transition-all hover:scale-105",
+                        isSelected
+                          ? "border-primary bg-primary/10 text-primary shadow-sm"
+                          : "border-border hover:bg-muted text-muted-foreground"
                       )}
                     >
                       <IconComp className="size-5" />
@@ -328,21 +342,24 @@ export function CategoryClient() {
               </div>
             </div>
 
-            <div className="grid gap-2">
+            <div className="flex flex-col gap-2">
               <Label>Color Background</Label>
-              <div className="flex flex-wrap gap-2 pt-1">
+              <div className="flex flex-wrap gap-2.5 pt-1">
                 {COLORS.map((color) => {
                   const isSelected = editColor === color;
                   return (
                     <button
                       key={`edit-${color}`}
+                      type="button"
                       onClick={() => setEditColor(color)}
                       aria-label={color}
                       aria-pressed={isSelected}
                       style={swatchStyle(color)}
                       className={cn(
-                        "size-8 rounded-full flex items-center justify-center transition-transform hover:scale-110",
-                        isSelected ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "opacity-80 hover:opacity-100"
+                        "flex size-8 items-center justify-center rounded-full transition-transform hover:scale-110",
+                        isSelected
+                          ? "ring-2 ring-primary ring-offset-2 ring-offset-background"
+                          : "opacity-80 hover:opacity-100"
                       )}
                     >
                       {isSelected && <Check className="size-4" />}
@@ -353,7 +370,7 @@ export function CategoryClient() {
             </div>
           </div>
 
-          <DialogFooter className="sm:justify-between">
+          <DialogFooter className="flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-between sm:gap-0">
             <Button
               variant="destructive"
               onClick={() => setCategoryToDelete(categoryToEdit)}
@@ -361,8 +378,8 @@ export function CategoryClient() {
             >
               Delete
             </Button>
-            <div className="flex flex-col-reverse sm:flex-row gap-2 mt-4 sm:mt-0">
-              <Button variant="outline" onClick={() => setCategoryToEdit(null)}>Cancel</Button>
+            <div className="flex flex-col-reverse sm:flex-row gap-2">
+              <Button variant="outline" type="button" onClick={() => setCategoryToEdit(null)}>Cancel</Button>
               <Button onClick={handleEdit} disabled={updateMutation.isPending}>{updateMutation.isPending ? "Saving..." : "Save Changes"}</Button>
             </div>
           </DialogFooter>
@@ -371,7 +388,7 @@ export function CategoryClient() {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={categoryToDelete !== null} onOpenChange={(open) => !open && setCategoryToDelete(null)}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="rounded-2xl sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Delete Category</DialogTitle>
             <DialogDescription>
@@ -385,27 +402,31 @@ export function CategoryClient() {
         </DialogContent>
       </Dialog>
 
-      <div className="mb-8 flex p-1.5 bg-muted rounded-xl w-full max-w-sm">
+      <div className="grid grid-cols-2 gap-1.5 p-1.5 bg-muted rounded-xl w-full max-w-xs sm:max-w-sm">
         <button
+          type="button"
           onClick={() => setType("expense")}
           className={cn(
-            "flex-1 py-2 px-4 text-sm font-semibold rounded-lg transition-all",
+            "flex h-11 items-center justify-center gap-2 rounded-lg text-base font-bold transition-all shadow-none",
             type === "expense"
-              ? "bg-card text-foreground shadow-sm"
+              ? "bg-destructive text-destructive-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground"
           )}
         >
+          <ArrowDownRight className="size-5" aria-hidden="true" />
           Expense
         </button>
         <button
+          type="button"
           onClick={() => setType("income")}
           className={cn(
-            "flex-1 py-2 px-4 text-sm font-semibold rounded-lg transition-all",
+            "flex h-11 items-center justify-center gap-2 rounded-lg text-base font-bold transition-all shadow-none",
             type === "income"
-              ? "bg-card text-foreground shadow-sm"
+              ? "bg-success text-white shadow-sm"
               : "text-muted-foreground hover:text-foreground"
           )}
         >
+          <ArrowUpRight className="size-5" aria-hidden="true" />
           Income
         </button>
       </div>
@@ -417,7 +438,7 @@ export function CategoryClient() {
           aria-label="Loading categories"
         >
           {Array.from({ length: 10 }, (_, index) => (
-            <Skeleton key={index} className="h-[150px] rounded-xl" />
+            <Skeleton key={index} className="h-[150px] rounded-2xl" />
           ))}
         </div>
       ) : isError ? (
@@ -447,12 +468,12 @@ export function CategoryClient() {
                 }
               }}
               className={cn(
-                "relative flex flex-col items-center justify-center p-6 gap-4 border-border/50 bg-card",
-                !readOnly && "hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer transition-all hover:shadow-sm group"
+                "relative flex flex-col items-center justify-center p-6 gap-4 rounded-2xl border-border/60 bg-card shadow-sm transition-all",
+                !readOnly && "hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer hover:shadow-md group"
               )}
             >
               {!readOnly && <div
-                className="absolute top-2 right-2 p-1.5 rounded-full text-muted-foreground group-hover:bg-muted group-hover:text-foreground opacity-0 group-hover:opacity-100 transition-all"
+                className="absolute top-2.5 right-2.5 p-1.5 rounded-full text-muted-foreground group-hover:bg-muted group-hover:text-foreground opacity-0 group-hover:opacity-100 transition-all"
                 title="Edit Category"
               >
                 <Pencil className="size-4" />
@@ -464,7 +485,7 @@ export function CategoryClient() {
               >
                 <IconComponent className="size-7" />
               </div>
-              <span className="text-sm font-medium text-foreground text-center">
+              <span className="text-sm font-semibold text-foreground text-center truncate max-w-full">
                 {cat.name}
               </span>
             </Card>
@@ -472,6 +493,7 @@ export function CategoryClient() {
         })}
       </div>
       )}
+      </div>
     </main>
   );
 }
