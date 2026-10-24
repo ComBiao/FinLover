@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render as rtlRender, fireEvent, screen, waitFor, within, cleanup } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
 
 import { AddTransactionModal } from "../components/AddTransactionModal";
@@ -13,12 +14,16 @@ import type { Category } from "@/types/category";
 import type { Transaction } from "@/types/transaction";
 
 const TEST_WALLET = vi.hoisted(() => ({ id: "64b0000000000000000000a1", name: "Cash wallet" }));
+const TEST_WALLET_2 = vi.hoisted(() => ({ id: "64b0000000000000000000a2", name: "Savings wallet" }));
 
 vi.mock("@/features/wallets/walletsService", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/features/wallets/walletsService")>();
   return {
     ...actual,
-    getWallets: vi.fn(async () => [actual.mapWalletRecord({ ...TEST_WALLET, balance: 1000 })]),
+    getWallets: vi.fn(async () => [
+      actual.mapWalletRecord({ ...TEST_WALLET, balance: 1000 }),
+      actual.mapWalletRecord({ ...TEST_WALLET_2, balance: 2000 }),
+    ]),
   };
 });
 vi.mock("@/features/categories/categoriesService", async (importOriginal) => ({
@@ -30,7 +35,10 @@ vi.mock("@/features/categories/categoriesService", async (importOriginal) => ({
 function render(ui: ReactElement, { categories }: { categories?: Category[] } = {}) {
   // `staleTime: Infinity` keeps the seeded data instead of refetching it through the mocked services.
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
-  client.setQueryData(["wallets"], [mapWalletRecord({ ...TEST_WALLET, balance: 1000 })]);
+  client.setQueryData(["wallets"], [
+    mapWalletRecord({ ...TEST_WALLET, balance: 1000 }),
+    mapWalletRecord({ ...TEST_WALLET_2, balance: 2000 }),
+  ]);
   if (categories) client.setQueryData(["categories"], categories);
   return rtlRender(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
 }
@@ -175,11 +183,25 @@ describe("AddTransactionModal — US3-2 async edit", () => {
     expect(useTransactionModal.getState().isOpen).toBe(true);
   });
 
-  it("locks the wallet, since the update API can't move a transaction", () => {
+  it("allows changing the wallet when editing a transaction", async () => {
+    const user = userEvent.setup();
+    const onEdit = vi.fn().mockResolvedValue(undefined);
     openEdit();
-    render(<AddTransactionModal onEdit={vi.fn()} />);
+    render(<AddTransactionModal onEdit={onEdit} />);
 
-    expect(screen.getByLabelText("Pay from wallet")).toBeDisabled();
+    const walletSelector = screen.getByLabelText("Pay from wallet");
+    expect(walletSelector).not.toBeDisabled();
+
+    await user.click(walletSelector);
+    const option = await screen.findByRole("option", { name: TEST_WALLET_2.name });
+    await user.click(option);
+
+    await user.click(screen.getByText("Save changes"));
+
+    await waitFor(() => expect(useTransactionModal.getState().isOpen).toBe(false));
+    expect(onEdit).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "tx1", walletId: TEST_WALLET_2.id })
+    );
   });
 });
 

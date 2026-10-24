@@ -2322,7 +2322,7 @@
           "transaction"
         ],
         "summary": "updateTransaction",
-        "description": "Replace editable fields of an owned transaction; reverse old and apply new balance atomically. wallet cannot be changed by this API. Shared writes return 409 until E7-11. Legacy response contract; auth is unified with v1. Cookie writes and login/register/logout require an exact trusted Origin; no Origin is rejected. A valid Bearer on protected APIs does not fall back to cookies.",
+        "description": "Replace editable fields of an owned transaction; reverse old and apply new balance atomically. Shared writes return 409 until E7-11. Legacy response contract; auth is unified with v1. Cookie writes and login/register/logout require an exact trusted Origin; no Origin is rejected. A valid Bearer on protected APIs does not fall back to cookies.",
         "security": [
           {
             "bearerAuth": []
@@ -2349,6 +2349,10 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "wallet_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
                   "category_id": {
                     "anyOf": [
                       {
@@ -2394,6 +2398,7 @@
                 "additionalProperties": true
               },
               "example": {
+                "wallet_id": "507f1f77bcf86cd799439011",
                 "category_id": null,
                 "type": "Expense",
                 "amount": 42,
