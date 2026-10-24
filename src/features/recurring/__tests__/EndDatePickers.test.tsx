@@ -6,6 +6,7 @@ import {
   MonthlyEndPicker,
   YearlyEndPicker,
   DailyWeeklyEndPicker,
+  WeeklyIphoneClockPicker,
   isValidOccurrenceDate,
   isValidOccurrenceMonth,
   isValidOccurrenceYear,
@@ -173,6 +174,76 @@ describe("EndDatePickers", () => {
       const nextBtn = screen.getByRole("button", { name: "Next occurrence date" });
       await user.click(nextBtn);
       expect(onChange).toHaveBeenCalledWith("2027-01-05");
+    });
+  });
+
+  describe("WeeklyIphoneClockPicker UI (iOS-Style Wheel)", () => {
+    it("renders weekly occurrences and steps by interval week with stepper buttons", async () => {
+      const user = userEvent.setup();
+      const onChange = vi.fn();
+
+      render(
+        <WeeklyIphoneClockPicker
+          startDate="2027-01-03" // Sunday
+          intervalN={1} // Every 1 week
+          value="2027-01-10" // 1st week
+          onChange={onChange}
+        />
+      );
+
+      // Verify region and initial display
+      expect(screen.getByRole("region", { name: /weekly end date iphone clock wheel selector/i })).toBeInTheDocument();
+      expect(screen.getAllByText(/Sun, 10 Jan 2027/).length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByText(/Week 1 · Ends after 1 occurrence/)).toBeInTheDocument();
+
+      // Prev week button is disabled on the first occurrence
+      const prevBtn = screen.getByRole("button", { name: "Previous occurrence week" });
+      expect(prevBtn).toBeDisabled();
+
+      // Next week button steps to Week 2 (2027-01-17)
+      const nextBtn = screen.getByRole("button", { name: "Next occurrence week" });
+      await user.click(nextBtn);
+      expect(onChange).toHaveBeenCalledWith("2027-01-17");
+    });
+
+    it("allows clicking a quick jump preset chip like +4 Wks", async () => {
+      const user = userEvent.setup();
+      const onChange = vi.fn();
+
+      render(
+        <WeeklyIphoneClockPicker
+          startDate="2027-01-03"
+          intervalN={1}
+          value="2027-01-10"
+          onChange={onChange}
+        />
+      );
+
+      const plus4Btn = screen.getByRole("button", { name: "+4 Wks" });
+      await user.click(plus4Btn);
+
+      // 4 weeks from 2027-01-03 is 2027-01-31
+      expect(onChange).toHaveBeenCalledWith("2027-01-31");
+    });
+
+    it("allows clicking any occurrence row in the drum to select it", async () => {
+      const user = userEvent.setup();
+      const onChange = vi.fn();
+
+      render(
+        <WeeklyIphoneClockPicker
+          startDate="2027-01-03"
+          intervalN={1}
+          value="2027-01-10"
+          onChange={onChange}
+        />
+      );
+
+      // Click on Week 3 row (2027-01-24)
+      const week3Row = screen.getByRole("button", { name: /Week 3: Sun, 24 Jan 2027/ });
+      await user.click(week3Row);
+
+      expect(onChange).toHaveBeenCalledWith("2027-01-24");
     });
   });
 });

@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { Layers, Plus, RefreshCw, AlertCircle } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCategories } from "@/features/categories/hooks/useCategories";
@@ -73,17 +72,9 @@ export function RecurringPage() {
         {/* Page Header */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-extrabold text-foreground sm:text-2xl">
-                Recurring Transactions
-              </h1>
-              <Badge
-                variant="outline"
-                className="border-primary/40 bg-primary/10 text-primary font-semibold text-xs"
-              >
-                EPIC 4
-              </Badge>
-            </div>
+            <h1 className="text-xl font-extrabold text-foreground sm:text-2xl">
+              Recurring Transactions
+            </h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Automate subscriptions, recurring bills, and regular income.
             </p>

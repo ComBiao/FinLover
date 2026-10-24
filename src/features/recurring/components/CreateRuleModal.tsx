@@ -40,6 +40,7 @@ import {
   MonthlyEndPicker,
   YearlyEndPicker,
   DailyWeeklyEndPicker,
+  WeeklyIphoneClockPicker,
   getFirstAllowedDayDate,
   getFirstAllowedWeekDate,
   getFirstAllowedMonthKey,
@@ -737,18 +738,26 @@ export function CreateRuleModal({
                         Ends in year <strong className="text-foreground">{endYear}</strong> on <strong className="text-foreground">{effectiveEndDate}</strong>
                       </p>
                     </div>
+                  ) : intervalUnit === "weeks" ? (
+                    <div className="space-y-1.5">
+                      <WeeklyIphoneClockPicker
+                        startDate={startDate}
+                        intervalN={effectiveIntervalN}
+                        value={endDate}
+                        onChange={setEndDate}
+                      />
+                    </div>
                   ) : (
                     <div className="space-y-1.5">
                       <DailyWeeklyEndPicker
                         startDate={startDate}
                         intervalN={effectiveIntervalN}
-                        intervalUnit={intervalUnit}
+                        intervalUnit="days"
                         value={endDate}
                         onChange={setEndDate}
                       />
                       <p className="text-[11px] text-muted-foreground">
-                        Ends on <strong className="text-foreground">{effectiveEndDate}</strong>{" "}
-                        {intervalUnit === "weeks" && `(must end on a ${startDayOfWeekName})`}
+                        Ends on <strong className="text-foreground">{effectiveEndDate}</strong>
                       </p>
                     </div>
                   )}

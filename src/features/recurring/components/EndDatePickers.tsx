@@ -549,3 +549,291 @@ export function DailyWeeklyEndPicker({
     </div>
   );
 }
+
+// ============================================================================
+// 4. Weekly iPhone Clock Wheel Picker (iOS-Style Drum Roller)
+// ============================================================================
+
+const WEEKDAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const DRUM_ITEM_HEIGHT = 36;
+const DRUM_VISIBLE_ROWS = 5;
+const DRUM_VIEWPORT_HEIGHT = DRUM_ITEM_HEIGHT * DRUM_VISIBLE_ROWS; // 180px
+const DRUM_PADDING_OFFSET = (DRUM_VIEWPORT_HEIGHT - DRUM_ITEM_HEIGHT) / 2; // 72px
+
+type WeeklyIphoneClockPickerProps = {
+  startDate: string;
+  intervalN: number;
+  value: string; // "YYYY-MM-DD"
+  onChange: (dateStr: string) => void;
+  className?: string;
+};
+
+export function WeeklyIphoneClockPicker({
+  startDate,
+  intervalN,
+  value,
+  onChange,
+  className,
+}: WeeklyIphoneClockPickerProps) {
+  const stepDays = Math.max(1, intervalN) * 7;
+  const [sy, sm, sd] = React.useMemo(() => parseISODateParts(startDate), [startDate]);
+  const startDateObj = React.useMemo(() => new Date(sy, sm - 1, sd, 0, 0, 0, 0), [sy, sm, sd]);
+
+  // Generate 104 weekly occurrences (2 years if every 1 week, 4 years if every 2 weeks)
+  const occurrences = React.useMemo(() => {
+    const list: Array<{
+      isoDate: string;
+      occurrenceNum: number;
+      weeksFromStart: number;
+      weekLabel: string;
+      weekday: string;
+      dayMonth: string;
+      year: number;
+    }> = [];
+
+    for (let k = 1; k <= 104; k++) {
+      const d = new Date(startDateObj.getTime() + k * stepDays * 86_400_000);
+      const isoDate = toLocalISODate(d);
+      const weeksFromStart = k * Math.max(1, intervalN);
+      list.push({
+        isoDate,
+        occurrenceNum: k,
+        weeksFromStart,
+        weekLabel: intervalN === 1 ? `Week ${k}` : `Wk ${weeksFromStart}`,
+        weekday: WEEKDAY_NAMES[d.getDay()],
+        dayMonth: formatEnglishDayMonth(d),
+        year: d.getFullYear(),
+      });
+    }
+    return list;
+  }, [startDateObj, stepDays, intervalN]);
+
+  const selectedIndex = React.useMemo(() => {
+    if (!value) return 0;
+    const idx = occurrences.findIndex((item) => item.isoDate === value);
+    return idx >= 0 ? idx : 0;
+  }, [occurrences, value]);
+
+  const selectedItem = occurrences[selectedIndex] ?? occurrences[0];
+
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+  const isScrollingRef = React.useRef(false);
+  const scrollTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  // Synchronize scroll position with selectedIndex
+  React.useEffect(() => {
+    if (scrollContainerRef.current && !isScrollingRef.current) {
+      scrollContainerRef.current.scrollTop = selectedIndex * DRUM_ITEM_HEIGHT;
+    }
+  }, [selectedIndex]);
+
+  // Clean up timer on unmount
+  React.useEffect(() => {
+    return () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const selectIndex = React.useCallback(
+    (targetIndex: number) => {
+      const clamped = Math.max(0, Math.min(occurrences.length - 1, targetIndex));
+      if (scrollContainerRef.current) {
+        isScrollingRef.current = false;
+        if (typeof scrollContainerRef.current.scrollTo === "function") {
+          scrollContainerRef.current.scrollTo({
+            top: clamped * DRUM_ITEM_HEIGHT,
+            behavior: "smooth",
+          });
+        } else {
+          scrollContainerRef.current.scrollTop = clamped * DRUM_ITEM_HEIGHT;
+        }
+      }
+      const targetItem = occurrences[clamped];
+      if (targetItem && targetItem.isoDate !== value) {
+        onChange(targetItem.isoDate);
+      }
+    },
+    [occurrences, value, onChange]
+  );
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    isScrollingRef.current = true;
+    const scrollTop = e.currentTarget.scrollTop;
+    const approxIndex = Math.round(scrollTop / DRUM_ITEM_HEIGHT);
+    const clamped = Math.max(0, Math.min(occurrences.length - 1, approxIndex));
+
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+
+    scrollTimeoutRef.current = setTimeout(() => {
+      isScrollingRef.current = false;
+      if (clamped !== selectedIndex && occurrences[clamped]) {
+        onChange(occurrences[clamped].isoDate);
+      }
+    }, 100);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      selectIndex(selectedIndex - 1);
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      selectIndex(selectedIndex + 1);
+    }
+  };
+
+  // Quick jump presets (e.g. 4 weeks, 12 weeks, 26 weeks, 52 weeks)
+  const jumpPresets = [
+    { label: "+4 Wks", weeks: 4 },
+    { label: "+12 Wks", weeks: 12 },
+    { label: "+26 Wks", weeks: 26 },
+    { label: "+52 Wks", weeks: 52 },
+  ];
+
+  return (
+    <div
+      role="region"
+      aria-label="Weekly end date iPhone clock wheel selector"
+      className={cn(
+        "flex flex-col rounded-2xl border border-border/80 bg-card p-3 shadow-xs max-w-sm w-full select-none space-y-2.5",
+        className
+      )}
+    >
+      {/* Header with Selected Date & Stepper Buttons */}
+      <div className="flex items-center justify-between border-b border-border/60 pb-2">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          aria-label="Previous occurrence week"
+          disabled={selectedIndex <= 0}
+          onClick={() => selectIndex(selectedIndex - 1)}
+          className="size-7"
+        >
+          <ChevronLeft className="size-4" />
+        </Button>
+
+        <div className="text-center">
+          <div className="text-xs font-bold text-foreground">
+            {selectedItem.weekday}, {selectedItem.dayMonth} {selectedItem.year}
+          </div>
+          <div className="text-[10px] text-muted-foreground font-medium">
+            {selectedItem.weekLabel} · Ends after {selectedItem.occurrenceNum}{" "}
+            {selectedItem.occurrenceNum === 1 ? "occurrence" : "occurrences"}
+          </div>
+        </div>
+
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          aria-label="Next occurrence week"
+          disabled={selectedIndex >= occurrences.length - 1}
+          onClick={() => selectIndex(selectedIndex + 1)}
+          className="size-7"
+        >
+          <ChevronRight className="size-4" />
+        </Button>
+      </div>
+
+      {/* iPhone Clock Wheel Drum Roller Viewport */}
+      <div
+        className="relative overflow-hidden rounded-xl bg-muted/30 dark:bg-zinc-950/40 border border-border/40"
+        style={{ height: DRUM_VIEWPORT_HEIGHT }}
+        tabIndex={0}
+        onKeyDown={handleKeyDown}
+        aria-label="Use arrow keys to change weekly occurrence"
+      >
+        {/* Top 3D Cylinder Gradient Fade */}
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-card dark:from-zinc-950 via-card/75 to-transparent z-10"
+          aria-hidden="true"
+        />
+
+        {/* Center Selection Lens Overlay (iOS Drum highlight) */}
+        <div
+          className="pointer-events-none absolute inset-x-1.5 h-[36px] rounded-lg border-y border-border/80 bg-primary/10 shadow-xs dark:bg-primary/15 z-5"
+          style={{ top: DRUM_PADDING_OFFSET }}
+          aria-hidden="true"
+        />
+
+        {/* Bottom 3D Cylinder Gradient Fade */}
+        <div
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-card dark:from-zinc-950 via-card/75 to-transparent z-10"
+          aria-hidden="true"
+        />
+
+        {/* Scroll Container with Snap Physics */}
+        <div
+          ref={scrollContainerRef}
+          onScroll={handleScroll}
+          className="h-full overflow-y-auto snap-y snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden [scrollbar-width:none]"
+          style={{
+            paddingTop: DRUM_PADDING_OFFSET,
+            paddingBottom: DRUM_PADDING_OFFSET,
+          }}
+        >
+          {occurrences.map((occ, idx) => {
+            const dist = Math.abs(idx - selectedIndex);
+            const isSelected = dist === 0;
+
+            return (
+              <div
+                key={occ.isoDate}
+                role="button"
+                tabIndex={-1}
+                aria-pressed={isSelected}
+                aria-label={`${occ.weekLabel}: ${occ.weekday}, ${occ.dayMonth} ${occ.year}`}
+                onClick={() => selectIndex(idx)}
+                className={cn(
+                  "snap-center h-[36px] flex items-center justify-between px-5 w-full cursor-pointer transition-all duration-150",
+                  isSelected && "font-bold text-foreground text-sm scale-100",
+                  dist === 1 && "font-medium text-muted-foreground text-xs scale-95 opacity-60",
+                  dist >= 2 && "font-normal text-muted-foreground/50 text-[11px] scale-90 opacity-25"
+                )}
+              >
+                <span className="font-mono text-xs tracking-tight text-left min-w-16">
+                  {occ.weekLabel}
+                </span>
+                <span className="text-muted-foreground/30 font-light text-xs">│</span>
+                <span className="text-xs text-right min-w-28">
+                  {occ.weekday}, {occ.dayMonth} {occ.year}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Quick Jump Chips */}
+      <div className="flex items-center justify-center gap-1.5 pt-1">
+        {jumpPresets.map((preset) => {
+          const targetOccNum = Math.max(1, Math.round(preset.weeks / Math.max(1, intervalN)));
+          const targetIdx = targetOccNum - 1;
+          const isTargetSelected = selectedIndex === targetIdx;
+
+          return (
+            <button
+              key={preset.label}
+              type="button"
+              onClick={() => selectIndex(targetIdx)}
+              className={cn(
+                "rounded-md px-2 py-0.5 text-[10px] font-semibold transition-colors border",
+                isTargetSelected
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-muted/60 text-muted-foreground border-border/60 hover:bg-muted hover:text-foreground"
+              )}
+            >
+              {preset.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
