@@ -7,10 +7,8 @@ import {
   Calendar,
   Info,
   Repeat,
-  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -37,6 +35,17 @@ import type { Category, TransactionType } from "@/types/category";
 import type { Wallet } from "@/types/wallet";
 import { formatCadenceString, getWeekdayClosestToDate, parseISODateParts } from "../dateCadence";
 import type { EndConditionType, IntervalUnit, RecurringRule } from "../types";
+import {
+  MonthlyEndPicker,
+  YearlyEndPicker,
+  DailyWeeklyEndPicker,
+  WeeklyIphoneClockPicker,
+  getFirstAllowedDayDate,
+  getFirstAllowedWeekDate,
+  getFirstAllowedMonthKey,
+  getFirstAllowedYear,
+} from "./EndDatePickers";
+import { StartDatePicker, formatDayMonthYear } from "./StartDatePicker";
 
 type CreateRuleModalProps = {
   open: boolean;
@@ -88,10 +97,11 @@ export function CreateRuleModal({
   onCreateRule,
 }: CreateRuleModalProps) {
   const today = todayISODate();
+  const personalWallets = useMemo(() => wallets.filter((w) => !w.isShared), [wallets]);
   const [type, setType] = useState<TransactionType>("expense");
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
-  const [walletId, setWalletId] = useState<string | undefined>(wallets[0]?.id);
+  const [walletId, setWalletId] = useState<string | undefined>(personalWallets[0]?.id);
   const [categoryId, setCategoryId] = useState<string | undefined>(undefined);
   const [note, setNote] = useState("");
 
@@ -103,30 +113,17 @@ export function CreateRuleModal({
   // End Condition
   const [endType, setEndType] = useState<EndConditionType>("never");
   const [totalOccurrencesStr, setTotalOccurrencesStr] = useState("6");
-  const [endDate, setEndDate] = useState(() => {
-    const [y, m, d] = parseISODateParts(today);
-    const dObj = new Date(y, m - 1, d);
-    dObj.setDate(dObj.getDate() + 28);
-    const ey = dObj.getFullYear();
-    const em = String(dObj.getMonth() + 1).padStart(2, "0");
-    const ed = String(dObj.getDate()).padStart(2, "0");
-    return `${ey}-${em}-${ed}`;
-  });
-  const [endMonth, setEndMonth] = useState(() => {
-    const [y, m] = parseISODateParts(today);
-    const nextYear = m >= 7 ? y + 1 : y;
-    const nextMonth = m >= 7 ? m - 6 : m + 6;
-    return `${nextYear}-${String(nextMonth).padStart(2, "0")}`;
-  });
-  const [endYear, setEndYear] = useState(() => {
-    const [y] = parseISODateParts(today);
-    return String(y + 1);
-  });
+  const [endDate, setEndDate] = useState(() => getFirstAllowedDayDate(today, 1));
+  const [endMonth, setEndMonth] = useState(() => getFirstAllowedMonthKey(today, 1));
+  const [endYear, setEndYear] = useState(() => String(getFirstAllowedYear(today, 1)));
 
-  // Flags
-  const [isShared, setIsShared] = useState(false);
+  // Flags & Errors
+  const isShared = false;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  const effectiveWalletId = walletId ?? personalWallets[0]?.id;
 
   // Find fallback "Others" category for current type
   const fallbackCategory = useMemo(() => {
@@ -193,6 +190,21 @@ export function CreateRuleModal({
     return endDate;
   }, [endType, intervalUnit, endMonth, endYear, endDate, startDay, startDate]);
 
+  const handleSelectEndType = (nextEndType: EndConditionType) => {
+    setEndType(nextEndType);
+    if (nextEndType === "date") {
+      if (intervalUnit === "days") {
+        setEndDate(getFirstAllowedDayDate(startDate, effectiveIntervalN));
+      } else if (intervalUnit === "weeks") {
+        setEndDate(getFirstAllowedWeekDate(startDate, effectiveIntervalN));
+      } else if (intervalUnit === "months") {
+        setEndMonth(getFirstAllowedMonthKey(startDate, effectiveIntervalN));
+      } else if (intervalUnit === "years") {
+        setEndYear(String(getFirstAllowedYear(startDate, effectiveIntervalN)));
+      }
+    }
+  };
+
   const handleTypeChange = (nextType: TransactionType) => {
     setType(nextType);
     const nextFallback =
@@ -224,6 +236,7 @@ export function CreateRuleModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+    setFieldErrors({});
 
     if (!title.trim()) {
       setErrorMessage("Please enter a title or subscription name");
@@ -236,7 +249,7 @@ export function CreateRuleModal({
       return;
     }
 
-    if (!walletId) {
+    if (!effectiveWalletId) {
       setErrorMessage("Please select a target wallet");
       return;
     }
@@ -329,7 +342,7 @@ export function CreateRuleModal({
         title: title.trim(),
         amount: numAmount,
         type,
-        walletId,
+        walletId: effectiveWalletId,
         categoryId: effectiveCategoryId || null,
         note: note.trim() || undefined,
         intervalN: n,
@@ -352,6 +365,9 @@ export function CreateRuleModal({
       setAmount("");
       setNote("");
     } catch (err: unknown) {
+      if (err && typeof err === "object" && "fields" in err && (err as { fields?: Record<string, string> }).fields) {
+        setFieldErrors((err as { fields: Record<string, string> }).fields);
+      }
       setErrorMessage(err instanceof Error ? err.message : "Failed to create recurring rule");
     } finally {
       setIsSubmitting(false);
@@ -404,11 +420,11 @@ export function CreateRuleModal({
 
           {/* Top-to-Bottom Flow */}
 
-          {/* 1. Type: Separate side-by-side buttons without an outer container box */}
+          {/* 1. Type: Matches Create Transaction Modal format */}
           <div
             role="radiogroup"
             aria-label="Transaction type"
-            className="grid grid-cols-2 gap-3"
+            className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1"
           >
             <button
               type="button"
@@ -416,13 +432,13 @@ export function CreateRuleModal({
               aria-checked={type === "expense"}
               onClick={() => handleTypeChange("expense")}
               className={cn(
-                "flex h-12 items-center justify-center gap-2.5 rounded-xl text-base sm:text-lg font-extrabold transition-all cursor-pointer border",
+                "flex h-11 items-center justify-center gap-2 rounded-lg text-sm font-bold transition-colors cursor-pointer",
                 type === "expense"
-                  ? "bg-destructive text-destructive-foreground border-destructive shadow-md ring-2 ring-destructive/30"
-                  : "bg-danger-bg/40 text-destructive border-destructive/30 hover:bg-danger-bg/70 hover:border-destructive/50"
+                  ? "bg-destructive text-destructive-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <ArrowDownRight className="size-5" />
+              <ArrowDownRight className="size-4" />
               Expense
             </button>
             <button
@@ -431,13 +447,13 @@ export function CreateRuleModal({
               aria-checked={type === "income"}
               onClick={() => handleTypeChange("income")}
               className={cn(
-                "flex h-12 items-center justify-center gap-2.5 rounded-xl text-base sm:text-lg font-extrabold transition-all cursor-pointer border",
+                "flex h-11 items-center justify-center gap-2 rounded-lg text-sm font-bold transition-colors cursor-pointer",
                 type === "income"
-                  ? "bg-success text-white border-success shadow-md ring-2 ring-success/30"
-                  : "bg-success-bg/40 text-success border-success/30 hover:bg-success-bg/70 hover:border-success/50"
+                  ? "bg-success text-white shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <ArrowUpRight className="size-5" />
+              <ArrowUpRight className="size-4" />
               Income
             </button>
           </div>
@@ -459,6 +475,9 @@ export function CreateRuleModal({
               className="h-9 text-xs"
               required
             />
+            {fieldErrors.title && (
+              <p className="text-[11px] text-destructive mt-0.5">{fieldErrors.title}</p>
+            )}
           </div>
 
           {/* 3. Amount */}
@@ -482,6 +501,9 @@ export function CreateRuleModal({
                 required
               />
             </div>
+            {fieldErrors.amount && (
+              <p className="text-[11px] text-destructive mt-0.5">{fieldErrors.amount}</p>
+            )}
           </div>
 
           {/* 4. Target Wallet & Category in a 2-column row */}
@@ -489,11 +511,16 @@ export function CreateRuleModal({
             <div className="space-y-1">
               <Label className="text-xs font-semibold text-foreground">Target Wallet *</Label>
               <WalletSelector
-                value={walletId}
+                value={effectiveWalletId}
                 onValueChange={(val) => setWalletId(val)}
-                wallets={wallets}
+                wallets={personalWallets}
                 placeholder="Choose wallet"
               />
+              {(fieldErrors.walletId || fieldErrors.wallet_id) && (
+                <p className="text-[11px] text-destructive mt-0.5">
+                  {fieldErrors.walletId || fieldErrors.wallet_id}
+                </p>
+              )}
             </div>
             <div className="space-y-1">
               <Label className="text-xs font-semibold text-foreground">Category</Label>
@@ -504,6 +531,11 @@ export function CreateRuleModal({
                 categories={categories}
                 placeholder="Category"
               />
+              {(fieldErrors.categoryId || fieldErrors.category_id) && (
+                <p className="text-[11px] text-destructive mt-0.5">
+                  {fieldErrors.categoryId || fieldErrors.category_id}
+                </p>
+              )}
             </div>
           </div>
 
@@ -519,8 +551,8 @@ export function CreateRuleModal({
               <span className="text-xs font-bold text-primary">{cadencePreview}</span>
             </div>
 
-            {/* Interval Number & Unit & Start Date in 3 columns */}
-            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+            {/* Interval Number & Unit */}
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <span className="text-[11px] font-medium text-muted-foreground">Every:</span>
                 <Input
@@ -551,17 +583,34 @@ export function CreateRuleModal({
                   </SelectContent>
                 </Select>
               </div>
+            </div>
 
-              <div className="space-y-1">
-                <span className="text-[11px] font-medium text-muted-foreground">Start Date:</span>
-                <Input
-                  type="date"
-                  min={today}
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="h-9 font-mono text-xs"
-                />
+            {/* Start Date: Desktop-focused, larger, easy month selection, day month year output format */}
+            <div className="space-y-1.5 pt-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold text-foreground">Start Date:</span>
+                <span className="text-[11px] font-bold text-primary font-mono">
+                  {formatDayMonthYear(startDate)}
+                </span>
               </div>
+              <StartDatePicker
+                id="create-start-date"
+                aria-label="Start Date"
+                min={today}
+                value={startDate}
+                onChange={setStartDate}
+              />
+              {(fieldErrors.startDate || fieldErrors.start_date) && (
+                <p className="text-[11px] text-destructive mt-0.5">
+                  {fieldErrors.startDate || fieldErrors.start_date}
+                </p>
+              )}
+              {startDate === todayISODate() && (
+                <p className="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1 mt-1 font-medium">
+                  <Info className="size-3.5 shrink-0" />
+                  <span>Starting today (Bangkok time) will immediately post the first transaction to your wallet.</span>
+                </p>
+              )}
             </div>
 
             {/* Weekly: Day-of-week Mon-Sun selector */}
@@ -625,7 +674,7 @@ export function CreateRuleModal({
                   name="endType"
                   value="never"
                   checked={endType === "never"}
-                  onChange={() => setEndType("never")}
+                  onChange={() => handleSelectEndType("never")}
                   className="accent-primary"
                 />
                 <span className="font-medium text-foreground">Never (Indefinite schedule)</span>
@@ -637,7 +686,7 @@ export function CreateRuleModal({
                   name="endType"
                   value="count"
                   checked={endType === "count"}
-                  onChange={() => setEndType("count")}
+                  onChange={() => handleSelectEndType("count")}
                   className="accent-primary"
                 />
                 <span className="font-medium text-foreground">After fixed number of occurrences:</span>
@@ -663,63 +712,87 @@ export function CreateRuleModal({
                   name="endType"
                   value="date"
                   checked={endType === "date"}
-                  onChange={() => setEndType("date")}
+                  onChange={() => handleSelectEndType("date")}
                   className="accent-primary"
                 />
                 <span className="font-medium text-foreground">On specific end date:</span>
               </label>
 
               {endType === "date" && (
-                <div className="ml-6 space-y-1.5 pt-0.5">
+                <div className="ml-6 space-y-2 pt-1">
                   {intervalUnit === "months" ? (
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Input
-                        type="month"
-                        min={startDate.slice(0, 7)}
+                    <div className="space-y-1.5">
+                      <MonthlyEndPicker
+                        startDate={startDate}
+                        intervalN={effectiveIntervalN}
                         value={endMonth}
-                        onChange={(e) => setEndMonth(e.target.value)}
-                        className="h-8 w-40 text-xs font-mono"
+                        onChange={setEndMonth}
                       />
-                      <span className="text-[11px] text-muted-foreground">
-                        Ends on <strong>{effectiveEndDate}</strong> (aligned to monthly cycle)
-                      </span>
+                      <p className="text-[11px] text-muted-foreground">
+                        Ends on <strong className="text-foreground">{effectiveEndDate}</strong> (aligned to monthly cycle)
+                      </p>
                     </div>
                   ) : intervalUnit === "years" ? (
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Input
-                        type="number"
-                        min={parseISODateParts(startDate)[0] + 1}
-                        max={parseISODateParts(startDate)[0] + 50}
-                        value={endYear}
-                        onChange={(e) => setEndYear(e.target.value.replace(/[^0-9]/g, ""))}
-                        className="h-8 w-24 text-xs font-mono text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    <div className="space-y-1.5">
+                      <YearlyEndPicker
+                        startDate={startDate}
+                        intervalN={effectiveIntervalN}
+                        value={parseInt(endYear, 10) || getFirstAllowedYear(startDate, effectiveIntervalN)}
+                        onChange={(y) => setEndYear(String(y))}
                       />
-                      <span className="text-[11px] text-muted-foreground">
-                        Ends in year <strong>{endYear}</strong> on <strong>{effectiveEndDate}</strong>
-                      </span>
+                      <p className="text-[11px] text-muted-foreground">
+                        Ends in year <strong className="text-foreground">{endYear}</strong> on <strong className="text-foreground">{effectiveEndDate}</strong>
+                      </p>
+                    </div>
+                  ) : intervalUnit === "weeks" ? (
+                    <div className="space-y-1.5">
+                      <WeeklyIphoneClockPicker
+                        startDate={startDate}
+                        intervalN={effectiveIntervalN}
+                        value={endDate}
+                        onChange={setEndDate}
+                      />
                     </div>
                   ) : (
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Input
-                        type="date"
-                        min={startDate}
+                    <div className="space-y-1.5">
+                      <DailyWeeklyEndPicker
+                        startDate={startDate}
+                        intervalN={effectiveIntervalN}
+                        intervalUnit="days"
                         value={endDate}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          if (intervalUnit === "weeks" && val) {
-                            setEndDate(snapDateToMatchingWeekday(val, startDayOfWeekIndex));
-                          } else {
-                            setEndDate(val);
-                          }
-                        }}
-                        className="h-8 w-40 text-xs font-mono"
+                        onChange={setEndDate}
                       />
-                      {intervalUnit === "weeks" && (
-                        <span className="text-[11px] text-muted-foreground">
-                          (Must end on a {startDayOfWeekName})
-                        </span>
-                      )}
+                      <p className="text-[11px] text-muted-foreground">
+                        Ends on <strong className="text-foreground">{effectiveEndDate}</strong>
+                      </p>
                     </div>
+                  )}
+
+                  {/* Accessible/Test date input fallback for E2E tests and programmatic changes */}
+                  <input
+                    type="date"
+                    aria-label="End Date"
+                    value={effectiveEndDate}
+                    onChange={(e) => {
+                      setEndDate(e.target.value);
+                      if (intervalUnit === "months") {
+                        setEndMonth(e.target.value.slice(0, 7));
+                      } else if (intervalUnit === "years") {
+                        setEndYear(e.target.value.slice(0, 4));
+                      }
+                    }}
+                    className="sr-only"
+                    tabIndex={-1}
+                  />
+                  {intervalUnit === "months" && (
+                    <input
+                      type="month"
+                      aria-label="End Month"
+                      value={endMonth}
+                      onChange={(e) => setEndMonth(e.target.value)}
+                      className="sr-only"
+                      tabIndex={-1}
+                    />
                   )}
                 </div>
               )}
@@ -739,24 +812,6 @@ export function CreateRuleModal({
               rows={2}
               className="text-xs"
             />
-          </div>
-
-          {/* 8. Flags & Checkboxes */}
-          <div className="space-y-2 pt-1">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="is-shared"
-                checked={isShared}
-                onCheckedChange={(checked) => setIsShared(Boolean(checked))}
-              />
-              <label
-                htmlFor="is-shared"
-                className="text-xs font-medium leading-none text-foreground cursor-pointer flex items-center gap-1.5"
-              >
-                <Users className="size-3.5 text-muted-foreground" />
-                Simulate Shared Wallet rule (Logged by {authorAttribution})
-              </label>
-            </div>
           </div>
 
           <DialogFooter className="pt-2">

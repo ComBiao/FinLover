@@ -6,6 +6,7 @@ import User from "../../src/server/db/models/User";
 import Wallet from "../../src/server/db/models/Wallet";
 import Category from "../../src/server/db/models/Category";
 import Transaction from "../../src/server/db/models/Transaction";
+import Scheduler from "../../src/server/db/models/Scheduler";
 import { DEFAULT_CATEGORIES } from "../../src/server/modules/auth/default-categories";
 
 dotenv.config();
@@ -33,6 +34,7 @@ export async function seedDemoData() {
   for (const existingUser of existingUsers) {
     console.log(`Cleaning up existing records for ${existingUser.email}...`);
     await Transaction.collection.deleteMany({ userId: existingUser._id });
+    await Scheduler.collection.deleteMany({ userId: existingUser._id });
     await Wallet.deleteMany({ userId: existingUser._id });
     await Category.deleteMany({ userId: existingUser._id });
     await User.deleteOne({ _id: existingUser._id });
@@ -545,7 +547,161 @@ export async function seedDemoData() {
   console.log(`✅ Seeded ${transactionsData.length} transactions.`);
 
   // -------------------------------------------------------------------------
-  // 6. Create Secondary Disposable Account (EPIC 1: US1-4 Delete Account Demo)
+  // 6. Seed Recurring Transactions (EPIC 4: US4-1 to US4-5)
+  // -------------------------------------------------------------------------
+  console.log("Seeding recurring transaction rules (active, paused, completed, and cascade-ready)...");
+
+  const schedulersData = [
+    // 1. Netflix 4K Subscription (US4-1 / US4-3: Active Monthly Expense, Indefinite)
+    {
+      userId: demoUser._id,
+      walletId: mainBank._id,
+      categoryId: categoryMap.get("expense:Entertainment")!,
+      type: "expense" as const,
+      amount: 419.0,
+      title: "Netflix 4K Premium",
+      notes: "Family plan shared subscription",
+      startDate: new Date("2026-08-15T00:00:00.000Z"),
+      anchorDay: 15,
+      frequency: "monthly" as const,
+      interval: 1,
+      endType: "never" as const,
+      status: "active" as const,
+      createdCount: 3,
+      nextDueDate: new Date("2026-11-15T00:00:00.000Z"),
+      createdAt: new Date("2026-08-15T00:00:00.000Z"),
+      updatedAt: new Date("2026-10-15T00:00:00.000Z"),
+    },
+    // 2. Condo Rental Fee (US4-1: Active Monthly Expense, Fixed Count of 12 occurrences)
+    {
+      userId: demoUser._id,
+      walletId: mainBank._id,
+      categoryId: categoryMap.get("expense:Essentials")!,
+      type: "expense" as const,
+      amount: 12000.0,
+      title: "Condo Rental Fee",
+      notes: "1-year fixed condo lease agreement (12 months)",
+      startDate: new Date("2026-09-01T00:00:00.000Z"),
+      anchorDay: 1,
+      frequency: "monthly" as const,
+      interval: 1,
+      endType: "count" as const,
+      endCount: 12,
+      status: "active" as const,
+      createdCount: 2,
+      nextDueDate: new Date("2026-11-01T00:00:00.000Z"),
+      createdAt: new Date("2026-09-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-10-01T00:00:00.000Z"),
+    },
+    // 3. Tech Corp Monthly Salary (US4-1: Active Recurring Income, Indefinite)
+    {
+      userId: demoUser._id,
+      walletId: mainBank._id,
+      categoryId: categoryMap.get("income:Salary")!,
+      type: "income" as const,
+      amount: 30000.0,
+      title: "Tech Corp Monthly Salary",
+      notes: "Monthly automated payroll salary direct deposit",
+      startDate: new Date("2026-08-01T00:00:00.000Z"),
+      anchorDay: 1,
+      frequency: "monthly" as const,
+      interval: 1,
+      endType: "never" as const,
+      status: "active" as const,
+      createdCount: 3,
+      nextDueDate: new Date("2026-11-01T00:00:00.000Z"),
+      createdAt: new Date("2026-08-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-10-01T00:00:00.000Z"),
+    },
+    // 4. Spotify Family Plan (US4-4: Paused Rule with overdue cycle for Resume demo)
+    {
+      userId: demoUser._id,
+      walletId: mainBank._id,
+      categoryId: categoryMap.get("expense:Entertainment")!,
+      type: "expense" as const,
+      amount: 209.0,
+      title: "Spotify Family Plan",
+      notes: "Temporarily paused subscription",
+      startDate: new Date("2026-07-20T00:00:00.000Z"),
+      anchorDay: 20,
+      frequency: "monthly" as const,
+      interval: 1,
+      endType: "never" as const,
+      status: "paused" as const,
+      createdCount: 2,
+      nextDueDate: new Date("2026-09-20T00:00:00.000Z"),
+      createdAt: new Date("2026-07-20T00:00:00.000Z"),
+      updatedAt: new Date("2026-09-15T00:00:00.000Z"),
+    },
+    // 5. Cloud Storage 2TB (US4-1: Yearly Cadence, Specific End Date)
+    {
+      userId: demoUser._id,
+      walletId: mainBank._id,
+      categoryId: categoryMap.get("expense:Utilities")!,
+      type: "expense" as const,
+      amount: 990.0,
+      title: "Cloud Storage 2TB",
+      notes: "Annual cloud drive backup subscription",
+      startDate: new Date("2026-10-10T00:00:00.000Z"),
+      anchorDay: 10,
+      frequency: "yearly" as const,
+      interval: 1,
+      endType: "endDate" as const,
+      endDate: new Date("2029-10-10T00:00:00.000Z"),
+      status: "active" as const,
+      createdCount: 1,
+      nextDueDate: new Date("2027-10-10T00:00:00.000Z"),
+      createdAt: new Date("2026-10-10T00:00:00.000Z"),
+      updatedAt: new Date("2026-10-10T00:00:00.000Z"),
+    },
+    // 6. Fitness Club 3-Month Trial (US4-2: Completed Schedule)
+    {
+      userId: demoUser._id,
+      walletId: mainBank._id,
+      categoryId: categoryMap.get("expense:Health")!,
+      type: "expense" as const,
+      amount: 1500.0,
+      title: "Fitness Club 3-Month Trial",
+      notes: "3-month promotional summer trial membership",
+      startDate: new Date("2026-07-01T00:00:00.000Z"),
+      anchorDay: 1,
+      frequency: "monthly" as const,
+      interval: 1,
+      endType: "count" as const,
+      endCount: 3,
+      status: "completed" as const,
+      createdCount: 3,
+      nextDueDate: null,
+      createdAt: new Date("2026-07-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-09-01T00:00:00.000Z"),
+    },
+    // 7. Tech Magazine Quarterly (US6-5 / US4-5: Linked to Old Fund for Cascade Deletion)
+    {
+      userId: demoUser._id,
+      walletId: oldFund._id,
+      categoryId: categoryMap.get("expense:Shopping")!,
+      type: "expense" as const,
+      amount: 450.0,
+      title: "Tech Magazine Quarterly",
+      notes: "Quarterly print magazine subscription on Old Fund",
+      startDate: new Date("2026-09-01T00:00:00.000Z"),
+      anchorDay: 1,
+      frequency: "monthly" as const,
+      interval: 3,
+      endType: "never" as const,
+      status: "active" as const,
+      createdCount: 1,
+      nextDueDate: new Date("2026-12-01T00:00:00.000Z"),
+      createdAt: new Date("2026-09-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-09-01T00:00:00.000Z"),
+    },
+  ];
+
+  await Scheduler.collection.insertMany(schedulersData);
+  console.log(`✅ Seeded ${schedulersData.length} recurring transaction rules.`);
+
+  // -------------------------------------------------------------------------
+  // 7. Create Secondary Disposable Account (EPIC 1: US1-4 Delete Account Demo)
   // -------------------------------------------------------------------------
   console.log(`Creating secondary disposable account: ${DELETE_DEMO_EMAIL}`);
   const deleteDemoUser = await User.create({
@@ -594,6 +750,7 @@ export async function seedDemoData() {
   console.log(`   Email:    ${DEMO_EMAIL}`);
   console.log(`   Password: ${PASSWORD_PLAIN}`);
   console.log(`   Name:     Alex Demo (FinLover)`);
+  console.log(`   Data:     5 Wallets, 17 Categories, 28 Transactions, 7 Recurring Rules`);
   console.log("");
   console.log("👤 Disposable User (for US1-4 Account Deletion Demo):");
   console.log(`   Email:    ${DELETE_DEMO_EMAIL}`);
