@@ -31,10 +31,10 @@ Run `npm test -- src/server/__tests__/shared-wallet-invitations-api.test.ts src/
 - Only Owner invites/removes/transfers/deletes. Accepted members create/edit/delete transactions of any author. Leaving/removal keeps transactions and balances unchanged.
 - Transfer target must be accepted. Old Owner becomes accepted Contributor; new Owner's membership row is removed. Transfer and owner/name unique conflict handling are atomic.
 - Owner with accepted Contributors cannot leave or delete account (409). Pending-only does not block account deletion. Owner leave always returns 409 directing callers to transfer or explicitly DELETE wallet; leave never silently deletes it.
-- Shared transaction request rejects categoryId even when null. Persist categoryId=null; omit categoryId in shared response. Schema selection must use persisted wallet/access, not client-supplied role/isShared. Preserve field presence through HTTP adapters until validation.
+- Shared transaction request does not use categories; requests must omit categoryId or provide null (non-null/non-empty categoryId is rejected). Persist categoryId=null; omit categoryId in shared response. Schema selection must use persisted wallet/access, not client-supplied role/isShared. Preserve field presence through HTTP adapters until validation.
 - Transaction.userId remains author. updatedBy is latest editor, including when author edits again; emit editedBy only when latest editor differs from author. Missing author/editor account uses `Deleted user`, retaining its id. An existing account without a display name uses Unnamed user, not Deleted user.
-- Transactions cannot move wallets through the API. Personal responses remain compatible and omit attribution.
-- Shared summary keeps current Home shape, sums every author, topCategories=[]. Home All and personal transaction list/summary exclude all shared wallets, including caller-authored rows.
+- Transactions cannot move between personal and shared wallets through the API (400 VALIDATION_ERROR). Personal responses remain compatible and omit attribution.
+- Shared summary keeps current Home shape, sums every author, topCategories=[]. Home All and personal transaction list/summary exclude all shared wallets, including caller-authored rows; querying personal summary for a shared wallet returns 404.
 - Contributor account deletion retains shared transactions/balance. Owner without Contributors deletes owned wallets and pending invitations. Wallet deletion cascades every author's transactions and memberships in one UnitOfWork, with no password.
 
 ## Endpoints (target, all paths prefixed /api/v1)
@@ -55,7 +55,7 @@ Responses use `{status:true,data:...}`. Errors use `{status:false,error:{code,me
 | POST /wallets/{id}/leave | no body | null / 200 | Accepted Contributor; Owner 409 |
 | POST /wallets/{id}/transfer-ownership | transferOwnershipInput `{userId}` | sharedWalletResponse / 200 | Owner; non-accepted target/state conflict or new owner name collision 409 |
 | DELETE /wallets/{id} | no body | null / 200 | Owner; Contributor 403 |
-| GET /wallets/{id}/transactions?month=YYYY-MM | transactionMonthQuery | SharedTransactionResponse[] / 200 | Owner/accepted; default month and UTC date boundaries follow existing convention |
+| GET /wallets/{id}/transactions?month=YYYY-MM | transactionMonthQuery | SharedTransactionResponse[] / 200 | Owner/accepted of shared wallet; personal wallet 400; default month and UTC date boundaries follow existing convention |
 | POST /transactions | sharedTransactionInput for shared wallet | sharedTransactionResponse / 201 | Owner/accepted |
 | PUT /transactions/{id} | sharedTransactionUpdate for shared wallet | sharedTransactionResponse / 200 | Owner/accepted, any author |
 | DELETE /transactions/{id} | no body | null / 200 | Owner/accepted, any author |

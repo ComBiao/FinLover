@@ -38,6 +38,11 @@ export class WalletRepository implements WalletAccess, WalletRepositoryPort {
     const result = await Wallet.updateOne({ _id: id }, { $inc: { balance: delta } }, { session: sessionOf(context) });
     if (!result.matchedCount) throw new AppError('NOT_FOUND', 'Wallet not found');
   }
+  async findById(id: string, context?: TransactionContext) {
+    if (!/^[a-f0-9]{24}$/i.test(id)) return null;
+    const doc = await Wallet.findById(id).session(sessionOf(context) ?? null);
+    return doc ? toRecord(doc) : null;
+  }
   async findByIds(ids: string[], context?: TransactionContext) {
     return (await Wallet.find({ _id: { $in: ids } }).sort({ isDefault: -1, createdAt: 1, _id: 1 }).session(sessionOf(context) ?? null)).map(toRecord);
   }

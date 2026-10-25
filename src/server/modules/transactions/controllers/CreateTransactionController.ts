@@ -23,8 +23,17 @@ export class CreateTransactionController {
       const { wallet_id, category_id, type, amount, date, title, note } = parsed.data;
 
       await connectDB();
-      const tx = await this.service.execute(user_id, { walletId: wallet_id, categoryId: category_id || null, type: type.toLowerCase() as 'income' | 'expense', amount, date: new Date(date), title, note });
-      return NextResponse.json({ data: TransactionResponseDTO.legacy(tx) }, { status: 201 });
+      const tx = await this.service.execute(user_id, {
+        walletId: wallet_id,
+        categoryId: category_id || null,
+        type: type.toLowerCase() as 'income' | 'expense',
+        amount,
+        date: new Date(date),
+        title,
+        note,
+      });
+      const data = tx.createdBy ? TransactionResponseDTO.shared(tx) : TransactionResponseDTO.legacy(tx);
+      return NextResponse.json({ data }, { status: 201 });
 
     } catch (error) {
       return apiErrorResponse(error, { validationStatus: 422 });

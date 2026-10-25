@@ -1,13 +1,23 @@
 import { deleteApi, getApi, postApi } from "@/lib/api/client";
-import { isMockTarget } from "@/features/wallets/shared/mockFlag";
+import { isMockTarget, sharedWalletMocksEnabled } from "@/features/wallets/shared/mockFlag";
 import {
   mockInviteMember,
   mockLeaveWallet,
   mockListMembers,
   mockRemoveMember,
   mockTransferOwnership,
+  mockValidateInviteEmail,
 } from "@/features/wallets/shared/mock/sharedWalletMockStore";
 import type { WalletMember } from "@/features/wallets/shared/types";
+
+/**
+ * Look up a registered user by email to validate adding them to an invite list.
+ * Rejects with `ApiClientError` (400 "User not found" or "Cannot invite yourself").
+ */
+export async function validateInviteEmail(email: string): Promise<{ id: string; email: string; name: string }> {
+  if (sharedWalletMocksEnabled()) return mockValidateInviteEmail(email);
+  return getApi<{ id: string; email: string; name: string }>(`/api/v1/users/lookup?email=${encodeURIComponent(email)}`);
+}
 
 /**
  * Members of one shared wallet: accepted members first (owner on top), then
@@ -15,9 +25,14 @@ import type { WalletMember } from "@/features/wallets/shared/types";
  *
  * TODO(backend E7-07): `GET /api/v1/wallets/{id}/members`.
  */
-export async function getMembers(walletId: string): Promise<WalletMember[]> {
+export async function getMembers(walletId: string, currentUserId?: string): Promise<WalletMember[]> {
   if (isMockTarget(walletId)) return mockListMembers(walletId);
-  return getApi<WalletMember[]>(`/api/v1/wallets/${walletId}/members`);
+  const res = await getApi<{ members: (Omit<WalletMember, 'isYou'> & { isYou?: boolean })[] }>(`/api/v1/wallets/${walletId}/members`);
+  const members = res.members ?? [];
+  return members.map(m => ({
+    ...m,
+    isYou: Boolean(m.isYou || (currentUserId ? m.userId === currentUserId : false)),
+  }));
 }
 
 /**

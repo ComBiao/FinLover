@@ -20,11 +20,13 @@ import { createAuthRouter } from '../modules/auth/router';
 import { hashPassword, comparePassword } from '@/server/shared/auth/crypto';
 import { createCategoryRouter } from '../modules/categories/router';
 import { WalletRepository } from '../modules/wallets/repositories/WalletRepository';
-export const walletRepository = new WalletRepository(new WalletMembershipRepository());
+const walletMembershipRepository = new WalletMembershipRepository();
+export const userRepository = new UserRepository();
+export const walletRepository = new WalletRepository(walletMembershipRepository);
 const categoryRepository = new CategoryRepository();
 const personalWalletAccess = new PersonalWalletAccess(walletRepository);
-const transactionRepository = new TransactionRepository(personalWalletAccess, categoryRepository);
-export const rawAuth = createAuthRouter(new UserRepository(), { hash: hashPassword, compare: comparePassword }, categoryRepository, new MongoUnitOfWork(), walletRepository);
+const transactionRepository = new TransactionRepository(walletRepository, categoryRepository);
+export const rawAuth = createAuthRouter(userRepository, { hash: hashPassword, compare: comparePassword }, categoryRepository, new MongoUnitOfWork(), walletRepository);
 const schedulerRepository = new SchedulerRepository();
 // Deleting a category clears it from Transactions and moves Schedulers (which need a category) to "Others".
 export const deleteCategoryService = new DeleteCategoryService(categoryRepository, {
@@ -38,20 +40,18 @@ import { createTransactionRouter } from '../modules/transactions/router';
 import { DeleteWalletService } from '../modules/wallets/services/DeleteWalletService';
 import { createWalletRouter } from '../modules/wallets/router';
 export const deleteWalletService = new DeleteWalletService(walletRepository, transactionRepository, new MongoUnitOfWork());
-export const rawWallets = createWalletRouter(walletRepository, deleteWalletService, new WalletPresentationService(new WalletMembershipRepository(), new UserRepository()), new UserRepository(), new MongoUnitOfWork());
-export const rawTransactions = createTransactionRouter(personalWalletAccess, categoryRepository, new MongoUnitOfWork());
+export const rawWallets = createWalletRouter(walletRepository, deleteWalletService, new WalletPresentationService(walletMembershipRepository, userRepository), userRepository, new MongoUnitOfWork(), transactionRepository);
+export const rawTransactions = createTransactionRouter(walletRepository, categoryRepository, new MongoUnitOfWork(), walletMembershipRepository, userRepository);
 import { createSchedulerRouter } from '../modules/schedulers/router';
 import { CreateTransactionService } from '../modules/transactions/services/CreateTransactionService';
 export const rawSchedulers = createSchedulerRouter(
   schedulerRepository, personalWalletAccess, categoryRepository,
-  new CreateTransactionService(transactionRepository, personalWalletAccess, categoryRepository, new MongoUnitOfWork()),
+  new CreateTransactionService(transactionRepository, walletRepository, categoryRepository, new MongoUnitOfWork(), walletMembershipRepository, userRepository),
   new MongoUnitOfWork(),
 );
 import { createHomeRouter } from '../modules/home/router';
 export const rawHome = createHomeRouter(walletRepository, transactionRepository, categoryRepository);
 import { connectDB } from '@/server/db/index';
-
-const userRepository = new UserRepository();
 
 export const auth = {
   login: logged(secure(rawAuth.login, { browserAuth: true })),
@@ -76,6 +76,7 @@ export const wallets = {
   update: logged(secure(rawWallets.update, { protected: true })),
   updateSaving: logged(secure(rawWallets.updateSaving, { protected: true })),
   remove: logged(secure(rawWallets.remove, { protected: true })),
+  listTransactions: logged(secure(rawWallets.listTransactions, { protected: true })),
 };
 export const accountExists = async (userId: string) => {
   await connectDB();
@@ -83,6 +84,12 @@ export const accountExists = async (userId: string) => {
 };
 configureAccountCheck(accountExists);
 
-export const rawInvitations = createWalletInvitationRouter(new WalletInvitationService(new WalletInvitationRepository(), new WalletMembershipRepository(), walletRepository, userRepository, new MongoUnitOfWork()));
+export const rawInvitations = createWalletInvitationRouter(new WalletInvitationService(new WalletInvitationRepository(), walletMembershipRepository, walletRepository, userRepository, new MongoUnitOfWork()));
 
-export const rawMembers = createWalletMembersRouter(new WalletMembersService(new WalletMembersRepository(), new WalletMembershipRepository(), walletRepository, userRepository, new WalletPresentationService(new WalletMembershipRepository(), userRepository), new MongoUnitOfWork()));
+export const rawMembers = createWalletMembersRouter(new WalletMembersService(new WalletMembersRepository(), walletMembershipRepository, walletRepository, userRepository, new WalletPresentationService(walletMembershipRepository, userRepository), new MongoUnitOfWork()));
+
+import { createUserRouter } from '../modules/users/router';
+export const rawUsers = createUserRouter(userRepository);
+export const users = {
+  lookup: logged(secure(rawUsers.lookup, { protected: true })),
+};

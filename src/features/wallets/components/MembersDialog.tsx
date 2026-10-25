@@ -26,6 +26,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
 import {
   useInviteMember,
   useLeaveWallet,
@@ -154,6 +155,7 @@ type MembersDialogProps = {
 export function MembersDialog({ wallet, open, onOpenChange }: MembersDialogProps) {
   const isOwner = wallet?.role === "owner";
   const { data: members = [], isPending, isError } = useMembers(open ? wallet?.id : undefined);
+  const { data: currentUser } = useCurrentUser();
   const invite = useInviteMember();
   const remove = useRemoveMember();
   const transfer = useTransferOwnership();
@@ -165,8 +167,15 @@ export function MembersDialog({ wallet, open, onOpenChange }: MembersDialogProps
   const [leaving, setLeaving] = React.useState(false);
   const [confirmError, setConfirmError] = React.useState<string | null>(null);
 
-  const accepted = members.filter((member) => member.status === "accepted");
-  const pending = members.filter((member) => member.status === "pending");
+  const resolvedMembers = React.useMemo(() => {
+    return members.map((member) => ({
+      ...member,
+      isYou: Boolean(member.isYou || (currentUser ? member.userId === currentUser.id : false)),
+    }));
+  }, [members, currentUser]);
+
+  const accepted = resolvedMembers.filter((member) => member.status === "accepted");
+  const pending = resolvedMembers.filter((member) => member.status === "pending");
 
   function handleOpenChange(next: boolean) {
     if (!next) {

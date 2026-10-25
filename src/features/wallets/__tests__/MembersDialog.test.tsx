@@ -196,4 +196,20 @@ describe("MembersDialog — loading and errors", () => {
 
     expect(await screen.findByText("Couldn't load the members. Please try again.")).toBeInTheDocument();
   });
+
+  it("calculates isYou using currentUser id when member.isYou is not set", async () => {
+    vi.spyOn(membersService, "getMembers").mockResolvedValue([
+      { userId: "user-current", name: "Current User", email: "me@example.com", role: "owner", status: "accepted", isYou: false },
+    ]);
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    queryClient.setQueryData(["current-user"], { id: "user-current", email: "me@example.com", name: "Current User" });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MembersDialog wallet={OWNED_SHARED_WALLET} open onOpenChange={vi.fn()} />
+      </QueryClientProvider>
+    );
+
+    const item = (await screen.findByText("Current User")).closest("li")!;
+    expect(within(item).getByText("(you)")).toBeInTheDocument();
+  });
 });

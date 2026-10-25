@@ -14,14 +14,24 @@ import { ListWalletsService } from './services/ListWalletsService';
 import { UpdateWalletService } from './services/UpdateWalletService';
 import { UpdateWalletSavingController } from './controllers/UpdateWalletSavingController';
 import { UpdateWalletSavingService } from './services/UpdateWalletSavingService';
+import { ListWalletTransactionsController } from './controllers/ListWalletTransactionsController';
+import type { TransactionRepositoryPort } from '@/server/shared/ports/transactions';
 
-export function createWalletRouter(repository: WalletRepositoryPort & WalletReaderPort, deleteWalletService: DeleteWalletService, presentation: WalletPresentationService, users: UserDirectoryPort, uow: UnitOfWork) {
+export function createWalletRouter(
+  repository: WalletRepositoryPort & WalletReaderPort,
+  deleteWalletService: DeleteWalletService,
+  presentation: WalletPresentationService,
+  users: UserDirectoryPort,
+  uow: UnitOfWork,
+  transactions: Pick<TransactionRepositoryPort, 'findByWalletAndDateRange'>,
+) {
   const create = new CreateWalletController(new CreateWalletService(repository, presentation, users, uow));
   const get = new GetWalletController(new GetWalletService(repository, presentation));
   const list = new ListWalletsController(new ListWalletsService(repository, presentation));
   const update = new UpdateWalletController(new UpdateWalletService(repository));
   const updateSaving = new UpdateWalletSavingController(new UpdateWalletSavingService(repository));
   const remove = new DeleteWalletController(deleteWalletService);
+  const listTransactions = new ListWalletTransactionsController(repository, users, transactions);
   return {
     create: create.handle.bind(create),
     get: get.handle.bind(get),
@@ -29,5 +39,6 @@ export function createWalletRouter(repository: WalletRepositoryPort & WalletRead
     update: update.handle.bind(update),
     updateSaving: updateSaving.handle.bind(updateSaving),
     remove: remove.handle.bind(remove),
+    listTransactions: listTransactions.handle.bind(listTransactions),
   };
 }

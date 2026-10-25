@@ -5,6 +5,7 @@ import { GetTransactionsByMonthService, currentMonth, monthBoundaries } from '..
 function repository(): TransactionRepositoryPort {
   return {
     findByDateRange: vi.fn(async () => []),
+    findById: vi.fn(async () => null),
     findOwned: vi.fn(async () => null),
     create: vi.fn(),
     update: vi.fn(async () => null),

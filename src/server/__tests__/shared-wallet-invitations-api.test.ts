@@ -245,14 +245,14 @@ describe('E7-01b/02 real database API', () => {
     expect(await WalletMember.countDocuments({ userId: contributor })).toBe(0);
   });
 
-  it('does not enable incomplete shared transaction writes and excludes shared balances from Home All', async () => {
+  it('enforces shared transaction rules and excludes shared balances from Home All', async () => {
     const { wallet } = await seedSharedWallet(owner, [{ userId: contributor }]);
     await Wallet.updateOne({ _id: wallet._id }, { balance: 99 });
-    const body = { walletId: String(wallet._id), categoryId: null, type: 'expense', amount: 5, title: 'Blocked', date: '2026-10-23' };
-    for (const actor of [owner, contributor]) expect((await v1.createTransaction(request('POST', actor, body), context())).status).toBe(409);
+    const body = { walletId: String(wallet._id), type: 'expense', amount: 5, title: 'Shared Tx', date: '2026-10-23' };
+    for (const actor of [owner, contributor]) expect((await v1.createTransaction(request('POST', actor, body), context())).status).toBe(201);
     expect((await v1.createTransaction(request('POST', outsider, body), context())).status).toBe(403);
-    expect(await Transaction.countDocuments({ walletId: wallet._id })).toBe(0);
-    expect((await Wallet.findById(wallet._id))!.balance).toBe(99);
+    expect(await Transaction.countDocuments({ walletId: wallet._id })).toBe(2);
+    expect((await Wallet.findById(wallet._id))!.balance).toBe(89);
     const summary = await v1.homeSummary(request('GET', owner, undefined, '/api/v1/home/summary?walletId=all&month=2026-10'), context());
     expect(summary.status).toBe(200);
     expect((await summary.json()).data.balance.totalBalance).toBe(0);
@@ -314,5 +314,40 @@ describe('E7-01b/02 real database API', () => {
       const validate = ajv.compile(schema);
       expect(validate(body), JSON.stringify(validate.errors)).toBe(true);
     }
+  });
+
+  describe('GET /api/v1/users/lookup', () => {
+    it('returns user details when the user exists', async () => {
+      const targetEmail = email(pending);
+      const res = await v1.lookupUser(request('GET', owner, undefined, `/api/v1/users/lookup?email=${encodeURIComponent(targetEmail)}`), context());
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.status).toBe(true);
+      expect(body.data).toEqual({ id: pending, email: targetEmail, name: 'Unnamed user' });
+    });
+
+    it('returns 400 User not found when the email does not exist', async () => {
+      const res = await v1.lookupUser(request('GET', owner, undefined, '/api/v1/users/lookup?email=nonexistent%40finlover.com'), context());
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.status).toBe(false);
+      expect(body.error.fields).toEqual({ email: 'User not found' });
+    });
+
+    it('returns 400 Cannot invite yourself when looking up caller own email', async () => {
+      const selfEmail = email(owner);
+      const res = await v1.lookupUser(request('GET', owner, undefined, `/api/v1/users/lookup?email=${encodeURIComponent(selfEmail)}`), context());
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.status).toBe(false);
+      expect(body.error.fields).toEqual({ email: 'Cannot invite yourself' });
+    });
+
+    it('returns 400 when email is invalid and 401 when unauthorized', async () => {
+      const badRes = await v1.lookupUser(request('GET', owner, undefined, '/api/v1/users/lookup?email=not-an-email'), context());
+      expect(badRes.status).toBe(400);
+      const unauthRes = await v1.lookupUser(request('GET', null, undefined, `/api/v1/users/lookup?email=${encodeURIComponent(email(pending))}`), context());
+      expect(unauthRes.status).toBe(401);
+    });
   });
 });

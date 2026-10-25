@@ -22,4 +22,7 @@ export class PersonalWalletAccess {
     if (wallet.isShared) throw new AppError('CONFLICT', 'Shared wallet transaction summaries are not available yet');
     return wallet;
   }
+  async findById(id: string, context?: TransactionContext) {
+    return this.wallets.findById(id, context);
+  }
 }

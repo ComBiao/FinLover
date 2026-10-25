@@ -75,13 +75,16 @@ describe("CreateWalletDialog — switches", () => {
 });
 
 describe("CreateWalletDialog — invitations", () => {
-  it("turns an email into a removable chip on Enter and ignores duplicates", () => {
+  it("turns an email into a removable chip on Enter and ignores duplicates", async () => {
+    vi.spyOn(membersService, "validateInviteEmail").mockResolvedValue({ id: "u1", email: "yeen@example.com", name: "Yeen" });
     renderDialog();
     fireEvent.click(sharedSwitch());
     const input = screen.getByLabelText(/Invite members/);
 
     fireEvent.change(input, { target: { value: "Yeen@Example.com " } });
     fireEvent.keyDown(input, { key: "Enter" });
+    await screen.findByText("yeen@example.com");
+
     fireEvent.change(input, { target: { value: "yeen@example.com" } });
     fireEvent.keyDown(input, { key: "Enter" });
 
@@ -90,6 +93,22 @@ describe("CreateWalletDialog — invitations", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Remove yeen@example.com" }));
     expect(screen.queryByText("yeen@example.com")).not.toBeInTheDocument();
+  });
+
+  it("shows 'User not found' and rejects adding chip when user does not exist", async () => {
+    vi.spyOn(membersService, "validateInviteEmail").mockRejectedValue(
+      new ApiClientError("User not found", 400, { email: "User not found" })
+    );
+    renderDialog();
+    fireEvent.click(sharedSwitch());
+    const input = screen.getByLabelText(/Invite members/);
+
+    fireEvent.change(input, { target: { value: "unknown@example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+
+    await screen.findByText("User not found");
+    expect(screen.getByRole("alert")).toHaveTextContent("User not found");
+    expect(screen.queryByText("unknown@example.com")).not.toBeInTheDocument();
   });
 
   it("rejects an address that is not an email", () => {
@@ -104,6 +123,7 @@ describe("CreateWalletDialog — invitations", () => {
   });
 
   it("creates a shared wallet, then invites each email", async () => {
+    vi.spyOn(membersService, "validateInviteEmail").mockImplementation(async (email) => ({ id: "u1", email, name: email }));
     const createWallet = vi.spyOn(walletsService, "createWallet").mockResolvedValue(OWNED_SHARED_WALLET);
     const inviteMember = vi.spyOn(membersService, "inviteMember").mockResolvedValue({
       userId: "u1", name: "Yeen", email: "yeen@example.com", role: "contributor", status: "pending", isYou: false,
@@ -115,6 +135,8 @@ describe("CreateWalletDialog — invitations", () => {
     const input = screen.getByLabelText(/Invite members/);
     fireEvent.change(input, { target: { value: "yeen@example.com" } });
     fireEvent.keyDown(input, { key: "Enter" });
+    await screen.findByText("yeen@example.com");
+
     // A typed-but-not-added email still counts when the form is submitted.
     fireEvent.change(input, { target: { value: "ice@example.com" } });
     fireEvent.click(screen.getByRole("button", { name: "Create Wallet" }));
@@ -130,22 +152,25 @@ describe("CreateWalletDialog — invitations", () => {
     expect(toast.success).toHaveBeenCalledWith('Shared wallet "Housemate Fund" created');
   });
 
-  it("keeps the wallet and reports an invitation that fails", async () => {
+  it("keeps the wallet and reports an invitation that fails during wallet creation", async () => {
+    vi.spyOn(membersService, "validateInviteEmail").mockResolvedValue({ id: "u1", email: "known@example.com", name: "Known" });
     vi.spyOn(walletsService, "createWallet").mockResolvedValue(OWNED_SHARED_WALLET);
     vi.spyOn(membersService, "inviteMember").mockRejectedValue(
-      new ApiClientError("User not found", 400, { email: "User not found" })
+      new ApiClientError("Already a member or invited", 409, { email: "Already a member or invited" })
     );
     const { onOpenChange } = renderDialog();
 
     fireEvent.change(screen.getByLabelText("Wallet Name"), { target: { value: "Housemate Fund" } });
     fireEvent.click(sharedSwitch());
     const input = screen.getByLabelText(/Invite members/);
-    fireEvent.change(input, { target: { value: "unknown@example.com" } });
+    fireEvent.change(input, { target: { value: "known@example.com" } });
     fireEvent.keyDown(input, { key: "Enter" });
+    await screen.findByText("known@example.com");
+
     fireEvent.click(screen.getByRole("button", { name: "Create Wallet" }));
 
     await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
-    expect(toast.error).toHaveBeenCalledWith("Couldn't invite unknown@example.com: User not found");
+    expect(toast.error).toHaveBeenCalledWith("Couldn't invite known@example.com: Already a member or invited");
   });
 
   it("creates a personal wallet without touching invitations when the shared switch is off", async () => {
@@ -159,5 +184,33 @@ describe("CreateWalletDialog — invitations", () => {
     await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
     expect(createWallet).toHaveBeenCalledWith(expect.not.objectContaining({ isShared: true }));
     expect(inviteMember).not.toHaveBeenCalled();
+  });
+
+  it("cancels pending submission and does not create wallet if Cancel is clicked while email validation is pending", async () => {
+    let resolveValidation: ((value: { id: string; email: string; name: string }) => void) | undefined;
+    const pendingValidation = new Promise<{ id: string; email: string; name: string }>((resolve) => {
+      resolveValidation = resolve;
+    });
+    vi.spyOn(membersService, "validateInviteEmail").mockReturnValue(pendingValidation);
+    const createWallet = vi.spyOn(walletsService, "createWallet").mockResolvedValue(OWNED_SHARED_WALLET);
+
+    renderDialog();
+    fireEvent.change(screen.getByLabelText("Wallet Name"), { target: { value: "Cancelled Fund" } });
+    fireEvent.click(sharedSwitch());
+    const input = screen.getByLabelText(/Invite members/);
+    fireEvent.change(input, { target: { value: "friend@example.com" } });
+
+    // Submit while email is typed but not added
+    fireEvent.click(screen.getByRole("button", { name: "Create Wallet" }));
+
+    // User clicks Cancel while validation is in flight
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    // Now resolve validation
+    resolveValidation?.({ id: "u2", email: "friend@example.com", name: "Friend" });
+
+    // Wait a moment and confirm createWallet was never called
+    await new Promise((r) => setTimeout(r, 50));
+    expect(createWallet).not.toHaveBeenCalled();
   });
 });

@@ -22,7 +22,7 @@ export type WalletApiRecord = SharedWalletFields & {
   goalAmount?: number;
   createdAt?: string;
   updatedAt?: string;
-  isShared?: boolean;
+  membersPreview?: SharedWalletFields['members'];
 };
 
 export type CreateWalletInput = {
@@ -70,7 +70,7 @@ export function mapWalletRecord(record: WalletApiRecord): Wallet {
           isShared: true,
           role: record.role,
           memberCount: record.memberCount,
-          members: record.members,
+          members: record.members ?? record.membersPreview,
           ownerName: record.ownerName,
         }
       : {}),
