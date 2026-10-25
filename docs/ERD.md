@@ -66,6 +66,7 @@ erDiagram
   Transaction {
     ObjectId userId
     ObjectId walletId
+    ObjectId updatedBy
     ObjectId categoryId
     String type
     Number amount
