@@ -8,6 +8,7 @@ import {
   useCreateScheduler,
   useDeleteScheduler,
   useSchedulers,
+  useUpdateScheduler,
   useUpdateSchedulerStatus,
   type SchedulerRule,
 } from "../schedulers";
@@ -169,6 +170,36 @@ describe("Schedulers Query and Mutation Hooks (Issue #178 Step 2)", () => {
       // Schedulers cache IS invalidated
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: schedulerKeys.all });
       // Wallets and transactions caches are NOT invalidated
+      expect(invalidateSpy).not.toHaveBeenCalledWith({ queryKey: WALLETS_QUERY_KEY });
+      expect(invalidateSpy).not.toHaveBeenCalledWith({ queryKey: TRANSACTIONS_QUERY_KEY });
+    });
+  });
+
+  describe("useUpdateScheduler cache invalidation", () => {
+    it("refreshes schedulers only, even when the start date is today (PUT never posts)", async () => {
+      const today = todayISODate();
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+        jsonResponse({
+          status: true,
+          data: {
+            id: "r1", walletId: "w1", categoryId: null, type: "expense", amount: 10,
+            title: "Rule", startDate: today, frequency: "monthly", interval: 1,
+            end: { type: "never" }, status: "active", createdCount: 0,
+            nextDueDate: today, canManage: true,
+          },
+        })
+      ));
+      const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+
+      const { result } = renderHook(() => useUpdateScheduler(), {
+        wrapper: createTestWrapper(queryClient),
+      });
+      await result.current.mutateAsync({
+        id: "r1",
+        payload: { walletId: "w1", type: "expense", amount: 10, startDate: today, frequency: "monthly", interval: 1 },
+      });
+
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: schedulerKeys.all });
       expect(invalidateSpy).not.toHaveBeenCalledWith({ queryKey: WALLETS_QUERY_KEY });
       expect(invalidateSpy).not.toHaveBeenCalledWith({ queryKey: TRANSACTIONS_QUERY_KEY });
     });

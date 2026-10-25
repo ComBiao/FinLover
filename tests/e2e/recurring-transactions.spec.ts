@@ -176,7 +176,7 @@ test.describe.serial("EPIC 4: Recurring Transactions E2E Suite (US4-1 to US4-5 &
 
     // Verify immediate post notice when start_date is today
     await expect(
-      dialog.getByText("Starting today will immediately post the first transaction to your wallet.")
+      dialog.getByText("Starting today (Bangkok time) will immediately post the first transaction to your wallet.")
     ).toBeVisible();
 
     // End condition: After 6 occurrences
@@ -403,9 +403,9 @@ test.describe.serial("EPIC 4: Recurring Transactions E2E Suite (US4-1 to US4-5 &
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible();
 
-    // Verify notice: "Changes apply to future scheduled runs only. Past transactions in your ledger will not be modified."
+    // Verify the future-only edit notice
     await expect(
-      dialog.getByText("Changes apply to future scheduled runs only. Past transactions in your ledger will not be modified.")
+      dialog.getByText("Future-Only Edit & Ledger Preservation")
     ).toBeVisible();
 
     // Change Future Amount from 500.00 to 650.00

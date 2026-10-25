@@ -14,8 +14,9 @@ dotenv.config();
 dotenv.config({ path: ".env.local" });
 
 export function getMongoUri() {
-  if (fs.existsSync(".e2e-mongo-uri")) {
-    const fileUri = fs.readFileSync(".e2e-mongo-uri", "utf-8").trim();
+  const uriFile = `.e2e-mongo-uri-${process.env.E2E_PORT ?? "3000"}`;
+  if (fs.existsSync(uriFile)) {
+    const fileUri = fs.readFileSync(uriFile, "utf-8").trim();
     if (fileUri) return fileUri;
   }
   return process.env.MONGODB_URI ?? "mongodb://localhost:27017/finlover";

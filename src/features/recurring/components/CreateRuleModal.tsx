@@ -33,7 +33,6 @@ import { isFallbackCategory } from "@/features/categories/categoriesService";
 import { cn, formatEnglishDayMonth, todayISODate, toLocalISODate } from "@/lib/utils";
 import type { Category, TransactionType } from "@/types/category";
 import type { Wallet } from "@/types/wallet";
-import { isTodayLocalDate } from "@/client/api/schedulers";
 import { formatCadenceString, getWeekdayClosestToDate, parseISODateParts } from "../dateCadence";
 import type { EndConditionType, IntervalUnit, RecurringRule } from "../types";
 import {
@@ -606,10 +605,10 @@ export function CreateRuleModal({
                   {fieldErrors.startDate || fieldErrors.start_date}
                 </p>
               )}
-              {isTodayLocalDate(startDate) && (
+              {startDate === todayISODate() && (
                 <p className="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1 mt-1 font-medium">
                   <Info className="size-3.5 shrink-0" />
-                  <span>Starting today will immediately post the first transaction to your wallet.</span>
+                  <span>Starting today (Bangkok time) will immediately post the first transaction to your wallet.</span>
                 </p>
               )}
             </div>

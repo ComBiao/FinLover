@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { deleteApi, getApi, patchApi, postApi, putApi, ApiClientError } from "@/lib/api/client";
-import { todayISODate } from "@/lib/utils";
 import { WALLETS_QUERY_KEY } from "@/features/wallets/hooks/useWallets";
 import { TRANSACTIONS_QUERY_KEY } from "@/features/transactions/hooks/useTransactions";
 import type { IntervalUnit, EndConditionType } from "@/features/recurring/types";
@@ -146,13 +145,6 @@ export const schedulerKeys = {
 
 // --- Helpers & Normalizers ---
 
-export function isTodayLocalDate(dateString: string): boolean {
-  if (!dateString) return false;
-  const iso = dateString.split("T")[0];
-  const today = todayISODate();
-  return iso === today;
-}
-
 export function frequencyToIntervalUnit(freq: string): IntervalUnit {
   const f = freq.toLowerCase();
   switch (f) {
@@ -245,20 +237,21 @@ export function normalizeSchedulerPayload(
       ? (payload.categoryId ?? undefined)
       : (payload.category_id ?? undefined);
 
-  const type = payload.type ?? "expense";
-  const amount = payload.amount;
+  const { type, amount } = payload;
+  // PUT replaces the whole rule, so a missing field must fail here, not fall back to a default.
+  const rawStart = payload.startDate ?? payload.start_date;
+  const interval = payload.interval ?? payload.intervalN;
+  const frequency = payload.frequency
+    ? (payload.frequency.toLowerCase() as "daily" | "weekly" | "monthly" | "yearly")
+    : payload.intervalUnit
+      ? intervalUnitToFrequency(payload.intervalUnit)
+      : undefined;
+  if (!type || amount === undefined || !rawStart || !frequency || !interval) {
+    throw new SchedulerApiError("Incomplete recurring rule", 400);
+  }
   const title = (payload.title ?? payload.description ?? "").trim() || "Recurring Transaction";
   const note = (payload.note ?? payload.description ?? "").trim() || undefined;
-  const startDate = (payload.startDate ?? payload.start_date ?? todayISODate()).split("T")[0];
-
-  let frequency: "daily" | "weekly" | "monthly" | "yearly" = "monthly";
-  if (payload.frequency) {
-    frequency = payload.frequency.toLowerCase() as typeof frequency;
-  } else if (payload.intervalUnit) {
-    frequency = intervalUnitToFrequency(payload.intervalUnit);
-  }
-
-  const interval = payload.interval ?? payload.intervalN ?? 1;
+  const startDate = rawStart.split("T")[0];
 
   let end: SchedulerEndInput;
   if (payload.end) {
@@ -307,6 +300,7 @@ function normalizeErrorFields(fields?: Record<string, string>): Record<string, s
 }
 
 function handleApiError(error: unknown): never {
+  if (error instanceof SchedulerApiError) throw error;
   if (error instanceof ApiClientError) {
     let msg = error.message;
     if (error.status === 404) {
@@ -424,14 +418,12 @@ export function useCreateScheduler() {
 
   return useMutation({
     mutationFn: (payload: CreateSchedulerPayload) => createScheduler(payload),
-    onSuccess: (created, variables) => {
+    onSuccess: (created) => {
       // Invalidate schedulers list
       queryClient.invalidateQueries({ queryKey: schedulerKeys.all });
 
-      // Cross-module invalidation when start_date === today or occurrence executed immediately
-      const startDate = variables.startDate ?? variables.start_date;
-      const isImmediate =
-        (startDate ? isTodayLocalDate(startDate) : false) || created.createdCount > 0;
+      // The server decides (Asia/Bangkok date) whether the first run posted, so trust createdCount.
+      const isImmediate = created.createdCount > 0;
 
       if (isImmediate) {
         queryClient.invalidateQueries({ queryKey: WALLETS_QUERY_KEY });
@@ -453,15 +445,8 @@ export function useUpdateScheduler() {
   return useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: UpdateSchedulerPayload }) =>
       updateScheduler(id, payload),
-    onSuccess: (updated, variables) => {
+    onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: schedulerKeys.all });
-
-      const startDate = variables.payload.startDate ?? variables.payload.start_date;
-      if (startDate && isTodayLocalDate(startDate)) {
-        queryClient.invalidateQueries({ queryKey: WALLETS_QUERY_KEY });
-        queryClient.invalidateQueries({ queryKey: TRANSACTIONS_QUERY_KEY });
-        queryClient.invalidateQueries({ queryKey: ["home-summary"] });
-      }
 
       toast.success(
         `Recurring rule "${updated.title}" updated. Changes apply to future occurrences.`

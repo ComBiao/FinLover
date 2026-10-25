@@ -4,7 +4,6 @@ import {
   deleteScheduler,
   getScheduler,
   getSchedulers,
-  isTodayLocalDate,
   normalizeSchedulerPayload,
   SchedulerApiError,
   updateScheduler,
@@ -12,7 +11,6 @@ import {
   type CreateSchedulerPayload,
   type SchedulerFrequency,
 } from "../schedulers";
-import { todayISODate } from "@/lib/utils";
 
 const jsonResponse = (payload: unknown, ok = true, status = 200) => ({
   ok,
@@ -27,19 +25,6 @@ describe("Schedulers Client API (Issue #178 Step 1)", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
-  });
-
-  describe("isTodayLocalDate helper", () => {
-    it("returns true when date matches local today", () => {
-      const today = todayISODate();
-      expect(isTodayLocalDate(today)).toBe(true);
-      expect(isTodayLocalDate(`${today}T00:00:00.000Z`)).toBe(true);
-    });
-
-    it("returns false for different dates or empty string", () => {
-      expect(isTodayLocalDate("1999-01-01")).toBe(false);
-      expect(isTodayLocalDate("")).toBe(false);
-    });
   });
 
   describe("normalizeSchedulerPayload", () => {
@@ -95,6 +80,15 @@ describe("Schedulers Client API (Issue #178 Step 1)", () => {
           amount: 100,
         } as unknown as CreateSchedulerPayload)
       ).toThrow(SchedulerApiError);
+    });
+
+    it("throws instead of defaulting when type, amount, start date or cadence is missing", () => {
+      const base = { walletId: "w1", type: "income", amount: 10, startDate: "2026-11-01", frequency: "weekly", interval: 1 };
+      for (const field of Object.keys(base).filter((k) => k !== "walletId")) {
+        const partial: Record<string, unknown> = { ...base };
+        delete partial[field];
+        expect(() => normalizeSchedulerPayload(partial as unknown as CreateSchedulerPayload)).toThrow(SchedulerApiError);
+      }
     });
   });
 
@@ -401,6 +395,9 @@ describe("Schedulers Client API (Issue #178 Step 1)", () => {
           walletId: "w1",
           type: "expense",
           amount: 0,
+          startDate: "2026-11-01",
+          frequency: "monthly",
+          interval: 1,
         })
       ).rejects.toMatchObject({
         status: 400,

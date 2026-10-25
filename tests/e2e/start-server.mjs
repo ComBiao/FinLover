@@ -6,15 +6,10 @@ import fs from 'node:fs';
 
 const port = process.env.E2E_PORT ?? '3100';
 
-// Kill any stale process on the port before launching
-try {
-  if (process.platform !== 'win32') {
-    execSync(`lsof -ti :${port} | xargs kill -9 2>/dev/null || true`);
-  }
-} catch {}
-
 const mongo = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
-fs.writeFileSync('.e2e-mongo-uri', mongo.getUri());
+// The Playwright worker is a separate process, so it reads the URI from this per-port file.
+const uriFile = `.e2e-mongo-uri-${port}`;
+fs.writeFileSync(uriFile, mongo.getUri());
 
 const isWin = process.platform === 'win32';
 const server = spawn(
@@ -34,27 +29,23 @@ const server = spawn(
 );
 
 let isShuttingDown = false;
-async function shutdown() {
+async function shutdown(code = 0) {
   if (isShuttingDown) return;
   isShuttingDown = true;
   try {
-    fs.unlinkSync('.e2e-mongo-uri');
+    fs.unlinkSync(uriFile);
   } catch {}
   try {
-    server.kill('SIGTERM');
-  } catch {}
-  try {
-    if (process.platform !== 'win32') {
-      execSync(`lsof -ti :${port} | xargs kill -9 2>/dev/null || true`);
-    }
+    // shell:true on Windows wraps next in cmd.exe, so kill the whole tree.
+    if (isWin) execSync(`taskkill /pid ${server.pid} /T /F`, { stdio: 'ignore' });
+    else server.kill('SIGTERM');
   } catch {}
   try {
     await mongo.stop({ doCleanup: true, force: true });
   } catch {}
-  process.exit(0);
+  process.exit(code);
 }
 
-process.on('SIGINT', shutdown);
-process.on('SIGTERM', shutdown);
-server.on('exit', shutdown);
-
+process.on('SIGINT', () => shutdown());
+process.on('SIGTERM', () => shutdown());
+server.on('exit', (code) => shutdown(code ?? 0));

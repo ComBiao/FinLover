@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { Tag, Wallet as WalletIcon } from "lucide-react";
 import React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { RecurringPage } from "../RecurringPage";
+import { RecurringPage } from "../components/RecurringPage";
 import type { Wallet } from "@/types/wallet";
 import type { Category } from "@/types/category";
 
@@ -229,7 +229,7 @@ describe("RecurringPage Integration (Issue #178 Step 3)", () => {
 
     // Notice that start_date defaults to today
     expect(
-      screen.getByText(/Starting today will immediately post the first transaction to your wallet/i)
+      screen.getByText(/Starting today \(Bangkok time\) will immediately post the first transaction to your wallet/i)
     ).toBeInTheDocument();
   });
 
