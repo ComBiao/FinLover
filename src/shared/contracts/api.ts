@@ -74,6 +74,35 @@ export const homeSummaryResponse = z.object({
     icon: z.string().nullable(), color: z.string().nullable(), amount: z.number(),
   })),
 });
+
+// Reports (Epic 8, contract v1.1). Dates are inclusive YYYY-MM-DD calendar days; money is rounded to 2 places by the server.
+export const reportInterval = z.enum(['daily', 'weekly', 'monthly']);
+export const runningBalanceInterval = reportInterval.exclude(['monthly']);
+// Comma-separated wallet ids; omitted means every personal wallet, while an empty list is rejected.
+const reportWalletIds = z.string().transform((value, ctx) => {
+  const ids = [...new Set(value.split(',').map(id => id.trim()).filter(Boolean))];
+  if (!ids.length) ctx.addIssue({ code: 'custom', message: 'Select at least one wallet' });
+  else if (!ids.every(id => objectId.safeParse(id).success)) ctx.addIssue({ code: 'custom', message: 'walletIds must be comma-separated wallet IDs' });
+  return ids;
+}).optional();
+const reportRange = { walletIds: reportWalletIds, startDate: z.iso.date(), endDate: z.iso.date() };
+const validRange = (value: { startDate: string; endDate: string }) => value.startDate <= value.endDate;
+const rangeError = { message: 'endDate must not be before startDate', path: ['endDate'] };
+export const reportQuery = z.object(reportRange).refine(validRange, rangeError);
+export const cashFlowQuery = z.object({ ...reportRange, interval: reportInterval.optional() }).refine(validRange, rangeError);
+export const runningBalanceQuery = z.object({ ...reportRange, interval: runningBalanceInterval.default('daily') }).refine(validRange, rangeError);
+export const reportSummaryResponse = z.object({ totalIncome: z.number(), totalExpense: z.number(), netCashFlow: z.number(), transactionCount: z.number().int().nonnegative() });
+export const cashFlowBucket = z.object({ label: z.string(), start: z.iso.date(), end: z.iso.date(), income: z.number(), expense: z.number() });
+export const cashFlowResponse = z.object({ interval: reportInterval, suggestedInterval: reportInterval, buckets: z.array(cashFlowBucket) });
+export const categoryDistributionItem = z.object({
+  // null only when the user has no seeded Others of that type to collect category-less transactions.
+  categoryId: objectId.nullable(), name: z.string(), icon: z.string().nullable(), color: z.string().nullable(),
+  amount: z.number(), percentage: z.number(),
+});
+export const categoryDistributionGroup = z.object({ total: z.number(), items: z.array(categoryDistributionItem) });
+export const categoryDistributionResponse = z.object({ income: categoryDistributionGroup, expense: categoryDistributionGroup });
+export const runningBalancePoint = z.object({ date: z.iso.date(), balance: z.number() });
+export const runningBalanceResponse = z.object({ interval: runningBalanceInterval, openingBalance: z.number(), closingBalance: z.number(), points: z.array(runningBalancePoint) });
 export const categoryResponse = categoryInput.extend({ id: objectId, isSystem: z.boolean(), createdAt: z.iso.datetime(), updatedAt: z.iso.datetime() });
 export const WALLET_ICON_NAMES = [
   'Wallet',
@@ -186,3 +215,15 @@ export type SharedTransactionInput = z.infer<typeof sharedTransactionInput>;
 export type SharedTransactionUpdate = z.infer<typeof sharedTransactionUpdate>;
 export type SharedTransactionResponse = z.infer<typeof sharedTransactionResponse>;
 export type SharedHomeSummaryResponse = z.infer<typeof sharedHomeSummaryResponse>;
+export type ReportInterval = z.infer<typeof reportInterval>;
+export type RunningBalanceInterval = z.infer<typeof runningBalanceInterval>;
+export type ReportQuery = z.infer<typeof reportQuery>;
+export type CashFlowQuery = z.infer<typeof cashFlowQuery>;
+export type RunningBalanceQuery = z.infer<typeof runningBalanceQuery>;
+export type ReportSummaryResponse = z.infer<typeof reportSummaryResponse>;
+export type CashFlowBucket = z.infer<typeof cashFlowBucket>;
+export type CashFlowResponse = z.infer<typeof cashFlowResponse>;
+export type CategoryDistributionItem = z.infer<typeof categoryDistributionItem>;
+export type CategoryDistributionResponse = z.infer<typeof categoryDistributionResponse>;
+export type RunningBalancePoint = z.infer<typeof runningBalancePoint>;
+export type RunningBalanceResponse = z.infer<typeof runningBalanceResponse>;
