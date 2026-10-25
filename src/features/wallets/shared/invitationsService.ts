@@ -14,7 +14,8 @@ import type { WalletInvitation } from "@/features/wallets/shared/types";
  */
 export async function getInvitations(): Promise<WalletInvitation[]> {
   if (sharedWalletMocksEnabled()) return mockListInvitations();
-  return getApi<WalletInvitation[]>("/api/v1/invitations");
+  // The API wraps the list as { items, total }.
+  return (await getApi<{ items: WalletInvitation[] }>("/api/v1/invitations")).items;
 }
 
 /**

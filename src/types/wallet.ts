@@ -23,4 +23,6 @@ export type Wallet = SharedWalletFields & {
   goalAmount?: number | null;
   /** Whether this is the user's default wallet. */
   isDefault?: boolean;
+  /** Whether this wallet is a shared wallet. */
+  isShared?: boolean;
 };

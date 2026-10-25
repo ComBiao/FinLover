@@ -222,7 +222,7 @@ describe("members and invitations services", () => {
   });
 
   it("call the real invitations endpoint once the mocks are off", async () => {
-    fetchMock.mockResolvedValue(ok([]));
+    fetchMock.mockResolvedValue(ok({ items: [], total: 0 }));
 
     expect(await getInvitations()).toEqual([]);
     expect(fetchMock).toHaveBeenCalledWith("/api/v1/invitations", expect.anything());

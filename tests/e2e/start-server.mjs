@@ -1,30 +1,54 @@
 // Starts a disposable MongoDB replica set, then the Next dev server pointed at it,
 // so e2e runs never touch the Atlas database in .env.
-import { spawn } from 'node:child_process';
+import { spawn, execSync } from 'node:child_process';
 import { MongoMemoryReplSet } from 'mongodb-memory-server';
+import fs from 'node:fs';
 
 const port = process.env.E2E_PORT ?? '3100';
+
 const mongo = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
+// The Playwright worker is a separate process, so it reads the URI from this per-port file.
+const uriFile = `.e2e-mongo-uri-${port}`;
+fs.writeFileSync(uriFile, mongo.getUri());
 
 const isWin = process.platform === 'win32';
-const server = spawn(isWin ? 'npx.cmd' : 'npx', ['next', 'dev', '-p', port], {
-  shell: isWin,
-  stdio: 'inherit',
-  env: {
-    ...process.env,
-    MONGODB_URI: mongo.getUri(),
-    JWT_SECRET: 'e2e-secret-key',
-    PUBLIC_ORIGINS: `http://localhost:${port}`,
-    // e2e talks to the real API only; the shared-wallet mock layer must stay off.
-    NEXT_PUBLIC_SHARED_WALLET_MOCKS: 'false',
-  },
-});
+const server = spawn(
+  process.execPath,
+  ['./node_modules/next/dist/bin/next', 'dev', '-p', port],
+  {
+    shell: isWin,
+    stdio: 'inherit',
+    env: {
+      ...process.env,
+      MONGODB_URI: mongo.getUri(),
+      JWT_SECRET: 'e2e-secret-key',
+      PUBLIC_ORIGINS: `http://localhost:${port}`,
+      // Fixed on purpose: the spec sends the same value, and e2e must never use a real secret.
+      CRON_SECRET: 'test-cron-secret-2026',
+      // e2e talks to the real API only; the shared-wallet mock layer must stay off.
+      NEXT_PUBLIC_SHARED_WALLET_MOCKS: 'false',
+    },
+  }
+);
 
-async function shutdown() {
-  server.kill('SIGTERM');
-  await mongo.stop();
-  process.exit(0);
+let isShuttingDown = false;
+async function shutdown(code = 0) {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+  try {
+    fs.unlinkSync(uriFile);
+  } catch {}
+  try {
+    // shell:true on Windows wraps next in cmd.exe, so kill the whole tree.
+    if (isWin) execSync(`taskkill /pid ${server.pid} /T /F`, { stdio: 'ignore' });
+    else server.kill('SIGTERM');
+  } catch {}
+  try {
+    await mongo.stop({ doCleanup: true, force: true });
+  } catch {}
+  process.exit(code);
 }
-process.on('SIGINT', shutdown);
-process.on('SIGTERM', shutdown);
-server.on('exit', shutdown);
+
+process.on('SIGINT', () => shutdown());
+process.on('SIGTERM', () => shutdown());
+server.on('exit', (code) => shutdown(code ?? 0));

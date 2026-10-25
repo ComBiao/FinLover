@@ -22,6 +22,7 @@ export type WalletApiRecord = SharedWalletFields & {
   goalAmount?: number;
   createdAt?: string;
   updatedAt?: string;
+  isShared?: boolean;
 };
 
 export type CreateWalletInput = {
