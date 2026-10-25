@@ -51,6 +51,8 @@ export const rawSchedulers = createSchedulerRouter(
 );
 import { createHomeRouter } from '../modules/home/router';
 export const rawHome = createHomeRouter(walletRepository, transactionRepository, categoryRepository);
+import { createReportRouter } from '../modules/reports/router';
+export const rawReports = createReportRouter(walletRepository, transactionRepository, categoryRepository);
 import { connectDB } from '@/server/db/index';
 
 export const auth = {
