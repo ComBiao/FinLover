@@ -1,39 +1,7 @@
-import { NextResponse } from 'next/server';
 import { categoryInput, categoryUpdate, transactionInput, transactionUpdate, walletSavingUpdate, loginSchema, registerSchema } from '@/shared/contracts';
 import { versioned } from '@/server/shared/http/versioned';
-import { connectDB } from '@/server/db';
-import { AppError } from '@/server/shared/kernel/AppError';
-import { apiErrorResponse } from '@/server/shared/http/errors';
-import type { RouteContext } from './policy';
-import { rawAuth as auth, rawCategories as categories, rawTransactions as transactions, rawWallets, rawHome, rawInvitations, rawMembers, rawSchedulers, userRepository } from '@/server/composition';
+import { rawAuth as auth, rawCategories as categories, rawTransactions as transactions, rawWallets, rawHome, rawInvitations, rawMembers, rawSchedulers, rawUsers } from '@/server/composition';
 
-const lookupUserHandler = async (request: Request, context: RouteContext) => {
-  try {
-    const url = new URL(request.url);
-    const email = url.searchParams.get('email')?.trim().toLowerCase();
-    const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email || !EMAIL_REGEX.test(email)) {
-      throw new AppError('VALIDATION_ERROR', 'One or more fields are invalid', { email: 'Enter a valid email address' });
-    }
-    await connectDB();
-    const target = await userRepository.findByEmail(email);
-    if (!target) {
-      throw new AppError('VALIDATION_ERROR', 'One or more fields are invalid', { email: 'User not found' });
-    }
-    if (String(target._id) === context.principal?.userId) {
-      throw new AppError('VALIDATION_ERROR', 'One or more fields are invalid', { email: 'Cannot invite yourself' });
-    }
-    return NextResponse.json({
-      data: {
-        id: String(target._id),
-        email: target.email,
-        name: target.name?.trim() || 'Unnamed user',
-      },
-    });
-  } catch (error) {
-    return apiErrorResponse(error);
-  }
-};
 const txInput = (value: Record<string, unknown>) => {
   const res: Record<string, unknown> = {
     wallet_id: value.walletId,
@@ -125,5 +93,5 @@ export const v1 = {
   setSchedulerStatus: versioned(rawSchedulers.setStatus, { protected: true }),
   deleteScheduler: versioned(rawSchedulers.remove, { protected: true }),
   homeSummary: versioned(rawHome.summary, { protected: true }),
-  lookupUser: versioned(lookupUserHandler, { protected: true }),
+  lookupUser: versioned(rawUsers.lookup, { protected: true }),
 };

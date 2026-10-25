@@ -36,14 +36,17 @@ afterEach(() => {
 });
 
 describe("mock flag", () => {
-  it("is off in the test environment and on by default", () => {
+  it("is off by default and opt-in via NEXT_PUBLIC_SHARED_WALLET_MOCKS=true", () => {
     expect(sharedWalletMocksEnabled()).toBe(false);
 
     vi.stubEnv("NEXT_PUBLIC_SHARED_WALLET_MOCKS", "true");
     expect(sharedWalletMocksEnabled()).toBe(true);
 
     vi.stubEnv("NEXT_PUBLIC_SHARED_WALLET_MOCKS", "");
-    expect(sharedWalletMocksEnabled()).toBe(true);
+    expect(sharedWalletMocksEnabled()).toBe(false);
+
+    vi.stubEnv("NEXT_PUBLIC_SHARED_WALLET_MOCKS", "false");
+    expect(sharedWalletMocksEnabled()).toBe(false);
   });
 
   it("only treats mock-prefixed ids as mock targets while the flag is on", () => {

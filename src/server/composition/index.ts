@@ -87,3 +87,9 @@ configureAccountCheck(accountExists);
 export const rawInvitations = createWalletInvitationRouter(new WalletInvitationService(new WalletInvitationRepository(), walletMembershipRepository, walletRepository, userRepository, new MongoUnitOfWork()));
 
 export const rawMembers = createWalletMembersRouter(new WalletMembersService(new WalletMembersRepository(), walletMembershipRepository, walletRepository, userRepository, new WalletPresentationService(walletMembershipRepository, userRepository), new MongoUnitOfWork()));
+
+import { createUserRouter } from '../modules/users/router';
+export const rawUsers = createUserRouter(userRepository);
+export const users = {
+  lookup: logged(secure(rawUsers.lookup, { protected: true })),
+};
