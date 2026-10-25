@@ -19,6 +19,9 @@ async function loginUser(page: Page, email: string) {
   await expect(page).toHaveURL(/\/homepage$/, { timeout: 15_000 });
 }
 
+// Must match the fixed secret start-server.mjs gives the Next server.
+const CRON_SECRET = "test-cron-secret-2026";
+
 test.describe.serial("EPIC 4: Recurring Transactions E2E Suite (US4-1 to US4-5 & Issue #178)", () => {
   let seededData: Awaited<ReturnType<typeof seedRecurringE2EData>>;
 
@@ -467,7 +470,7 @@ test.describe.serial("EPIC 4: Recurring Transactions E2E Suite (US4-1 to US4-5 &
 
     // 2. Trigger scheduler cron job via /api/internal/cron/schedulers
     const cronRes1 = await page.request.get("/api/internal/cron/schedulers", {
-      headers: { Authorization: "Bearer test-cron-secret-2026" },
+      headers: { Authorization: `Bearer ${CRON_SECRET}` },
     });
     expect(cronRes1.status()).toBe(200);
     const summary1 = (await cronRes1.json()).data;
@@ -485,7 +488,7 @@ test.describe.serial("EPIC 4: Recurring Transactions E2E Suite (US4-1 to US4-5 &
 
     // 5. Idempotency check: trigger cron job a second time immediately
     const cronRes2 = await page.request.get("/api/internal/cron/schedulers", {
-      headers: { Authorization: "Bearer test-cron-secret-2026" },
+      headers: { Authorization: `Bearer ${CRON_SECRET}` },
     });
     expect(cronRes2.status()).toBe(200);
     const summary2 = (await cronRes2.json()).data;

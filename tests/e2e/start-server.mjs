@@ -23,7 +23,8 @@ const server = spawn(
       MONGODB_URI: mongo.getUri(),
       JWT_SECRET: 'e2e-secret-key',
       PUBLIC_ORIGINS: `http://localhost:${port}`,
-      CRON_SECRET: process.env.CRON_SECRET ?? 'test-cron-secret-2026',
+      // Fixed on purpose: the spec sends the same value, and e2e must never use a real secret.
+      CRON_SECRET: 'test-cron-secret-2026',
       // e2e talks to the real API only; the shared-wallet mock layer must stay off.
       NEXT_PUBLIC_SHARED_WALLET_MOCKS: 'false',
     },

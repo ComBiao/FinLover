@@ -101,7 +101,7 @@ export function CreateRuleModal({
   const [type, setType] = useState<TransactionType>("expense");
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
-  const [walletId, setWalletId] = useState<string | undefined>(personalWallets[0]?.id ?? wallets[0]?.id);
+  const [walletId, setWalletId] = useState<string | undefined>(personalWallets[0]?.id);
   const [categoryId, setCategoryId] = useState<string | undefined>(undefined);
   const [note, setNote] = useState("");
 
@@ -123,7 +123,7 @@ export function CreateRuleModal({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  const effectiveWalletId = walletId ?? personalWallets[0]?.id ?? wallets[0]?.id;
+  const effectiveWalletId = walletId ?? personalWallets[0]?.id;
 
   // Find fallback "Others" category for current type
   const fallbackCategory = useMemo(() => {

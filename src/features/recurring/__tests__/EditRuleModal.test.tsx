@@ -188,5 +188,27 @@ describe("EditRuleModal (US4-5)", () => {
     expect(savePayload.startDate).toBe("2026-06-01");
     expect(savePayload.endDate).toBe("2026-07-01");
   });
+
+  it("keeps the saved end month on a valid occurrence when the start date changes", async () => {
+    const onSave = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <EditRuleModal
+        // Every 2 months from March allows May, July...; the stored June end is not an occurrence.
+        rule={{ ...mockRule, intervalN: 2, intervalUnit: "months", startDate: "2027-03-10", endType: "date", endDate: "2027-06-10" }}
+        open={true}
+        onOpenChange={vi.fn()}
+        wallets={mockWallets}
+        categories={mockCategories}
+        onSave={onSave}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Next day" }));
+    await user.click(screen.getByRole("button", { name: /Save Future Changes/i }));
+
+    expect(onSave).toHaveBeenCalledTimes(1);
+    expect(onSave.mock.calls[0][1]).toMatchObject({ startDate: "2027-03-11", endDate: "2027-05-11" });
+  });
 });
 
