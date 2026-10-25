@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Tag, Wallet as WalletIcon } from "lucide-react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -110,6 +110,83 @@ describe("EditRuleModal (US4-5)", () => {
         walletId: "w1",
       })
     );
+  });
+
+  it("saves updated cadence without spreading stale rule properties", async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn();
+
+    render(
+      <EditRuleModal
+        rule={mockRule}
+        open={true}
+        onOpenChange={vi.fn()}
+        wallets={mockWallets}
+        categories={mockCategories}
+        onSave={onSave}
+      />
+    );
+
+    // Update interval to 3
+    const intervalInput = screen.getByLabelText(/interval count/i);
+    await user.clear(intervalInput);
+    await user.type(intervalInput, "3");
+
+    // Update note
+    const noteInput = screen.getByLabelText(/note/i);
+    await user.type(noteInput, "Updated gym pass");
+
+    const submitBtn = screen.getByRole("button", { name: /save future changes/i });
+    await user.click(submitBtn);
+
+    expect(onSave).toHaveBeenCalledTimes(1);
+    const savePayload = onSave.mock.calls[0][1];
+    expect(savePayload.intervalN).toBe(3);
+    expect(savePayload.note).toBe("Updated gym pass");
+    // Ensure rule is not spread directly with stale internal scheduler fields like postedCount or id
+    expect(savePayload.postedCount).toBeUndefined();
+    expect(savePayload.createdAt).toBeUndefined();
+  });
+
+  it("synchronizes displayed fallback end date to parent when start date is changed after end date", async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn();
+
+    // Rule with monthly cadence ending on 2026-03-01
+    const ruleWithEnd: RecurringRule = {
+      ...mockRule,
+      startDate: "2026-01-01",
+      endType: "date",
+      endDate: "2026-03-01",
+    };
+
+    render(
+      <EditRuleModal
+        rule={ruleWithEnd}
+        open={true}
+        onOpenChange={vi.fn()}
+        wallets={mockWallets}
+        categories={mockCategories}
+        onSave={onSave}
+      />
+    );
+
+    // Change start date to 2026-06-01 (after the current end date)
+    const startDateInput = screen.getByLabelText(/start date/i);
+    fireEvent.change(startDateInput, { target: { value: "2026-06-01" } });
+
+    // The ends on description should now reflect the synchronized fallback (2026-07-01)
+    expect(
+      screen.getByText((content) => content.includes("2026-07-01"))
+    ).toBeInTheDocument();
+
+    const submitBtn = screen.getByRole("button", { name: /save future changes/i });
+    await user.click(submitBtn);
+
+    expect(onSave).toHaveBeenCalledTimes(1);
+    const savePayload = onSave.mock.calls[0][1];
+    expect(savePayload.startDate).toBe("2026-06-01");
+    expect(savePayload.endDate).toBe("2026-07-01");
   });
 });
 

@@ -253,7 +253,6 @@ function EditRuleForm({
     setIsSubmitting(true);
     try {
       await onSave(rule.id, {
-        ...rule,
         type,
         title: title.trim(),
         amount: numAmount,
@@ -263,6 +262,7 @@ function EditRuleForm({
         startDate,
         intervalN: n,
         intervalUnit,
+        anchorDay: startDay,
         endType,
         totalOccurrences: endType === "count" ? parseInt(totalOccurrencesStr, 10) : undefined,
         endDate: endType === "date" ? effectiveEndDate : undefined,
@@ -472,6 +472,7 @@ function EditRuleForm({
             <span className="text-[11px] font-medium text-muted-foreground">Start Date:</span>
             <Input
               type="date"
+              aria-label="Start Date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
               className="h-9 font-mono text-xs"
@@ -749,9 +750,6 @@ export function EditRuleModal({
             <p className="font-semibold text-primary">Future-Only Edit & Ledger Preservation</p>
             <p className="mt-0.5 text-muted-foreground text-[11px] leading-relaxed">
               Changes will only apply to future scheduled occurrences. Past recorded transactions remain unchanged.
-            </p>
-            <p className="mt-0.5 text-muted-foreground text-[11px] leading-relaxed">
-              Changes apply to future scheduled runs only. Past transactions in your ledger will not be modified.
             </p>
           </div>
         </div>

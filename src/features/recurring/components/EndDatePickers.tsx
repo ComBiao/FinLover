@@ -121,6 +121,22 @@ export function MonthlyEndPicker({
     return value;
   }, [value, startDate, intervalN, firstAllowedKey]);
 
+  const prevStartRef = React.useRef(startDate);
+  const prevIntervalRef = React.useRef(intervalN);
+
+  React.useEffect(() => {
+    const startChanged = prevStartRef.current !== startDate;
+    const intervalChanged = prevIntervalRef.current !== intervalN;
+    prevStartRef.current = startDate;
+    prevIntervalRef.current = intervalN;
+
+    if (!value || startChanged || intervalChanged) {
+      if (effectiveValue !== value) {
+        onChange(effectiveValue);
+      }
+    }
+  }, [startDate, intervalN, effectiveValue, value, onChange]);
+
   const [calendarYear, setCalendarYear] = React.useState(() => parseMonthKey(effectiveValue).year);
 
   const handleOpenChange = (next: boolean) => {
@@ -288,6 +304,22 @@ export function YearlyEndPicker({
     return value;
   }, [value, startDate, intervalN, firstAllowedYear]);
 
+  const prevStartRef = React.useRef(startDate);
+  const prevIntervalRef = React.useRef(intervalN);
+
+  React.useEffect(() => {
+    const startChanged = prevStartRef.current !== startDate;
+    const intervalChanged = prevIntervalRef.current !== intervalN;
+    prevStartRef.current = startDate;
+    prevIntervalRef.current = intervalN;
+
+    if (!value || startChanged || intervalChanged) {
+      if (effectiveValue !== value) {
+        onChange(effectiveValue);
+      }
+    }
+  }, [startDate, intervalN, effectiveValue, value, onChange]);
+
   const [gridStart, setGridStart] = React.useState(
     () => Math.floor((effectiveValue - 2000) / WINDOW_SIZE) * WINDOW_SIZE + 2000
   );
@@ -448,10 +480,11 @@ export function DailyWeeklyEndPicker({
   const [sy, sm, sd] = React.useMemo(() => parseISODateParts(startDate), [startDate]);
   const startDateObj = React.useMemo(() => new Date(sy, sm - 1, sd, 0, 0, 0, 0), [sy, sm, sd]);
 
-  const firstAllowedObj = React.useMemo(
-    () => new Date(startDateObj.getTime() + stepDays * 86_400_000),
-    [startDateObj, stepDays]
-  );
+  const firstAllowedObj = React.useMemo(() => {
+    const d = new Date(startDateObj.getFullYear(), startDateObj.getMonth(), startDateObj.getDate(), 0, 0, 0, 0);
+    d.setDate(d.getDate() + stepDays);
+    return d;
+  }, [startDateObj, stepDays]);
   const firstAllowedStr = React.useMemo(() => toLocalISODate(firstAllowedObj), [firstAllowedObj]);
 
   const effectiveValue = React.useMemo(() => {
@@ -460,6 +493,25 @@ export function DailyWeeklyEndPicker({
     }
     return value;
   }, [value, startDate, intervalN, intervalUnit, firstAllowedStr]);
+
+  const prevStartRef = React.useRef(startDate);
+  const prevIntervalRef = React.useRef(intervalN);
+  const prevUnitRef = React.useRef(intervalUnit);
+
+  React.useEffect(() => {
+    const startChanged = prevStartRef.current !== startDate;
+    const intervalChanged = prevIntervalRef.current !== intervalN;
+    const unitChanged = prevUnitRef.current !== intervalUnit;
+    prevStartRef.current = startDate;
+    prevIntervalRef.current = intervalN;
+    prevUnitRef.current = intervalUnit;
+
+    if (!value || startChanged || intervalChanged || unitChanged) {
+      if (effectiveValue !== value) {
+        onChange(effectiveValue);
+      }
+    }
+  }, [startDate, intervalN, intervalUnit, effectiveValue, value, onChange]);
 
   const [vy, vm, vd] = parseISODateParts(effectiveValue);
   const valObj = React.useMemo(() => new Date(vy, vm - 1, vd, 0, 0, 0, 0), [vy, vm, vd]);
@@ -474,10 +526,11 @@ export function DailyWeeklyEndPicker({
     [startDateObj, stepDays]
   );
 
-  const prevObj = React.useMemo(
-    () => new Date(valObj.getTime() - stepDays * 86_400_000),
-    [valObj, stepDays]
-  );
+  const prevObj = React.useMemo(() => {
+    const d = new Date(valObj.getFullYear(), valObj.getMonth(), valObj.getDate(), 0, 0, 0, 0);
+    d.setDate(d.getDate() - stepDays);
+    return d;
+  }, [valObj, stepDays]);
   const canGoPrev = prevObj.getTime() >= firstAllowedObj.getTime();
 
   const handlePrev = () => {
@@ -486,7 +539,8 @@ export function DailyWeeklyEndPicker({
   };
 
   const handleNext = () => {
-    const nextObj = new Date(valObj.getTime() + stepDays * 86_400_000);
+    const nextObj = new Date(valObj.getFullYear(), valObj.getMonth(), valObj.getDate(), 0, 0, 0, 0);
+    nextObj.setDate(nextObj.getDate() + stepDays);
     onChange(toLocalISODate(nextObj));
   };
 
@@ -609,7 +663,8 @@ export function WeeklyIphoneClockPicker({
     const groupMap = new Map<string, MonthGroup>();
 
     for (let k = 1; k <= 156; k++) {
-      const d = new Date(startDateObj.getTime() + k * stepDays * 86_400_000);
+      const d = new Date(startDateObj.getFullYear(), startDateObj.getMonth(), startDateObj.getDate(), 0, 0, 0, 0);
+      d.setDate(d.getDate() + k * stepDays);
       const isoDate = toLocalISODate(d);
       const weeksFromStart = k * Math.max(1, intervalN);
       const year = d.getFullYear();
@@ -667,6 +722,22 @@ export function WeeklyIphoneClockPicker({
   }, [activeMonth, value]);
 
   const selectedItem = activeMonth?.occurrences[activeOccIndex] ?? allOccurrences[0];
+
+  const prevStartRef = React.useRef(startDate);
+  const prevIntervalRef = React.useRef(intervalN);
+
+  React.useEffect(() => {
+    const startChanged = prevStartRef.current !== startDate;
+    const intervalChanged = prevIntervalRef.current !== intervalN;
+    prevStartRef.current = startDate;
+    prevIntervalRef.current = intervalN;
+
+    if (!value || startChanged || intervalChanged) {
+      if (selectedItem && selectedItem.isoDate !== value) {
+        onChange(selectedItem.isoDate);
+      }
+    }
+  }, [startDate, intervalN, selectedItem, value, onChange]);
 
   // Scroll refs
   const monthScrollRef = React.useRef<HTMLDivElement>(null);

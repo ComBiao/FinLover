@@ -107,6 +107,34 @@ describe("EndDatePickers", () => {
       await user.click(mayBtn);
       expect(onChange).toHaveBeenCalledWith("2027-05");
     });
+
+    it("propagates displayed fallback to parent when startDate changes past current value", () => {
+      const onChange = vi.fn();
+      const { rerender } = render(
+        <MonthlyEndPicker
+          startDate="2027-01-14"
+          intervalN={1}
+          value="2027-02"
+          onChange={onChange}
+        />
+      );
+
+      // Initially 2027-02 is valid for 2027-01-14, so onChange is not called
+      expect(onChange).not.toHaveBeenCalled();
+
+      // Change startDate to 2027-04-14 (past 2027-02)
+      rerender(
+        <MonthlyEndPicker
+          startDate="2027-04-14"
+          intervalN={1}
+          value="2027-02"
+          onChange={onChange}
+        />
+      );
+
+      // Should automatically propagate first allowed month (2027-05) to parent
+      expect(onChange).toHaveBeenCalledWith("2027-05");
+    });
   });
 
   describe("YearlyEndPicker UI", () => {
@@ -149,6 +177,33 @@ describe("EndDatePickers", () => {
       await user.click(y2031);
       expect(onChange).toHaveBeenCalledWith(2031);
     });
+
+    it("propagates displayed fallback to parent when startDate changes past current value", () => {
+      const onChange = vi.fn();
+      const { rerender } = render(
+        <YearlyEndPicker
+          startDate="2027-05-20"
+          intervalN={1}
+          value={2028}
+          onChange={onChange}
+        />
+      );
+
+      expect(onChange).not.toHaveBeenCalled();
+
+      // Change startDate to 2030-05-20
+      rerender(
+        <YearlyEndPicker
+          startDate="2030-05-20"
+          intervalN={1}
+          value={2028}
+          onChange={onChange}
+        />
+      );
+
+      // Should automatically propagate first allowed year (2031) to parent
+      expect(onChange).toHaveBeenCalledWith(2031);
+    });
   });
 
   describe("DailyWeeklyEndPicker UI", () => {
@@ -174,6 +229,35 @@ describe("EndDatePickers", () => {
       const nextBtn = screen.getByRole("button", { name: "Next occurrence date" });
       await user.click(nextBtn);
       expect(onChange).toHaveBeenCalledWith("2027-01-05");
+    });
+
+    it("propagates displayed fallback to parent when startDate changes past current value", () => {
+      const onChange = vi.fn();
+      const { rerender } = render(
+        <DailyWeeklyEndPicker
+          startDate="2027-01-01"
+          intervalN={2}
+          intervalUnit="days"
+          value="2027-01-03"
+          onChange={onChange}
+        />
+      );
+
+      expect(onChange).not.toHaveBeenCalled();
+
+      // Change startDate to 2027-01-05
+      rerender(
+        <DailyWeeklyEndPicker
+          startDate="2027-01-05"
+          intervalN={2}
+          intervalUnit="days"
+          value="2027-01-03"
+          onChange={onChange}
+        />
+      );
+
+      // Should propagate 2027-01-07 (first allowed day after Jan 5)
+      expect(onChange).toHaveBeenCalledWith("2027-01-07");
     });
   });
 
@@ -287,6 +371,33 @@ describe("EndDatePickers", () => {
       await user.click(week3Row);
 
       expect(onChange).toHaveBeenCalledWith("2027-01-24");
+    });
+
+    it("propagates displayed fallback to parent when startDate changes past current value", () => {
+      const onChange = vi.fn();
+      const { rerender } = render(
+        <WeeklyIphoneClockPicker
+          startDate="2027-01-03"
+          intervalN={1}
+          value="2027-01-10"
+          onChange={onChange}
+        />
+      );
+
+      expect(onChange).not.toHaveBeenCalled();
+
+      // Change startDate to 2027-04-14 (Wednesday)
+      rerender(
+        <WeeklyIphoneClockPicker
+          startDate="2027-04-14"
+          intervalN={1}
+          value="2027-01-10"
+          onChange={onChange}
+        />
+      );
+
+      // Should automatically propagate first allowed weekly occurrence in April 2027
+      expect(onChange).toHaveBeenCalledWith("2027-04-21");
     });
   });
 });

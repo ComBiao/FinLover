@@ -377,7 +377,7 @@ describe("RecurringPage Integration (Issue #178 Step 3)", () => {
     fireEvent.click(editMenuItem);
 
     expect(
-      screen.getByText(/Changes apply to future scheduled runs only\. Past transactions in your ledger will not be modified\./i)
+      screen.getByText(/Changes will only apply to future scheduled occurrences\. Past recorded transactions remain unchanged\./i)
     ).toBeInTheDocument();
 
     const amountInput = screen.getByLabelText(/future amount/i);
