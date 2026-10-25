@@ -30,7 +30,6 @@ import { cn, formatBaht } from "@/lib/utils";
 import type { Wallet } from "@/types/wallet";
 import { MemberAvatar } from "@/features/wallets/shared/MemberAvatar";
 import { useActiveWallet } from "@/features/wallets/store/useActiveWallet";
-import { useBalanceVisibility } from "@/features/wallets/store/useBalanceVisibility";
 
 type WalletCardProps = {
   wallet: Wallet;
@@ -53,7 +52,6 @@ export function WalletCard({
 }: WalletCardProps) {
   const activeWalletId = useActiveWallet((state) => state.activeWalletId);
   const setActiveWalletId = useActiveWallet((state) => state.setActiveWalletId);
-  const isVisible = useBalanceVisibility((state) => state.isVisible);
 
   const isShared = Boolean(wallet.isShared);
   const isOwner = wallet.role === "owner";
@@ -229,7 +227,7 @@ export function WalletCard({
             className="text-2xl font-extrabold sm:text-3xl"
             style={{ color: shadeHex(color, 0.4) }}
           >
-            {isVisible ? formatBaht(wallet.balance) : "••••••"}
+            {formatBaht(wallet.balance)}
           </div>
         </div>
 
@@ -261,19 +259,15 @@ export function WalletCard({
         {isSaving ? (
           <div className="mt-auto flex flex-col gap-2 rounded-xl border border-border/50 bg-card/60 p-3 pt-2.5">
             <div className="flex items-baseline justify-between gap-2">
-              <span className="text-xs font-bold text-foreground">Goal: {isVisible ? formatBaht(goal) : "••••••"}</span>
+              <span className="text-xs font-bold text-foreground">Goal: {formatBaht(goal)}</span>
               <span className="text-xs font-semibold text-muted-foreground">
-                {reached
-                  ? "Goal reached! 🎉"
-                  : isVisible
-                    ? `${formatBaht(remaining)} left`
-                    : "••••••"}
+                {reached ? "Goal reached! 🎉" : `${formatBaht(remaining)} left`}
               </span>
             </div>
             <Progress value={percent} className="h-2" />
             <div className="flex justify-between text-[11px] text-muted-foreground">
               <span>{percent}% saved</span>
-              <span>{isVisible ? formatBaht(wallet.balance) : "••••••"}</span>
+              <span>{formatBaht(wallet.balance)}</span>
             </div>
           </div>
         ) : null}

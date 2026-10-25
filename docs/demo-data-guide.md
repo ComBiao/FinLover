@@ -102,7 +102,6 @@ All dashboard metrics are populated with the exact figures specified in the Spri
 | **US6-1** | **Create Wallet** | Click **"Create Wallet"** modal $\rightarrow$ enter name, color, and optional saving goal. | **US6-1 Scenario 1**. |
 | **US6-2** | **Switch Active Wallet** | Use wallet dropdown in navbar or home page $\rightarrow$ switches active view and context. | **US6-2 Scenario 1**. |
 | **US6-3** | **Saving Wallet & Target Goal** | **"Emergency Fund"** (Goal ฿20,000) and **"Trip to Japan"** (Goal ฿50,000) show saving badges, target goals, and progress bars. | **US6-3 Scenario 1**. |
-| **US6-4** | **Hide Balance Eye Toggle** | Click the eye icon toggle (`Eye` / `EyeOff`) on any balance card $\rightarrow$ masks digits with `••••••` across all balances. | **US6-4 Scenario 1**. |
 | **US6-5** | **Cascade Delete Wallet** | Wallet **"Old Fund"** has **exactly 5 transactions**. Click Delete on **"Old Fund"** $\rightarrow$ shows cascade delete warning $\rightarrow$ confirm $\rightarrow$ wallet and all 5 transactions are deleted atomically! | **US6-5 Scenario 1**: *"wallet named 'Old Fund' with 5 associated transactions ... cascade delete wallet and all its transactions"*. |
 | **US6-6** | **Edit Wallet Metadata** | Click Edit on **"Trip to Japan"** $\rightarrow$ rename or pick a different color $\rightarrow$ updates across the UI immediately. | **US6-6 Scenario 1**: *"wallet named 'Travel Fund' ... updates name to 'Trip to Japan' and changes color tag"*. |
 

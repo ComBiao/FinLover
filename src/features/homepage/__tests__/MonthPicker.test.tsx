@@ -14,7 +14,6 @@ import {
   shiftMonthKey,
 } from "../month";
 import { useActiveWallet } from "@/features/wallets/store/useActiveWallet";
-import { useBalanceVisibility } from "@/features/wallets/store/useBalanceVisibility";
 import { useTransactionModal } from "@/features/transactions/store/useTransactionModal";
 import * as walletsService from "@/features/wallets/walletsService";
 import * as transactionsService from "@/features/transactions/transactionsService";
@@ -173,7 +172,6 @@ describe("Task 59 — Month Navigation on HomePage", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    useBalanceVisibility.setState({ isVisible: true });
     useActiveWallet.setState({ activeWalletId: "all" });
     useTransactionModal.setState({
       isOpen: false,

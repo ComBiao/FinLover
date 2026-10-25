@@ -7,7 +7,6 @@ import React from "react";
 import { WalletManagementPage } from "../components/WalletManagementPage";
 import { DeleteWalletDialog } from "../components/DeleteWalletDialog";
 import * as walletsService from "../walletsService";
-import { useBalanceVisibility } from "../store/useBalanceVisibility";
 import { useActiveWallet } from "../store/useActiveWallet";
 import type { Wallet } from "@/types/wallet";
 import { PiggyBank, Wallet as WalletIcon } from "lucide-react";
@@ -47,7 +46,6 @@ function renderWithClient(ui: React.ReactElement) {
 
 describe("WalletManagementPage UI", () => {
   beforeEach(() => {
-    useBalanceVisibility.setState({ isVisible: true });
     useActiveWallet.setState({ activeWalletId: "all" });
     vi.spyOn(walletsService, "getWallets").mockResolvedValue(testWallets);
   });

@@ -11,7 +11,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatBaht } from "@/lib/utils";
 import type { Wallet } from "@/types/wallet";
 import { useWallets } from "@/features/wallets/hooks/useWallets";
-import { useBalanceVisibility } from "@/features/wallets/store/useBalanceVisibility";
 import { CreateWalletDialog } from "./CreateWalletDialog";
 import { EditWalletDialog } from "./EditWalletDialog";
 import { SavingGoalDialog } from "./SavingGoalDialog";
@@ -28,10 +27,7 @@ const TAB_TRIGGER_CLASS =
   "gap-1.5 px-4 font-semibold text-foreground/75 hover:text-foreground data-active:border-primary/40 data-active:bg-primary/10 data-active:text-success data-active:shadow-none";
 
 export function WalletManagementPage() {
-  const { data: wallets = [], isPending, isError } = useWallets();
-
-  const isVisible = useBalanceVisibility((state) => state.isVisible);
-  const onError = useBalanceVisibility((state) => state.onError);
+  const { data: wallets = [], isPending } = useWallets();
 
   const [selectedView, setSelectedView] = React.useState<WalletView>("personal");
   const [createOpen, setCreateOpen] = React.useState(false);
@@ -40,13 +36,6 @@ export function WalletManagementPage() {
   const [deletingWallet, setDeletingWallet] = React.useState<Wallet | null>(null);
   const [membersWalletId, setMembersWalletId] = React.useState<string | null>(null);
   const [leavingWalletId, setLeavingWalletId] = React.useState<string | null>(null);
-
-  // If fetching wallets fails, revert balance visibility to hidden (#78)
-  React.useEffect(() => {
-    if (isError) {
-      onError();
-    }
-  }, [isError, onError]);
 
   // Personal and shared wallets are shown one at a time, each with its own totals:
   // shared wallets are pooled with other people, so they never mix into the personal numbers.
@@ -95,10 +84,8 @@ export function WalletManagementPage() {
             <div className="text-3xl font-extrabold text-foreground">
               {isPending ? (
                 <Skeleton className="h-9 w-32" />
-              ) : isVisible ? (
-                formatBaht(total)
               ) : (
-                "••••••"
+                formatBaht(total)
               )}
             </div>
             <span className="text-xs text-muted-foreground">

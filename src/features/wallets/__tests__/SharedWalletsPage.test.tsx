@@ -16,7 +16,6 @@ import { WalletManagementPage } from "../components/WalletManagementPage";
 import * as invitationsService from "../shared/invitationsService";
 import * as membersService from "../shared/membersService";
 import { useActiveWallet } from "../store/useActiveWallet";
-import { useBalanceVisibility } from "../store/useBalanceVisibility";
 import * as walletsService from "../walletsService";
 
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
@@ -36,7 +35,6 @@ function renderPage() {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  useBalanceVisibility.setState({ isVisible: true });
   useActiveWallet.setState({ activeWalletId: "all" });
   vi.spyOn(walletsService, "getWallets").mockResolvedValue([
     PERSONAL_WALLET,
