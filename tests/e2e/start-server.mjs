@@ -24,6 +24,8 @@ const server = spawn(
       JWT_SECRET: 'e2e-secret-key',
       PUBLIC_ORIGINS: `http://localhost:${port}`,
       CRON_SECRET: process.env.CRON_SECRET ?? 'test-cron-secret-2026',
+      // e2e talks to the real API only; the shared-wallet mock layer must stay off.
+      NEXT_PUBLIC_SHARED_WALLET_MOCKS: 'false',
     },
   }
 );

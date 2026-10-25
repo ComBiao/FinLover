@@ -31,11 +31,35 @@ import { CATEGORY_STYLES, resolveChipTone, WALLET_TYPE_STYLES } from "@/componen
 import { FALLBACK_CATEGORY_NAME, isFallbackCategory } from "@/features/categories/categoriesService";
 import { useCategories } from "@/features/categories/hooks/useCategories";
 import { useWallets } from "@/features/wallets/hooks/useWallets";
+import { MemberAvatar } from "@/features/wallets/shared/MemberAvatar";
 import { cn, formatBaht, formatEnglishDate } from "@/lib/utils";
 import type { Transaction } from "@/types/transaction";
 
 function formatAmount(amount: number, type: Transaction["type"]) {
   return `${type === "income" ? "+" : "-"}${formatBaht(amount)}`;
+}
+
+/** Shared wallets: "Logged by Guy", plus "edited by Tul" when someone else changed the row. */
+function LoggedBy({ transaction }: { transaction: Transaction }) {
+  const { createdBy, editedBy } = transaction;
+  if (!createdBy) return null;
+  return (
+    <div className="flex min-w-0 items-center gap-2">
+      <MemberAvatar id={createdBy.id} name={createdBy.name} size="sm" />
+      <div className="flex min-w-0 flex-col leading-tight">
+        <span className="truncate text-sm text-foreground">
+          Logged by {createdBy.name}
+          {createdBy.isYou ? " (you)" : ""}
+        </span>
+        {editedBy ? (
+          <span className="truncate text-xs text-muted-foreground">
+            edited by {editedBy.name}
+            {editedBy.isYou ? " (you)" : ""}
+          </span>
+        ) : null}
+      </div>
+    </div>
+  );
 }
 
 type TransactionTableProps = {
@@ -61,6 +85,9 @@ export function TransactionTable({
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
   const { data: categories = [] } = useCategories();
   const { data: wallets = [] } = useWallets();
+  // Rows of one shared wallet (Home with that wallet selected) trade the Category and
+  // Wallet columns for "Logged by": shared wallets have no categories.
+  const isSharedView = transactions.length > 0 && transactions.every((transaction) => transaction.createdBy);
 
   /** A row without a category shows its type's seeded "Others" (see `withFallbackCategory`). */
   const categoryOf = (transaction: Transaction) =>
@@ -120,28 +147,32 @@ export function TransactionTable({
                 </span>
               </div>
 
-              <div className="flex flex-wrap items-center gap-1.5">
-                <Badge
-                  variant="outline"
-                  className={
-                    categoryTone
-                      ? cn("border-transparent", categoryTone.className)
-                      : "border-border bg-muted text-muted-foreground"
-                  }
-                  style={categoryTone?.style}
-                >
-                  {CategoryIcon ? <CategoryIcon className="size-3" /> : null}
-                  {category?.name ?? FALLBACK_CATEGORY_NAME}
-                </Badge>
-                <Badge
-                  variant="secondary"
-                  className={cn("border-transparent", walletTone?.className)}
-                  style={walletTone?.style}
-                >
-                  {WalletIcon ? <WalletIcon className="size-3" /> : null}
-                  {wallet?.name ?? "Unknown wallet"}
-                </Badge>
-              </div>
+              {isSharedView ? (
+                <LoggedBy transaction={transaction} />
+              ) : (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <Badge
+                    variant="outline"
+                    className={
+                      categoryTone
+                        ? cn("border-transparent", categoryTone.className)
+                        : "border-border bg-muted text-muted-foreground"
+                    }
+                    style={categoryTone?.style}
+                  >
+                    {CategoryIcon ? <CategoryIcon className="size-3" /> : null}
+                    {category?.name ?? FALLBACK_CATEGORY_NAME}
+                  </Badge>
+                  <Badge
+                    variant="secondary"
+                    className={cn("border-transparent", walletTone?.className)}
+                    style={walletTone?.style}
+                  >
+                    {WalletIcon ? <WalletIcon className="size-3" /> : null}
+                    {wallet?.name ?? "Unknown wallet"}
+                  </Badge>
+                </div>
+              )}
 
               {transaction.note ? (
                 <p className="text-sm break-words text-muted-foreground">{transaction.note}</p>
@@ -185,11 +216,17 @@ export function TransactionTable({
       <Table className="hidden table-fixed md:table">
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[10%] py-3.5">Date</TableHead>
-            <TableHead className="w-[24%] py-3.5">Title</TableHead>
-            <TableHead className="w-[15%] py-3.5">Category</TableHead>
-            <TableHead className="w-[15%] py-3.5">Wallet</TableHead>
-            <TableHead className="w-[22%] py-3.5">Note</TableHead>
+            <TableHead className={cn("py-3.5", isSharedView ? "w-[12%]" : "w-[10%]")}>Date</TableHead>
+            <TableHead className={cn("py-3.5", isSharedView ? "w-[26%]" : "w-[24%]")}>Title</TableHead>
+            {isSharedView ? (
+              <TableHead className="w-[26%] py-3.5">Logged by</TableHead>
+            ) : (
+              <>
+                <TableHead className="w-[15%] py-3.5">Category</TableHead>
+                <TableHead className="w-[15%] py-3.5">Wallet</TableHead>
+              </>
+            )}
+            <TableHead className={cn("py-3.5", isSharedView ? "w-[20%]" : "w-[22%]")}>Note</TableHead>
             <TableHead className="w-[10%] py-3.5 text-right">Amount</TableHead>
             <TableHead className="w-[4%] py-3.5 text-right">
               <span className="sr-only">Actions</span>
@@ -224,30 +261,38 @@ export function TransactionTable({
                 <TableCell className="truncate py-3.5 font-medium text-foreground">
                   {transaction.title}
                 </TableCell>
-                <TableCell className="py-3.5">
-                  <Badge
-                    variant="outline"
-                    className={
-                      categoryTone
-                        ? cn("border-transparent", categoryTone.className)
-                        : "border-border bg-muted text-muted-foreground"
-                    }
-                    style={categoryTone?.style}
-                  >
-                    {CategoryIcon ? <CategoryIcon className="size-3" /> : null}
-                    {category?.name ?? FALLBACK_CATEGORY_NAME}
-                  </Badge>
-                </TableCell>
-                <TableCell className="py-3.5">
-                  <Badge
-                    variant="secondary"
-                    className={cn("border-transparent", walletTone?.className)}
-                    style={walletTone?.style}
-                  >
-                    {WalletIcon ? <WalletIcon className="size-3" /> : null}
-                    {wallet?.name ?? "Unknown wallet"}
-                  </Badge>
-                </TableCell>
+                {isSharedView ? (
+                  <TableCell className="py-3.5">
+                    <LoggedBy transaction={transaction} />
+                  </TableCell>
+                ) : (
+                  <>
+                    <TableCell className="py-3.5">
+                      <Badge
+                        variant="outline"
+                        className={
+                          categoryTone
+                            ? cn("border-transparent", categoryTone.className)
+                            : "border-border bg-muted text-muted-foreground"
+                        }
+                        style={categoryTone?.style}
+                      >
+                        {CategoryIcon ? <CategoryIcon className="size-3" /> : null}
+                        {category?.name ?? FALLBACK_CATEGORY_NAME}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="py-3.5">
+                      <Badge
+                        variant="secondary"
+                        className={cn("border-transparent", walletTone?.className)}
+                        style={walletTone?.style}
+                      >
+                        {WalletIcon ? <WalletIcon className="size-3" /> : null}
+                        {wallet?.name ?? "Unknown wallet"}
+                      </Badge>
+                    </TableCell>
+                  </>
+                )}
                 <TableCell className="py-3.5 text-muted-foreground">
                   {transaction.note ? (
                     <button

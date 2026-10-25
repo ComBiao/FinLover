@@ -1,8 +1,10 @@
 import type { LucideIcon } from "lucide-react";
 
+import type { SharedWalletFields } from "@/features/wallets/shared/types";
+
 export type WalletType = "cash" | "bank" | "savings" | "credit";
 
-export type Wallet = {
+export type Wallet = SharedWalletFields & {
   id: string;
   name: string;
   /** Derived client-side from `isSaving` (see `mapWalletRecord`); the server does not store a wallet type. */

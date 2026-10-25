@@ -125,6 +125,7 @@ export function TransactionFilterBar({
               className="w-full"
             />
             <WalletSelector
+              includeShared={false}
               value={value.walletId}
               onValueChange={(walletId) => patch({ walletId })}
               allowAll
@@ -176,6 +177,7 @@ export function TransactionFilterBar({
             className="min-w-[110px] flex-1 sm:max-w-44 sm:flex-none"
           />
           <WalletSelector
+            includeShared={false}
             value={value.walletId}
             onValueChange={(walletId) => patch({ walletId })}
             allowAll

@@ -99,7 +99,7 @@ describe("createTransaction", () => {
 });
 
 describe("updateTransaction", () => {
-  it("PUTs the editable fields without the wallet and returns the updated row", async () => {
+  it("PUTs the editable fields including the wallet and returns the updated row", async () => {
     const fetchMock = mockFetch(() => ({
       body: { status: true, data: row("abc", "2026-10-05", { title: "Edited", amount: 90 }) },
     }));
@@ -117,6 +117,7 @@ describe("updateTransaction", () => {
     expect(url).toBe("/api/v1/transactions/abc");
     expect(init?.method).toBe("PUT");
     expect(JSON.parse(String(init?.body))).toEqual({
+      walletId: "507f1f77bcf86cd799439011",
       categoryId: "507f1f77bcf86cd799439022",
       type: "expense",
       amount: 90,
