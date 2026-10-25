@@ -46,6 +46,7 @@ import {
   getFirstAllowedMonthKey,
   getFirstAllowedYear,
 } from "./EndDatePickers";
+import { StartDatePicker, formatDayMonthYear } from "./StartDatePicker";
 
 const WEEKDAYS = [
   { label: "Mon", dayIndex: 1 },
@@ -435,8 +436,8 @@ function EditRuleForm({
           <span className="text-xs font-bold text-primary">{cadencePreview}</span>
         </div>
 
-        {/* Interval Number & Unit & Start Date in 3 columns */}
-        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+        {/* Interval Number & Unit */}
+        <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
             <span className="text-[11px] font-medium text-muted-foreground">Every:</span>
             <Input
@@ -467,22 +468,27 @@ function EditRuleForm({
               </SelectContent>
             </Select>
           </div>
+        </div>
 
-          <div className="space-y-1">
-            <span className="text-[11px] font-medium text-muted-foreground">Start Date:</span>
-            <Input
-              type="date"
-              aria-label="Start Date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="h-9 font-mono text-xs"
-            />
-            {(fieldErrors.startDate || fieldErrors.start_date) && (
-              <p className="text-[11px] text-destructive mt-0.5">
-                {fieldErrors.startDate || fieldErrors.start_date}
-              </p>
-            )}
+        {/* Start Date: Desktop-focused, larger, easy month selection, day month year output format */}
+        <div className="space-y-1.5 pt-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold text-foreground">Start Date:</span>
+            <span className="text-[11px] font-bold text-primary font-mono">
+              {formatDayMonthYear(startDate)}
+            </span>
           </div>
+          <StartDatePicker
+            id="edit-start-date"
+            aria-label="Start Date"
+            value={startDate}
+            onChange={setStartDate}
+          />
+          {(fieldErrors.startDate || fieldErrors.start_date) && (
+            <p className="text-[11px] text-destructive mt-0.5">
+              {fieldErrors.startDate || fieldErrors.start_date}
+            </p>
+          )}
         </div>
 
         {/* Weekly: Day-of-week Mon-Sun selector */}

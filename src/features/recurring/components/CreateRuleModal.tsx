@@ -46,6 +46,7 @@ import {
   getFirstAllowedMonthKey,
   getFirstAllowedYear,
 } from "./EndDatePickers";
+import { StartDatePicker, formatDayMonthYear } from "./StartDatePicker";
 
 type CreateRuleModalProps = {
   open: boolean;
@@ -551,8 +552,8 @@ export function CreateRuleModal({
               <span className="text-xs font-bold text-primary">{cadencePreview}</span>
             </div>
 
-            {/* Interval Number & Unit & Start Date in 3 columns */}
-            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+            {/* Interval Number & Unit */}
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <span className="text-[11px] font-medium text-muted-foreground">Every:</span>
                 <Input
@@ -583,28 +584,34 @@ export function CreateRuleModal({
                   </SelectContent>
                 </Select>
               </div>
+            </div>
 
-              <div className="space-y-1">
-                <span className="text-[11px] font-medium text-muted-foreground">Start Date:</span>
-                <Input
-                  type="date"
-                  min={today}
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="h-9 font-mono text-xs"
-                />
-                {(fieldErrors.startDate || fieldErrors.start_date) && (
-                  <p className="text-[11px] text-destructive mt-0.5">
-                    {fieldErrors.startDate || fieldErrors.start_date}
-                  </p>
-                )}
-                {isTodayLocalDate(startDate) && (
-                  <p className="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1 mt-1 font-medium">
-                    <Info className="size-3.5 shrink-0" />
-                    <span>Starting today will immediately post the first transaction to your wallet.</span>
-                  </p>
-                )}
+            {/* Start Date: Desktop-focused, larger, easy month selection, day month year output format */}
+            <div className="space-y-1.5 pt-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold text-foreground">Start Date:</span>
+                <span className="text-[11px] font-bold text-primary font-mono">
+                  {formatDayMonthYear(startDate)}
+                </span>
               </div>
+              <StartDatePicker
+                id="create-start-date"
+                aria-label="Start Date"
+                min={today}
+                value={startDate}
+                onChange={setStartDate}
+              />
+              {(fieldErrors.startDate || fieldErrors.start_date) && (
+                <p className="text-[11px] text-destructive mt-0.5">
+                  {fieldErrors.startDate || fieldErrors.start_date}
+                </p>
+              )}
+              {isTodayLocalDate(startDate) && (
+                <p className="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1 mt-1 font-medium">
+                  <Info className="size-3.5 shrink-0" />
+                  <span>Starting today will immediately post the first transaction to your wallet.</span>
+                </p>
+              )}
             </div>
 
             {/* Weekly: Day-of-week Mon-Sun selector */}
