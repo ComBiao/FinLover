@@ -4677,20 +4677,12 @@
                         },
                         "name": {
                           "type": "string"
-                        },
-                        "dataPrivacyConsent": {
-                          "const": true
-                        },
-                        "createdAt": {
-                          "type": "string",
-                          "format": "date-time"
                         }
                       },
                       "required": [
                         "id",
                         "email",
-                        "dataPrivacyConsent",
-                        "createdAt"
+                        "name"
                       ]
                     }
                   },

@@ -49,6 +49,7 @@ const obj = (properties: Record<string, unknown>, required = Object.keys(propert
 const publicUser = obj({ id: { type: 'string' }, email: { type: 'string', format: 'email' }, name: { type: 'string' }, dataPrivacyConsent: { const: true }, createdAt: { type: 'string', format: 'date-time' } }, ['id', 'email', 'dataPrivacyConsent', 'createdAt']);
 const loginUser = obj({ id: { type: 'string' }, email: { type: 'string', format: 'email' } });
 const currentUser = obj({ id: { type: 'string' }, email: { type: 'string', format: 'email' }, name: { type: 'string' } }, ['id', 'email']);
+const lookupUser = obj({ id: { type: 'string' }, email: { type: 'string', format: 'email' }, name: { type: 'string' } }, ['id', 'email', 'name']);
 const legacyCategory = obj({ _id: { type: 'string' }, userId: { type: 'string' }, name: { type: 'string' }, type: { enum: ['income', 'expense'] }, isSystem: { type: 'boolean' }, createdAt: { type: 'string' }, updatedAt: { type: 'string' }, color: { type: 'string' }, icon: { type: 'string' }, __v: { type: 'integer' } }, ['_id', 'userId', 'name', 'type', 'isSystem', 'createdAt', 'updatedAt']);
 const legacyTxResponse = obj({ id: { type: 'string' }, wallet_id: { type: 'string' }, category_id: { type: ['string', 'null'] }, type: { enum: ['income', 'expense'] }, amount: { type: 'number' }, date: { type: 'string', format: 'date' }, title: { type: 'string' }, note: { type: 'string' } }, ['id', 'wallet_id', 'category_id', 'type', 'amount', 'date', 'title']);
 
@@ -138,7 +139,7 @@ export function buildSpec(version: 'legacy' | 'v1') {
       : action === 'register' ? obj({ user: publicUser })
       : action === 'login' ? obj({ user: loginUser })
         : action === 'getCurrentUser' ? obj({ user: currentUser })
-        : action === 'lookupUser' ? publicUser
+        : action === 'lookupUser' ? lookupUser
         : action === 'logout' || action === 'deleteAccount' ? obj({ success: { const: true } })
           : action === 'listCategories' ? { type: 'array', items: schema(categoryResponse) }
           : action.includes('Category') ? (v1 ? schema(categoryResponse) : legacyCategory)

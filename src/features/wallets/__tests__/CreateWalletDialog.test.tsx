@@ -185,4 +185,32 @@ describe("CreateWalletDialog — invitations", () => {
     expect(createWallet).toHaveBeenCalledWith(expect.not.objectContaining({ isShared: true }));
     expect(inviteMember).not.toHaveBeenCalled();
   });
+
+  it("cancels pending submission and does not create wallet if Cancel is clicked while email validation is pending", async () => {
+    let resolveValidation: ((value: { id: string; email: string; name: string }) => void) | undefined;
+    const pendingValidation = new Promise<{ id: string; email: string; name: string }>((resolve) => {
+      resolveValidation = resolve;
+    });
+    vi.spyOn(membersService, "validateInviteEmail").mockReturnValue(pendingValidation);
+    const createWallet = vi.spyOn(walletsService, "createWallet").mockResolvedValue(OWNED_SHARED_WALLET);
+
+    renderDialog();
+    fireEvent.change(screen.getByLabelText("Wallet Name"), { target: { value: "Cancelled Fund" } });
+    fireEvent.click(sharedSwitch());
+    const input = screen.getByLabelText(/Invite members/);
+    fireEvent.change(input, { target: { value: "friend@example.com" } });
+
+    // Submit while email is typed but not added
+    fireEvent.click(screen.getByRole("button", { name: "Create Wallet" }));
+
+    // User clicks Cancel while validation is in flight
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    // Now resolve validation
+    resolveValidation?.({ id: "u2", email: "friend@example.com", name: "Friend" });
+
+    // Wait a moment and confirm createWallet was never called
+    await new Promise((r) => setTimeout(r, 50));
+    expect(createWallet).not.toHaveBeenCalled();
+  });
 });

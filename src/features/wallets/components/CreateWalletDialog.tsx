@@ -56,9 +56,12 @@ export function CreateWalletDialog({ open, onOpenChange, defaultShared = false }
   const [isCheckingEmail, setIsCheckingEmail] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
+  const formSessionRef = React.useRef(0);
+
   const createWalletMutation = useCreateWallet();
 
   function resetForm() {
+    formSessionRef.current += 1;
     setName("");
     setColor(PRESET_COLORS[0]);
     setIcon("Wallet");
@@ -86,15 +89,18 @@ export function CreateWalletDialog({ open, onOpenChange, defaultShared = false }
       return true;
     }
 
+    const session = formSessionRef.current;
     setIsCheckingEmail(true);
     setInviteError(null);
     try {
       await validateInviteEmail(email);
+      if (formSessionRef.current !== session) return false;
       setInviteEmails((current) => (current.includes(email) ? current : [...current, email]));
       setInviteInput("");
       setInviteError(null);
       return true;
     } catch (err) {
+      if (formSessionRef.current !== session) return false;
       setInviteError(
         err instanceof ApiClientError
           ? (err.fields?.email ?? err.message)
@@ -104,12 +110,16 @@ export function CreateWalletDialog({ open, onOpenChange, defaultShared = false }
       );
       return false;
     } finally {
-      setIsCheckingEmail(false);
+      if (formSessionRef.current === session) {
+        setIsCheckingEmail(false);
+      }
     }
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (createWalletMutation.isPending || isCheckingEmail) return;
+
     const trimmedName = name.trim();
 
     if (!trimmedName) {
@@ -132,15 +142,19 @@ export function CreateWalletDialog({ open, onOpenChange, defaultShared = false }
       parsedGoal = num;
     }
 
+    const session = formSessionRef.current;
+
     // An email typed but not yet added still counts.
     const pendingEmail = inviteInput.trim().toLowerCase();
     let emails = inviteEmails;
     if (isShared && pendingEmail) {
       const added = await addInviteEmail();
+      if (formSessionRef.current !== session) return;
       if (!added) return;
       emails = inviteEmails.includes(pendingEmail) ? inviteEmails : [...inviteEmails, pendingEmail];
     }
 
+    if (formSessionRef.current !== session) return;
     setError(null);
 
     try {
@@ -152,9 +166,11 @@ export function CreateWalletDialog({ open, onOpenChange, defaultShared = false }
         goalAmount: parsedGoal,
         ...(isShared ? { isShared: true, inviteEmails: emails } : {}),
       });
+      if (formSessionRef.current !== session) return;
       resetForm();
       onOpenChange(false);
     } catch (err) {
+      if (formSessionRef.current !== session) return;
       setError(err instanceof Error ? err.message : "Failed to create wallet");
     }
   }
@@ -333,11 +349,22 @@ export function CreateWalletDialog({ open, onOpenChange, defaultShared = false }
           ) : null}
 
           <DialogFooter className="mt-4 gap-2">
-            <DialogClose render={<Button type="button" variant="outline" />}>
-              Cancel
-            </DialogClose>
-            <Button type="submit" disabled={createWalletMutation.isPending}>
-              {createWalletMutation.isPending ? "Creating…" : "Create Wallet"}
+            <DialogClose
+              render={
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    formSessionRef.current += 1;
+                    resetForm();
+                  }}
+                >
+                  Cancel
+                </Button>
+              }
+            />
+            <Button type="submit" disabled={createWalletMutation.isPending || isCheckingEmail}>
+              {createWalletMutation.isPending ? "Creating…" : isCheckingEmail ? "Checking…" : "Create Wallet"}
             </Button>
           </DialogFooter>
         </form>
