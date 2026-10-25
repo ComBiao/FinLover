@@ -1,11 +1,21 @@
 import type { TransactionContext } from './unit-of-work';
-export interface TransactionInput { walletId?: string; categoryId?: string | null; type: 'income' | 'expense'; amount: number; date: Date; title: string; note?: string }
-export interface TransactionRecord extends TransactionInput { id: string; walletId: string; userId: string }
+export interface TransactionInput { walletId?: string; categoryId?: string | null; type: 'income' | 'expense'; amount: number; date: Date; title: string; note?: string; updatedBy?: string }
+export interface TransactionRecord extends TransactionInput {
+  id: string;
+  walletId: string;
+  userId: string;
+  updatedBy?: string;
+  createdBy?: { id: string; name: string };
+  editedBy?: { id: string; name: string };
+}
 export interface TransactionRepositoryPort {
   findByDateRange(userId: string, start: Date, end: Date, search?: string): Promise<TransactionRecord[]>;
+  findById?(id: string, context: TransactionContext): Promise<TransactionRecord | null>;
   findOwned(id: string, userId: string, context: TransactionContext): Promise<TransactionRecord | null>;
   create(userId: string, input: TransactionInput, context: TransactionContext): Promise<TransactionRecord>;
+  update(id: string, input: TransactionInput, context: TransactionContext): Promise<TransactionRecord | null>;
   update(id: string, userId: string, input: TransactionInput, context: TransactionContext): Promise<TransactionRecord | null>;
+  remove(id: string, context: TransactionContext): Promise<TransactionRecord | null>;
   remove(id: string, userId: string, context: TransactionContext): Promise<TransactionRecord | null>;
 }
 /** Filters for a totals-only read; dates are UTC-midnight bounds, `end` exclusive. */

@@ -1854,7 +1854,7 @@
           "transaction"
         ],
         "summary": "createTransaction",
-        "description": "Create an owned transaction and adjust wallet balance in one MongoDB transaction. Requires a replica set. Category must belong to the user and match the transaction type. Persisted minimum amount is 0.01. Shared transaction writes return 409 until E7-11; shared outsiders return 403. Legacy response contract; auth is unified with v1. Cookie writes and login/register/logout require an exact trusted Origin; no Origin is rejected. A valid Bearer on protected APIs does not fall back to cookies.",
+        "description": "Create a transaction and adjust wallet balance in one MongoDB transaction. Requires a replica set. For personal wallets, category must belong to the user and match the transaction type. Shared wallet transactions do not allow categoryId (400 if provided) and dual attribution is tracked. Outsiders of shared wallets receive 403. Persisted minimum amount is 0.01. Legacy response contract; auth is unified with v1. Cookie writes and login/register/logout require an exact trusted Origin; no Origin is rejected. A valid Bearer on protected APIs does not fall back to cookies.",
         "security": [
           {
             "bearerAuth": []
@@ -2322,7 +2322,7 @@
           "transaction"
         ],
         "summary": "updateTransaction",
-        "description": "Replace editable fields of an owned transaction; reverse old and apply new balance atomically. Shared writes return 409 until E7-11. Legacy response contract; auth is unified with v1. Cookie writes and login/register/logout require an exact trusted Origin; no Origin is rejected. A valid Bearer on protected APIs does not fall back to cookies.",
+        "description": "Replace editable fields of a transaction; reverse old and apply new balance atomically. For personal wallets, only the owner can update. For shared wallets, any accepted member can modify any transaction; moving wallets and specifying a category are not allowed. Legacy response contract; auth is unified with v1. Cookie writes and login/register/logout require an exact trusted Origin; no Origin is rejected. A valid Bearer on protected APIs does not fall back to cookies.",
         "security": [
           {
             "bearerAuth": []
@@ -2798,7 +2798,7 @@
           "transaction"
         ],
         "summary": "deleteTransaction",
-        "description": "Delete an owned transaction and reverse its balance atomically. Legacy success has no body. Shared balance changes return 409 until E7-11 and deletion rolls back. Legacy response contract; auth is unified with v1. Cookie writes and login/register/logout require an exact trusted Origin; no Origin is rejected. A valid Bearer on protected APIs does not fall back to cookies.",
+        "description": "Delete a transaction and reverse its balance atomically. Legacy success has no body. For personal wallets, only the owner can delete. For shared wallets, any accepted member can delete any transaction. Legacy response contract; auth is unified with v1. Cookie writes and login/register/logout require an exact trusted Origin; no Origin is rejected. A valid Bearer on protected APIs does not fall back to cookies.",
         "security": [
           {
             "bearerAuth": []

@@ -14,6 +14,7 @@ import { ListWalletsService } from './services/ListWalletsService';
 import { UpdateWalletService } from './services/UpdateWalletService';
 import { UpdateWalletSavingController } from './controllers/UpdateWalletSavingController';
 import { UpdateWalletSavingService } from './services/UpdateWalletSavingService';
+import { ListWalletTransactionsController } from './controllers/ListWalletTransactionsController';
 
 export function createWalletRouter(repository: WalletRepositoryPort & WalletReaderPort, deleteWalletService: DeleteWalletService, presentation: WalletPresentationService, users: UserDirectoryPort, uow: UnitOfWork) {
   const create = new CreateWalletController(new CreateWalletService(repository, presentation, users, uow));
@@ -22,6 +23,7 @@ export function createWalletRouter(repository: WalletRepositoryPort & WalletRead
   const update = new UpdateWalletController(new UpdateWalletService(repository));
   const updateSaving = new UpdateWalletSavingController(new UpdateWalletSavingService(repository));
   const remove = new DeleteWalletController(deleteWalletService);
+  const listTransactions = new ListWalletTransactionsController(repository, users);
   return {
     create: create.handle.bind(create),
     get: get.handle.bind(get),
@@ -29,5 +31,6 @@ export function createWalletRouter(repository: WalletRepositoryPort & WalletRead
     update: update.handle.bind(update),
     updateSaving: updateSaving.handle.bind(updateSaving),
     remove: remove.handle.bind(remove),
+    listTransactions: listTransactions.handle.bind(listTransactions),
   };
 }

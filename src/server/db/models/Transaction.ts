@@ -23,6 +23,7 @@ export interface ITransaction extends Document {
   title?: string;
   notes?: string;
   note?: string;
+  updatedBy?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -33,6 +34,7 @@ export interface ITransaction extends Document {
 const TransactionSchema: Schema = new Schema({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   walletId: { type: Schema.Types.ObjectId, ref: 'Wallet', required: true },
+  updatedBy: { type: Schema.Types.ObjectId, ref: 'User' },
   categoryId: {
     type: Schema.Types.ObjectId,
     ref: 'Category',

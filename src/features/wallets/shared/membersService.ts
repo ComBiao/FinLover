@@ -17,7 +17,8 @@ import type { WalletMember } from "@/features/wallets/shared/types";
  */
 export async function getMembers(walletId: string): Promise<WalletMember[]> {
   if (isMockTarget(walletId)) return mockListMembers(walletId);
-  return getApi<WalletMember[]>(`/api/v1/wallets/${walletId}/members`);
+  const res = await getApi<{ members: WalletMember[] }>(`/api/v1/wallets/${walletId}/members`);
+  return res.members ?? [];
 }
 
 /**

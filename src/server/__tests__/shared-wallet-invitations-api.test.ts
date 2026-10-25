@@ -245,14 +245,14 @@ describe('E7-01b/02 real database API', () => {
     expect(await WalletMember.countDocuments({ userId: contributor })).toBe(0);
   });
 
-  it('does not enable incomplete shared transaction writes and excludes shared balances from Home All', async () => {
+  it('enforces shared transaction rules and excludes shared balances from Home All', async () => {
     const { wallet } = await seedSharedWallet(owner, [{ userId: contributor }]);
     await Wallet.updateOne({ _id: wallet._id }, { balance: 99 });
-    const body = { walletId: String(wallet._id), categoryId: null, type: 'expense', amount: 5, title: 'Blocked', date: '2026-10-23' };
-    for (const actor of [owner, contributor]) expect((await v1.createTransaction(request('POST', actor, body), context())).status).toBe(409);
+    const body = { walletId: String(wallet._id), type: 'expense', amount: 5, title: 'Shared Tx', date: '2026-10-23' };
+    for (const actor of [owner, contributor]) expect((await v1.createTransaction(request('POST', actor, body), context())).status).toBe(201);
     expect((await v1.createTransaction(request('POST', outsider, body), context())).status).toBe(403);
-    expect(await Transaction.countDocuments({ walletId: wallet._id })).toBe(0);
-    expect((await Wallet.findById(wallet._id))!.balance).toBe(99);
+    expect(await Transaction.countDocuments({ walletId: wallet._id })).toBe(2);
+    expect((await Wallet.findById(wallet._id))!.balance).toBe(89);
     const summary = await v1.homeSummary(request('GET', owner, undefined, '/api/v1/home/summary?walletId=all&month=2026-10'), context());
     expect(summary.status).toBe(200);
     expect((await summary.json()).data.balance.totalBalance).toBe(0);

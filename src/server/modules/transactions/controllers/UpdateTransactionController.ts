@@ -7,15 +7,12 @@ import mongoose from 'mongoose';
 import { legacyTransactionUpdate } from '@/shared/contracts';
 import type { RouteContext } from '@/server/shared/http/policy';
 
-// Next.js passes dynamic route parameters as the second argument
 export class UpdateTransactionController {
   constructor(private service: UpdateTransactionService) {}
   async handle(req: Request, { params, principal }: RouteContext) {
     try {
-      // 1. Authentication
       const user_id = principal!.userId;
 
-      // 2. Resolve dynamic params + parse body
       const { id } = await params;
       const body = await readJsonBody(req);
 
@@ -30,8 +27,15 @@ export class UpdateTransactionController {
       }
 
       const { wallet_id, category_id, type, amount, date, title, note } = parsed.data;
+      const hasCategory = typeof body === 'object' && body !== null && (
+        ('category_id' in body && (body as Record<string, unknown>).category_id !== undefined) ||
+        ('categoryId' in body && (body as Record<string, unknown>).categoryId !== undefined)
+      );
+      const hasWallet = typeof body === 'object' && body !== null && (
+        ('wallet_id' in body && (body as Record<string, unknown>).wallet_id !== undefined) ||
+        ('walletId' in body && (body as Record<string, unknown>).walletId !== undefined)
+      );
 
-      // 3. Database Operations
       await connectDB();
       const tx = await this.service.execute(id, user_id, {
         walletId: wallet_id,
@@ -41,8 +45,11 @@ export class UpdateTransactionController {
         date: new Date(date),
         title,
         note,
+        explicitCategory: hasCategory,
+        explicitWallet: hasWallet,
       });
-      return NextResponse.json({ data: TransactionResponseDTO.legacy(tx) });
+      const data = tx.createdBy ? TransactionResponseDTO.shared(tx) : TransactionResponseDTO.legacy(tx);
+      return NextResponse.json({ data });
 
     } catch (error) {
       return apiErrorResponse(error, { validationStatus: 422 });
