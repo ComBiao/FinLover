@@ -48,15 +48,24 @@ export class TransactionRepository implements TransactionRepositoryPort, Transac
     return docs.map(record);
   }
 
+  async findByWalletAndDateRange(walletId: string, start: Date, end: Date) {
+    const docs = await Transaction.find({ walletId, date: { $gte: start, $lt: end } }).sort({ date: -1, _id: -1 });
+    return docs.map(record);
+  }
+
   async sumByType(userId: string, { start, end, walletId, type, categoryIds, search }: TransactionSummaryFilter) {
     // Aggregation pipelines skip schema casting, so ids are converted here.
     const id = (value: string) => new Types.ObjectId(value);
     const match: Record<string, unknown> = { userId: id(userId), date: { $gte: start, $lt: end } };
+    const personalWallets = await Wallet.find({ userId, isShared: { $ne: true } }).select('_id');
+    const personalWalletIds = personalWallets.map(w => w._id);
     if (walletId) {
-      match.walletId = id(walletId);
+      const targetId = id(walletId);
+      if (!personalWalletIds.some(pid => pid.equals(targetId))) {
+        return { income: 0, expense: 0 };
+      }
+      match.walletId = targetId;
     } else {
-      const personalWallets = await Wallet.find({ userId, isShared: { $ne: true } }).select('_id');
-      const personalWalletIds = personalWallets.map(w => w._id);
       match.walletId = { $in: personalWalletIds };
     }
     if (type) match.type = type;
@@ -94,13 +103,13 @@ export class TransactionRepository implements TransactionRepositoryPort, Transac
     return record(await doc.save({ session: sessionOf(context) }));
   }
 
-  async update(id: string, input: TransactionInput, context: TransactionContext): Promise<TransactionRecord | null>;
+  async update(id: string, input: TransactionInput, context: TransactionContext, actorUserId?: string): Promise<TransactionRecord | null>;
   async update(id: string, userId: string, input: TransactionInput, context: TransactionContext): Promise<TransactionRecord | null>;
-  async update(id: string, arg2: string | TransactionInput, arg3: TransactionInput | TransactionContext, arg4?: TransactionContext): Promise<TransactionRecord | null> {
-    const isOverloadWithUser = typeof arg2 === 'string';
-    const actorUserId = isOverloadWithUser ? arg2 : undefined;
-    const input = (isOverloadWithUser ? arg3 : arg2) as TransactionInput;
-    const context = (isOverloadWithUser ? arg4 : arg3) as TransactionContext;
+  async update(id: string, arg2: string | TransactionInput, arg3: TransactionInput | TransactionContext, arg4?: TransactionContext | string): Promise<TransactionRecord | null> {
+    const isUserFirst = typeof arg2 === 'string';
+    const actorUserId = isUserFirst ? arg2 : (typeof arg4 === 'string' ? arg4 : undefined);
+    const input = (isUserFirst ? arg3 : arg2) as TransactionInput;
+    const context = (isUserFirst ? arg4 : arg3) as TransactionContext;
 
     const doc = await Transaction.findById(id).session(sessionOf(context)!);
     if (!doc) return null;
@@ -111,7 +120,7 @@ export class TransactionRepository implements TransactionRepositoryPort, Transac
     if (input.amount !== undefined) doc.amount = input.amount;
     if (input.date) doc.date = input.date;
     if (input.title) doc.title = input.title;
-    if (input.note !== undefined) doc.note = input.note;
+    doc.note = input.note;
     authorizeTransactionWrite(doc, context);
     if (actorUserId) {
       await validateReferences(record(doc), actorUserId, this.wallets, this.categories, context);

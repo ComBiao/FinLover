@@ -1,39 +1,39 @@
 import type { TransactionRepositoryPort, TransactionInput, WalletAccess, CategoryAccess } from '@/server/shared/ports/transactions';
 import type { TransactionContext, UnitOfWork } from '@/server/shared/ports/unit-of-work';
 import type { WalletMembershipPort } from '@/server/shared/ports/wallet-membership';
+import type { WalletRepositoryPort } from '@/server/shared/ports/wallets';
 import type { UserDirectoryPort } from '@/server/shared/ports/users';
-import { sessionOf } from '@/server/db/unit-of-work';
-import Wallet from '@/server/db/models/Wallet';
 import { AppError } from '@/server/shared/kernel/AppError';
 import { delta } from './rules';
 
 export class CreateTransactionService {
   constructor(
     private repo: TransactionRepositoryPort,
-    private wallets: WalletAccess,
+    private wallets: WalletAccess & Pick<WalletRepositoryPort, 'findById'>,
     private categories: CategoryAccess,
     private uow: UnitOfWork,
     private memberships?: WalletMembershipPort,
     private users?: UserDirectoryPort,
   ) {}
 
-  execute(userId: string, input: TransactionInput & { explicitCategory?: boolean }) {
+  execute(userId: string, input: TransactionInput) {
     return this.uow.run(context => this.post(userId, input, context));
   }
 
   /** Same write inside the caller's UnitOfWork (used by the Scheduler job). */
-  async post(userId: string, input: TransactionInput & { explicitCategory?: boolean }, context: TransactionContext) {
+  async post(userId: string, input: TransactionInput, context: TransactionContext) {
     if (!input.walletId || !/^[a-f0-9]{24}$/i.test(input.walletId)) {
       throw new AppError('VALIDATION_ERROR', 'One or more fields are invalid', { wallet_id: 'must be a valid ObjectId' });
     }
-    const wallet = await Wallet.findById(input.walletId).session(sessionOf(context) ?? null);
+    const wallet = this.wallets.findById ? await this.wallets.findById(input.walletId, context) : null;
     if (!wallet) throw new AppError('NOT_FOUND', 'Wallet not found');
 
     if (wallet.isShared) {
-      if (this.memberships) {
-        const role = await this.memberships.roleOf(String(wallet._id), userId, context);
-        if (!role) throw new AppError('FORBIDDEN', 'Only wallet members can access this wallet');
-      }
+      const memberships = this.memberships;
+      if (!memberships) throw new AppError('FORBIDDEN', 'Only wallet members can access this wallet');
+      const role = await memberships.roleOf(wallet.id, userId, context);
+      if (!role) throw new AppError('FORBIDDEN', 'Only wallet members can access this wallet');
+
       if (input.categoryId !== undefined && input.categoryId !== null && input.categoryId !== '') {
         throw new AppError('VALIDATION_ERROR', 'One or more fields are invalid', { categoryId: 'Category is not allowed for shared wallets' });
       }
@@ -47,7 +47,7 @@ export class CreateTransactionService {
       return tx;
     }
 
-    if (String(wallet.userId) !== userId) throw new AppError('NOT_FOUND', 'Wallet not found');
+    if (wallet.userId !== userId) throw new AppError('NOT_FOUND', 'Wallet not found');
     if (input.categoryId) {
       const type = /^[a-f0-9]{24}$/i.test(input.categoryId) ? await this.categories.typeOf(input.categoryId, userId, context) : null;
       if (type !== input.type) throw new AppError('VALIDATION_ERROR', 'One or more fields are invalid', { categoryId: 'Referenced category does not exist or type mismatch' });

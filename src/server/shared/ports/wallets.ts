@@ -23,6 +23,7 @@ export interface WalletRecord {
 
 export interface WalletRepositoryPort {
   list(userId: string, context?: TransactionContext): Promise<WalletRecord[]>;
+  findById?(id: string, context?: TransactionContext): Promise<WalletRecord | null>;
   findOwned(id: string, userId: string, context?: TransactionContext): Promise<WalletRecord | null>;
   create(userId: string, input: WalletCreateInput, context?: TransactionContext): Promise<WalletRecord>;
   update(id: string, userId: string, input: WalletUpdateInput): Promise<WalletRecord | null>;
@@ -37,6 +38,7 @@ export interface WalletTransactionCleanup { removeByWallet(walletId: string, use
 /** Reads used by wallet cards; owned-only methods remain separate. */
 export interface WalletReaderPort {
   listAccessible(userId: string): Promise<WalletRecord[]>;
-  findAccessible(id: string, userId: string): Promise<WalletRecord>;
+  findAccessible(id: string, userId: string, context?: TransactionContext): Promise<WalletRecord>;
   findByIds(ids: string[], context?: TransactionContext): Promise<WalletRecord[]>;
+  findById?(id: string, context?: TransactionContext): Promise<WalletRecord | null>;
 }

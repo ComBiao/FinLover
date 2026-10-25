@@ -21,10 +21,6 @@ export class CreateTransactionController {
       }
 
       const { wallet_id, category_id, type, amount, date, title, note } = parsed.data;
-      const hasCategory = typeof body === 'object' && body !== null && (
-        ('category_id' in body && (body as Record<string, unknown>).category_id !== undefined) ||
-        ('categoryId' in body && (body as Record<string, unknown>).categoryId !== undefined)
-      );
 
       await connectDB();
       const tx = await this.service.execute(user_id, {
@@ -35,7 +31,6 @@ export class CreateTransactionController {
         date: new Date(date),
         title,
         note,
-        explicitCategory: hasCategory,
       });
       const data = tx.createdBy ? TransactionResponseDTO.shared(tx) : TransactionResponseDTO.legacy(tx);
       return NextResponse.json({ data }, { status: 201 });

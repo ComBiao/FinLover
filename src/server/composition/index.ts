@@ -40,7 +40,7 @@ import { createTransactionRouter } from '../modules/transactions/router';
 import { DeleteWalletService } from '../modules/wallets/services/DeleteWalletService';
 import { createWalletRouter } from '../modules/wallets/router';
 export const deleteWalletService = new DeleteWalletService(walletRepository, transactionRepository, new MongoUnitOfWork());
-export const rawWallets = createWalletRouter(walletRepository, deleteWalletService, new WalletPresentationService(walletMembershipRepository, userRepository), userRepository, new MongoUnitOfWork());
+export const rawWallets = createWalletRouter(walletRepository, deleteWalletService, new WalletPresentationService(walletMembershipRepository, userRepository), userRepository, new MongoUnitOfWork(), transactionRepository);
 export const rawTransactions = createTransactionRouter(walletRepository, categoryRepository, new MongoUnitOfWork(), walletMembershipRepository, userRepository);
 import { createSchedulerRouter } from '../modules/schedulers/router';
 import { CreateTransactionService } from '../modules/transactions/services/CreateTransactionService';

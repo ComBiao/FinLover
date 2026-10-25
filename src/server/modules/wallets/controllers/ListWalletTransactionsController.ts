@@ -1,10 +1,10 @@
 import { apiErrorResponse, errorResponse } from '@/server/shared/http/errors';
 import type { WalletReaderPort } from '@/server/shared/ports/wallets';
 import type { UserDirectoryPort } from '@/server/shared/ports/users';
+import type { TransactionRepositoryPort } from '@/server/shared/ports/transactions';
 import type { RouteContext } from '@/server/shared/http/policy';
 import { NextResponse } from 'next/server';
 import { connectDB } from '@/server/db/index';
-import Transaction from '@/server/db/models/Transaction';
 import { currentMonth, monthBoundaries } from '@/server/modules/transactions/services/GetTransactionsByMonthService';
 import { applicationTimezone } from '@/server/shared/config/env';
 
@@ -12,6 +12,7 @@ export class ListWalletTransactionsController {
   constructor(
     private wallets: WalletReaderPort,
     private users: UserDirectoryPort,
+    private transactions: Pick<TransactionRepositoryPort, 'findByWalletAndDateRange'>,
   ) {}
 
   async handle(req: Request, { params, principal }: RouteContext) {
@@ -23,7 +24,10 @@ export class ListWalletTransactionsController {
       }
 
       await connectDB();
-      await this.wallets.findAccessible(id, userId);
+      const wallet = await this.wallets.findAccessible(id, userId);
+      if (!wallet.isShared) {
+        return errorResponse(400, 'VALIDATION_ERROR', 'Transactions endpoint is only available for shared wallets', { id: 'Wallet is not a shared wallet' });
+      }
 
       const url = new URL(req.url);
       const requestedMonth = url.searchParams.get('month') || undefined;
@@ -34,7 +38,9 @@ export class ListWalletTransactionsController {
       const month = requestedMonth ?? currentMonth(new Date(), applicationTimezone());
       const { start, end } = monthBoundaries(month);
 
-      const docs = await Transaction.find({ walletId: id, date: { $gte: start, $lt: end } }).sort({ date: -1, _id: -1 });
+      const docs = this.transactions.findByWalletAndDateRange
+        ? await this.transactions.findByWalletAndDateRange(id, start, end)
+        : [];
 
       const userIds = new Set<string>();
       for (const doc of docs) {
@@ -58,11 +64,11 @@ export class ListWalletTransactionsController {
         }
 
         const item: Record<string, unknown> = {
-          id: String(doc._id),
+          id: String(doc.id),
           walletId: String(doc.walletId),
           type: doc.type,
           amount: Number(doc.amount),
-          date: doc.date.toISOString().split('T')[0],
+          date: doc.date instanceof Date ? doc.date.toISOString().split('T')[0] : String(doc.date).split('T')[0],
           title: doc.title ?? '(untitled)',
           createdBy,
         };

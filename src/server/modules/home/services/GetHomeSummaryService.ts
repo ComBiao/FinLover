@@ -1,7 +1,6 @@
 import type { WalletRecord, WalletRepositoryPort, WalletReaderPort } from '@/server/shared/ports/wallets';
 import type { TransactionRecord, TransactionRepositoryPort } from '@/server/shared/ports/transactions';
 import type { CategoryRepositoryPort } from '@/server/shared/ports/categories';
-import Transaction from '@/server/db/models/Transaction';
 import { AppError } from '@/server/shared/kernel/AppError';
 import { currentMonth, monthBoundaries } from '@/server/modules/transactions/services/GetTransactionsByMonthService';
 
@@ -54,7 +53,7 @@ function savingGoalOf(wallet: WalletRecord | undefined) {
 export class GetHomeSummaryService {
   constructor(
     private wallets: Partial<WalletReaderPort> & Pick<WalletRepositoryPort, 'list'>,
-    private transactions: Pick<TransactionRepositoryPort, 'findByDateRange'>,
+    private transactions: Pick<TransactionRepositoryPort, 'findByDateRange' | 'findByWalletAndDateRange'>,
     private categories: Pick<CategoryRepositoryPort, 'list'>,
     private now: () => Date,
     private timezone: () => string,
@@ -74,7 +73,9 @@ export class GetHomeSummaryService {
         if (!wallet) throw new AppError('NOT_FOUND', 'Wallet not found');
       }
       if (wallet.isShared) {
-        const monthTransactions = await Transaction.find({ walletId: wallet.id, date: { $gte: start, $lt: end } });
+        const monthTransactions = this.transactions.findByWalletAndDateRange
+          ? await this.transactions.findByWalletAndDateRange(wallet.id, start, end)
+          : [];
         const total = (type: 'income' | 'expense') => monthTransactions
           .filter(transaction => transaction.type === type)
           .reduce((sum, transaction) => sum + transaction.amount, 0);

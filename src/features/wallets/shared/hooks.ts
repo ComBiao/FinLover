@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
 
 import type { MonthKey } from "@/features/homepage/month";
 import { getSharedWalletTransactions } from "@/features/transactions/transactionsService";
@@ -35,9 +36,10 @@ function errorMessage(error: unknown, fallback: string) {
 
 /** Members + pending invitations of one shared wallet. Pass `undefined` to skip fetching. */
 export function useMembers(walletId: string | undefined) {
+  const { data: user } = useCurrentUser();
   return useQuery({
-    queryKey: [...MEMBERS_QUERY_KEY, walletId],
-    queryFn: () => getMembers(walletId as string),
+    queryKey: [...MEMBERS_QUERY_KEY, walletId, user?.id],
+    queryFn: () => getMembers(walletId as string, user?.id),
     enabled: Boolean(walletId),
   });
 }

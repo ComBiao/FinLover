@@ -545,4 +545,80 @@ describe('Shared Wallet Transactions and Lifecycle Integration (Epic 7)', () => 
       expect(body.data.income).toBe(500);
     });
   });
+
+  describe('Review fixes regression and isolation tests', () => {
+    it('clears note on edit when note is omitted or undefined', async () => {
+      const pWallet = await Wallet.create({ userId: owner, name: 'Personal Wallet', isShared: false, balance: 100 });
+      const tx = await insertTx({
+        userId: owner,
+        walletId: pWallet._id.toString(),
+        type: 'expense',
+        amount: 50,
+        date: new Date('2026-10-10'),
+        title: 'Team Coffee',
+        note: 'with team',
+      });
+
+      const updateReq = req(`http://localhost:3000/api/v1/transactions/${tx._id.toString()}`, 'PUT', owner, {
+        title: 'Team Coffee',
+        amount: 50,
+        type: 'expense',
+        date: '2026-10-10',
+        walletId: pWallet._id.toString(),
+      });
+      const updateRes = await v1.updateTransaction(updateReq, ctx(tx._id.toString()));
+      expect(updateRes.status).toBe(200);
+      const doc = await Transaction.findById(tx._id);
+      expect(doc!.note).toBeFalsy();
+    });
+
+    it('rejects moving a personal transaction into a shared wallet with 400', async () => {
+      const pWallet = await Wallet.create({ userId: owner, name: 'Personal Wallet', isShared: false, balance: 100 });
+      const { wallet: sWallet } = await seedSharedWallet(owner, [{ userId: member, status: 'accepted' }]);
+      const tx = await insertTx({
+        userId: owner,
+        walletId: pWallet._id.toString(),
+        type: 'expense',
+        amount: 40,
+        date: new Date('2026-10-10'),
+        title: 'Lunch',
+      });
+
+      const moveReq = req(`http://localhost:3000/api/v1/transactions/${tx._id.toString()}`, 'PUT', owner, {
+        title: 'Lunch',
+        amount: 40,
+        type: 'expense',
+        date: '2026-10-10',
+        walletId: sWallet._id.toString(),
+      });
+      const moveRes = await v1.updateTransaction(moveReq, ctx(tx._id.toString()));
+      expect(moveRes.status).toBe(400);
+      const body = await moveRes.json();
+      expect(body.error.fields?.walletId).toBe('Cannot move transaction between personal and shared wallets');
+    });
+
+    it('rejects GET /wallets/{personalWalletId}/transactions with 400', async () => {
+      const pWallet = await Wallet.create({ userId: owner, name: 'Personal Wallet', isShared: false, balance: 100 });
+      const txReq = req(`http://localhost:3000/api/v1/wallets/${pWallet._id.toString()}/transactions`, 'GET', owner);
+      const txRes = await v1.listSharedWalletTransactions(txReq, ctx(pWallet._id.toString()));
+      expect(txRes.status).toBe(400);
+    });
+
+    it('rejects GET /transactions/summary for shared wallet with 404', async () => {
+      const { wallet: sWallet } = await seedSharedWallet(owner, [{ userId: member, status: 'accepted' }]);
+      const sWalletId = sWallet._id.toString();
+      await insertTx({
+        userId: owner,
+        walletId: sWalletId,
+        type: 'expense',
+        amount: 77,
+        date: new Date('2026-10-10'),
+        title: 'Dinner',
+      });
+
+      const sumReq = req(`http://localhost:3000/api/v1/transactions/summary?from=2026-10-01&to=2026-10-31&walletId=${sWalletId}`, 'GET', owner);
+      const sumRes = await v1.transactionSummary(sumReq, ctx());
+      expect(sumRes.status).toBe(404);
+    });
+  });
 });

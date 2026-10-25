@@ -27,10 +27,6 @@ export class UpdateTransactionController {
       }
 
       const { wallet_id, category_id, type, amount, date, title, note } = parsed.data;
-      const hasCategory = typeof body === 'object' && body !== null && (
-        ('category_id' in body && (body as Record<string, unknown>).category_id !== undefined) ||
-        ('categoryId' in body && (body as Record<string, unknown>).categoryId !== undefined)
-      );
       const hasWallet = typeof body === 'object' && body !== null && (
         ('wallet_id' in body && (body as Record<string, unknown>).wallet_id !== undefined) ||
         ('walletId' in body && (body as Record<string, unknown>).walletId !== undefined)
@@ -45,7 +41,6 @@ export class UpdateTransactionController {
         date: new Date(date),
         title,
         note,
-        explicitCategory: hasCategory,
         explicitWallet: hasWallet,
       });
       const data = tx.createdBy ? TransactionResponseDTO.shared(tx) : TransactionResponseDTO.legacy(tx);

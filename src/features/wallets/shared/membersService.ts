@@ -25,10 +25,14 @@ export async function validateInviteEmail(email: string): Promise<{ id: string; 
  *
  * TODO(backend E7-07): `GET /api/v1/wallets/{id}/members`.
  */
-export async function getMembers(walletId: string): Promise<WalletMember[]> {
+export async function getMembers(walletId: string, currentUserId?: string): Promise<WalletMember[]> {
   if (isMockTarget(walletId)) return mockListMembers(walletId);
-  const res = await getApi<{ members: WalletMember[] }>(`/api/v1/wallets/${walletId}/members`);
-  return res.members ?? [];
+  const res = await getApi<{ members: (Omit<WalletMember, 'isYou'> & { isYou?: boolean })[] }>(`/api/v1/wallets/${walletId}/members`);
+  const members = res.members ?? [];
+  return members.map(m => ({
+    ...m,
+    isYou: Boolean(m.isYou || (currentUserId ? m.userId === currentUserId : false)),
+  }));
 }
 
 /**
