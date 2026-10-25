@@ -21,17 +21,27 @@ export interface TransactionRepositoryPort {
   remove(id: string, context: TransactionContext): Promise<TransactionRecord | null>;
   remove(id: string, userId: string, context: TransactionContext): Promise<TransactionRecord | null>;
 }
-/** Filters for a totals-only read; dates are UTC-midnight bounds, `end` exclusive. */
+/** Filters for a totals-only read; dates are UTC-midnight bounds, `end` exclusive (omitted = no upper bound). */
 export interface TransactionSummaryFilter {
   start: Date;
-  end: Date;
+  end?: Date;
   walletId?: string;
+  /** Any of these personal wallets; ignored when `walletId` is set. */
+  walletIds?: string[];
   type?: 'income' | 'expense';
   /** Matches any of these; `null` matches transactions without a category. */
   categoryIds?: (string | null)[];
   search?: string;
 }
-export interface TransactionSummaryReader { sumByType(userId: string, filter: TransactionSummaryFilter): Promise<{ income: number; expense: number }> }
+export interface TransactionSummaryReader { sumByType(userId: string, filter: TransactionSummaryFilter): Promise<{ income: number; expense: number; count: number }> }
+/** Report filters: UTC-midnight bounds with `end` exclusive, scoped to these personal wallets. */
+export interface TransactionReportFilter { start: Date; end: Date; walletIds: string[] }
+export interface TransactionReportReader {
+  /** Income and expense per UTC calendar day (YYYY-MM-DD) that has transactions, oldest first. */
+  totalsByDay(userId: string, filter: TransactionReportFilter): Promise<{ date: string; income: number; expense: number }[]>;
+  /** Amount per category and type; `categoryId` is null for transactions without a category. */
+  totalsByCategory(userId: string, filter: TransactionReportFilter): Promise<{ categoryId: string | null; type: 'income' | 'expense'; amount: number }[]>;
+}
 export interface WalletAccess {
   exists(id: string, userId: string, context: TransactionContext): Promise<boolean>;
   adjust(id: string, userId: string, delta: number, context: TransactionContext): Promise<void>;

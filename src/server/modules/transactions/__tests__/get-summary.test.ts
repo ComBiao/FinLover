@@ -10,7 +10,7 @@ const CATEGORIES: Record<string, CategoryRecord> = {
   myOthers: { id: 'myOthers', name: 'Others', type: 'expense', isSystem: false },
 };
 
-function service(totals = { income: 60300, expense: 7495 }) {
+function service(totals = { income: 60300, expense: 7495, count: 12 }) {
   const sumByType = vi.fn(async () => totals);
   const findWallet = vi.fn(async (id: string) => (id === 'mine' ? ({ id } as WalletRecord) : null));
   const findCategory = vi.fn(async (id: string) => CATEGORIES[id] ?? null);
