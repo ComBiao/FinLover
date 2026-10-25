@@ -38,7 +38,7 @@ export default function LoginPage({
           <>
             <Logo />
 
-            <div aria-hidden="true" className="relative self-start">
+            <div aria-hidden="true" className="self-start">
               <div className="w-[250px] rounded-2xl bg-card p-5 shadow-lg">
                 <div className="flex items-start justify-between">
                   <div className="h-6 w-[34px] rounded-md bg-chart-1" />
@@ -54,7 +54,8 @@ export default function LoginPage({
                   ฿48,290.00
                 </div>
               </div>
-              <div className="absolute -right-6 top-[calc(100%-18px)] w-[150px] rounded-xl bg-card p-4 shadow-lg">
+              {/* In normal flow (not absolute) so the layout reserves its height and it can't overlap the tagline. */}
+              <div className="relative -mt-[18px] -mr-6 ml-auto w-[150px] rounded-xl bg-card p-4 shadow-lg">
                 <div className="text-[11.5px] text-muted-foreground">
                   Savings goal
                 </div>
