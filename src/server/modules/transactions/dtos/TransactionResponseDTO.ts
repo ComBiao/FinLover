@@ -1,4 +1,11 @@
 import type { TransactionRecord } from '@/server/shared/ports/transactions';
+import { sharedCategoryOf } from '@/shared/contracts';
+
+/** The preset a shared transaction belongs to; rows saved before categories existed count as the type's "Others". */
+export function sharedCategory(doc: Pick<TransactionRecord, 'categoryKey' | 'type'>) {
+  const { key, name, icon, color } = sharedCategoryOf(doc.categoryKey, doc.type);
+  return { key, name, icon, color };
+}
 
 export class TransactionResponseDTO {
   static legacy(doc: TransactionRecord) {
@@ -36,6 +43,7 @@ export class TransactionResponseDTO {
       date: doc.date.toISOString().split('T')[0],
       title: doc.title,
       createdBy: doc.createdBy,
+      category: sharedCategory(doc),
     };
     if (doc.note !== undefined && doc.note !== null) res.note = doc.note;
     if (doc.editedBy) res.editedBy = doc.editedBy;

@@ -24,6 +24,8 @@ export type Transaction = {
   type: TransactionType;
   /** Absent/undefined means the transaction is uncategorized. */
   categoryId?: string;
+  /** Shared wallets only: a key of the fixed shared presets (`SHARED_CATEGORY_PRESETS`) instead of `categoryId`. */
+  categoryKey?: string;
   walletId: string;
   date: Date;
   note?: string;

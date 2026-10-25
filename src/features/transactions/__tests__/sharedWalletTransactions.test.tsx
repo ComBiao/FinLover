@@ -56,12 +56,20 @@ afterEach(() => {
 });
 
 describe("TransactionTable — shared wallet rows", () => {
-  it("swaps Category and Wallet for a Logged by column", () => {
+  it("keeps Category and swaps Wallet for a Logged by column", () => {
     renderWithClient(<TransactionTable transactions={SHARED_ROWS} onDeleteRequest={vi.fn()} />);
 
     expect(screen.getByRole("columnheader", { name: "Logged by" })).toBeInTheDocument();
-    expect(screen.queryByRole("columnheader", { name: "Category" })).not.toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Category" })).toBeInTheDocument();
     expect(screen.queryByRole("columnheader", { name: "Wallet" })).not.toBeInTheDocument();
+  });
+
+  it("shows each row's preset category, with Others for a row saved without one", () => {
+    renderWithClient(<TransactionTable transactions={SHARED_ROWS} onDeleteRequest={vi.fn()} />);
+
+    // Each row renders once for mobile and once for desktop.
+    expect(screen.getAllByText("Utilities")).toHaveLength(2);
+    expect(screen.getAllByText("Others")).toHaveLength(2);
   });
 
   it("shows who logged each row and who edited it when that is someone else", () => {
@@ -101,16 +109,44 @@ describe("AddTransactionModal — shared wallet", () => {
     useTransactionModal.setState({ isOpen: true, defaultType: "expense", defaultWalletId: walletId, editingTransaction: null });
   }
 
-  it("replaces the category field with a note and says who will be logged", async () => {
+  it("offers the fixed preset categories, preselects Others and says who will be logged", async () => {
     openFor(OWNED_SHARED_WALLET.id);
     renderWithClient(<AddTransactionModal onAdd={vi.fn()} />);
 
-    expect(await screen.findByText(/Shared wallets don.t use categories/)).toBeInTheDocument();
-    expect(screen.queryByRole("radiogroup", { name: "Category" })).not.toBeInTheDocument();
+    expect(await screen.findByRole("radiogroup", { name: "Category" })).toBeInTheDocument();
+    expect(await screen.findByRole("radio", { name: "Food & Drinks" })).toHaveAttribute("aria-checked", "false");
+    await waitFor(() => expect(screen.getByRole("radio", { name: "Others" })).toHaveAttribute("aria-checked", "true"));
+    expect(screen.queryByRole("radio", { name: "Salary" })).not.toBeInTheDocument();
     expect(await screen.findByText("Will be logged by Tul")).toBeInTheDocument();
   });
 
-  it("saves without a category", async () => {
+  it("switches to the income presets when the type changes", async () => {
+    openFor(OWNED_SHARED_WALLET.id);
+    renderWithClient(<AddTransactionModal onAdd={vi.fn()} />);
+
+    fireEvent.click(await screen.findByRole("radio", { name: "Income" }));
+    expect(await screen.findByRole("radio", { name: "Salary" })).toBeInTheDocument();
+    expect(screen.queryByRole("radio", { name: "Food & Drinks" })).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole("radio", { name: "Others" })).toHaveAttribute("aria-checked", "true"));
+  });
+
+  it("saves the chosen preset as categoryKey, never a categoryId", async () => {
+    const onAdd = vi.fn().mockResolvedValue(undefined);
+    openFor(OWNED_SHARED_WALLET.id);
+    renderWithClient(<AddTransactionModal onAdd={onAdd} />);
+
+    fireEvent.change(await screen.findByLabelText("Title"), { target: { value: "Noodles" } });
+    fireEvent.change(screen.getByLabelText("Money out"), { target: { value: "90" } });
+    fireEvent.click(await screen.findByRole("radio", { name: "Food & Drinks" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save expense" }));
+
+    await waitFor(() => expect(onAdd).toHaveBeenCalledTimes(1));
+    expect(onAdd).toHaveBeenCalledWith(
+      expect.objectContaining({ walletId: OWNED_SHARED_WALLET.id, categoryKey: "food-drinks", categoryId: undefined })
+    );
+  });
+
+  it("saves Others by default", async () => {
     const onAdd = vi.fn().mockResolvedValue(undefined);
     openFor(OWNED_SHARED_WALLET.id);
     renderWithClient(<AddTransactionModal onAdd={onAdd} />);
@@ -121,26 +157,27 @@ describe("AddTransactionModal — shared wallet", () => {
 
     await waitFor(() => expect(onAdd).toHaveBeenCalledTimes(1));
     expect(onAdd).toHaveBeenCalledWith(
-      expect.objectContaining({ walletId: OWNED_SHARED_WALLET.id, title: "Groceries", amount: 350, categoryId: undefined })
+      expect.objectContaining({ walletId: OWNED_SHARED_WALLET.id, title: "Groceries", amount: 350, categoryId: undefined, categoryKey: "others-expense" })
     );
   });
 
-  it("keeps the category chips for a personal wallet and offers shared wallets with a Shared tag", async () => {
+  it("keeps the personal category chips and offers shared wallets with a Shared tag", async () => {
     openFor(PERSONAL_WALLET.id);
     renderWithClient(<AddTransactionModal onAdd={vi.fn()} />);
 
     expect(await screen.findByRole("radiogroup", { name: "Category" })).toBeInTheDocument();
-    expect(screen.queryByText(/Shared wallets don.t use categories/)).not.toBeInTheDocument();
+    // This user has no categories of their own in the test, and the presets are not offered for a personal wallet.
+    expect(screen.queryByRole("radio", { name: "Food & Drinks" })).not.toBeInTheDocument();
     expect(screen.queryByText(/Will be logged by/)).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByLabelText("Pay from wallet"));
     const option = await screen.findByRole("option", { name: /Housemate Fund/ });
     expect(option).toHaveTextContent("Shared");
 
-    // Choosing the shared wallet drops the category field.
+    // Choosing the shared wallet swaps in the fixed presets.
     await userEvent.click(option);
-    await waitFor(() => expect(screen.queryByRole("radiogroup", { name: "Category" })).not.toBeInTheDocument());
-    expect(screen.getByText(/Shared wallets don.t use categories/)).toBeInTheDocument();
+    expect(await screen.findByRole("radio", { name: "Food & Drinks" })).toBeInTheDocument();
+    expect(screen.getByText(/Will be logged by/)).toBeInTheDocument();
   });
 
   it("shows who logged an existing shared row when editing it", async () => {
@@ -149,7 +186,8 @@ describe("AddTransactionModal — shared wallet", () => {
 
     expect(await screen.findByText("Logged by Guy")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save changes" })).toBeInTheDocument();
-    expect(screen.queryByRole("radiogroup", { name: "Category" })).not.toBeInTheDocument();
+    // The row's own preset is the selected chip.
+    await waitFor(() => expect(screen.getByRole("radio", { name: "Utilities" })).toHaveAttribute("aria-checked", "true"));
   });
 });
 

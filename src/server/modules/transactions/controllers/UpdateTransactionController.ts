@@ -26,7 +26,7 @@ export class UpdateTransactionController {
         return errorResponse(422, 'VALIDATION_ERROR', 'One or more fields are invalid', validationFields(parsed.error));
       }
 
-      const { wallet_id, category_id, type, amount, date, title, note } = parsed.data;
+      const { wallet_id, category_id, category_key, type, amount, date, title, note } = parsed.data;
       const hasWallet = typeof body === 'object' && body !== null && (
         ('wallet_id' in body && (body as Record<string, unknown>).wallet_id !== undefined) ||
         ('walletId' in body && (body as Record<string, unknown>).walletId !== undefined)
@@ -36,6 +36,7 @@ export class UpdateTransactionController {
       const tx = await this.service.execute(id, user_id, {
         walletId: wallet_id,
         categoryId: category_id || null,
+        categoryKey: category_key,
         type: type.toLowerCase() as 'income' | 'expense',
         amount,
         date: new Date(date),

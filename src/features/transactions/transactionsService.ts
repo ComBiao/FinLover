@@ -17,12 +17,15 @@ import type { TransactionAuthor } from "@/features/wallets/shared/types";
 type TransactionDto = {
   id: string;
   walletId: string;
-  categoryId: string | null;
+  /** Absent on shared-wallet rows, which use `category` instead. */
+  categoryId?: string | null;
   type: TransactionType;
   amount: number;
   date: string;
   title: string;
   note?: string;
+  /** Shared wallets only: the fixed preset this row belongs to (shared rows have no `categoryId`). */
+  category?: { key: string };
   /** Shared wallets only (TODO(backend E7-06): added to the transaction response). */
   createdBy?: TransactionAuthor;
   editedBy?: TransactionAuthor | null;
@@ -39,6 +42,7 @@ function toTransaction(dto: TransactionDto): Transaction {
     id: dto.id,
     walletId: dto.walletId,
     categoryId: dto.categoryId ?? undefined,
+    ...(dto.category ? { categoryKey: dto.category.key } : {}),
     type: dto.type,
     amount: dto.amount,
     date: parseLocalISODate(dto.date),
@@ -60,6 +64,11 @@ export async function getTransactions(months: MonthKey[]): Promise<Transaction[]
     .sort((a, b) => b.date.getTime() - a.date.getTime());
 }
 
+/** Shared wallets send a preset `categoryKey` (and must not send `categoryId`); personal wallets send `categoryId`. */
+function categoryFields(input: Pick<Transaction, "categoryId" | "categoryKey">) {
+  return input.categoryKey ? { categoryKey: input.categoryKey } : { categoryId: input.categoryId ?? null };
+}
+
 export async function createTransaction(input: Omit<Transaction, "id">): Promise<Transaction> {
   // TODO(backend E7-11): remove; POST /api/v1/transactions will accept a shared wallet (members only, 403 otherwise, no categoryId).
   if (isMockTarget(input.walletId)) {
@@ -78,7 +87,7 @@ export async function createTransaction(input: Omit<Transaction, "id">): Promise
 
   const created = await postApi<TransactionDto>("/api/v1/transactions", {
     walletId: input.walletId,
-    categoryId: input.categoryId ?? null,
+    ...categoryFields(input),
     type: input.type,
     amount: input.amount,
     date: toLocalISODate(input.date),
@@ -109,7 +118,7 @@ export async function updateTransaction(
 
   const updated = await putApi<TransactionDto>(`/api/v1/transactions/${id}`, {
     walletId: input.walletId,
-    categoryId: input.categoryId ?? null,
+    ...categoryFields(input),
     type: input.type,
     amount: input.amount,
     date: toLocalISODate(input.date),

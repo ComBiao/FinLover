@@ -4,7 +4,7 @@ import type { WalletMembershipPort } from '@/server/shared/ports/wallet-membersh
 import type { WalletRepositoryPort } from '@/server/shared/ports/wallets';
 import type { UserDirectoryPort } from '@/server/shared/ports/users';
 import { AppError } from '@/server/shared/kernel/AppError';
-import { delta, validateReferences } from './rules';
+import { delta, resolveSharedCategoryKey, validateReferences } from './rules';
 
 export class UpdateTransactionService {
   constructor(
@@ -40,7 +40,8 @@ export class UpdateTransactionService {
           throw new AppError('VALIDATION_ERROR', 'One or more fields are invalid', { categoryId: 'Category is not allowed for shared wallets' });
         }
 
-        const next = { ...input, walletId: old.walletId, categoryId: null, updatedBy: userId };
+        const categoryKey = resolveSharedCategoryKey(input.type, input.categoryKey, old.categoryKey);
+        const next = { ...input, walletId: old.walletId, categoryId: null, categoryKey, updatedBy: userId };
         const tx = await this.repo.update(id, next, context, userId);
         if (!tx) throw new AppError('NOT_FOUND', 'Transaction not found');
 
@@ -69,6 +70,9 @@ export class UpdateTransactionService {
         if (!targetWallet || targetWallet.isShared) {
           throw new AppError('VALIDATION_ERROR', 'Cannot move transaction between personal and shared wallets', { walletId: 'Cannot move transaction between personal and shared wallets' });
         }
+      }
+      if (input.categoryKey) {
+        throw new AppError('VALIDATION_ERROR', 'One or more fields are invalid', { categoryKey: 'Category key is only allowed for shared wallets' });
       }
       const next = { ...input, walletId: targetWalletId };
       await validateReferences(next, userId, this.wallets, this.categories, context);

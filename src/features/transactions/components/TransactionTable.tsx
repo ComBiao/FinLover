@@ -29,10 +29,13 @@ import {
 } from "@/components/ui/table";
 import { CATEGORY_STYLES, resolveChipTone, WALLET_TYPE_STYLES } from "@/components/chipColor";
 import { FALLBACK_CATEGORY_NAME, isFallbackCategory } from "@/features/categories/categoriesService";
+import { resolveCategoryIcon } from "@/features/categories/categoryIcons";
 import { useCategories } from "@/features/categories/hooks/useCategories";
 import { useWallets } from "@/features/wallets/hooks/useWallets";
 import { MemberAvatar } from "@/features/wallets/shared/MemberAvatar";
 import { cn, formatBaht, formatEnglishDate } from "@/lib/utils";
+import { sharedCategoryOf } from "@/shared/contracts";
+import type { Category } from "@/types/category";
 import type { Transaction } from "@/types/transaction";
 
 function formatAmount(amount: number, type: Transaction["type"]) {
@@ -62,6 +65,26 @@ function LoggedBy({ transaction }: { transaction: Transaction }) {
   );
 }
 
+type ChipCategory = Pick<Category, "id" | "name" | "icon" | "color">;
+
+/** The category chip; a row with no known category shows a neutral "Others". */
+function CategoryBadge({ category }: { category: ChipCategory | undefined }) {
+  const Icon = category?.icon;
+  const tone = category ? resolveChipTone(category.color, CATEGORY_STYLES, category.id) : undefined;
+  return (
+    <Badge
+      variant="outline"
+      className={
+        tone ? cn("border-transparent", tone.className) : "border-border bg-muted text-muted-foreground"
+      }
+      style={tone?.style}
+    >
+      {Icon ? <Icon className="size-3" /> : null}
+      {category?.name ?? FALLBACK_CATEGORY_NAME}
+    </Badge>
+  );
+}
+
 type TransactionTableProps = {
   transactions: Transaction[];
   onEdit?: (transaction: Transaction) => void;
@@ -85,16 +108,24 @@ export function TransactionTable({
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
   const { data: categories = [] } = useCategories();
   const { data: wallets = [] } = useWallets();
-  // Rows of one shared wallet (Home with that wallet selected) trade the Category and
-  // Wallet columns for "Logged by": shared wallets have no categories.
+  // Rows of one shared wallet (Home with that wallet selected) trade the Wallet column
+  // for "Logged by"; they keep Category, picked from the fixed shared presets.
   const isSharedView = transactions.length > 0 && transactions.every((transaction) => transaction.createdBy);
 
   /** A row without a category shows its type's seeded "Others" (see `withFallbackCategory`). */
-  const categoryOf = (transaction: Transaction) =>
-    categories.find(({ id }) => id === transaction.categoryId) ??
-    (transaction.categoryId
-      ? undefined
-      : categories.find((category) => category.type === transaction.type && isFallbackCategory(category)));
+  const categoryOf = (transaction: Transaction): ChipCategory | undefined => {
+    // Shared rows carry a preset key instead of one member's own category id.
+    if (transaction.createdBy) {
+      const preset = sharedCategoryOf(transaction.categoryKey, transaction.type);
+      return { id: preset.key, name: preset.name, icon: resolveCategoryIcon(preset.icon), color: preset.color };
+    }
+    return (
+      categories.find(({ id }) => id === transaction.categoryId) ??
+      (transaction.categoryId
+        ? undefined
+        : categories.find((category) => category.type === transaction.type && isFallbackCategory(category)))
+    );
+  };
 
   if (transactions.length === 0) {
     return (
@@ -116,11 +147,7 @@ export function TransactionTable({
         {transactions.map((transaction) => {
           const category = categoryOf(transaction);
           const wallet = wallets.find(({ id }) => id === transaction.walletId);
-          const CategoryIcon = category?.icon;
           const WalletIcon = wallet?.icon;
-          const categoryTone = category
-            ? resolveChipTone(category.color, CATEGORY_STYLES, category.id)
-            : undefined;
           const walletTone = wallet
             ? resolveChipTone(wallet.color, WALLET_TYPE_STYLES, wallet.type ?? wallet.id)
             : undefined;
@@ -148,21 +175,13 @@ export function TransactionTable({
               </div>
 
               {isSharedView ? (
-                <LoggedBy transaction={transaction} />
+                <div className="flex flex-col items-start gap-2">
+                  <CategoryBadge category={category} />
+                  <LoggedBy transaction={transaction} />
+                </div>
               ) : (
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <Badge
-                    variant="outline"
-                    className={
-                      categoryTone
-                        ? cn("border-transparent", categoryTone.className)
-                        : "border-border bg-muted text-muted-foreground"
-                    }
-                    style={categoryTone?.style}
-                  >
-                    {CategoryIcon ? <CategoryIcon className="size-3" /> : null}
-                    {category?.name ?? FALLBACK_CATEGORY_NAME}
-                  </Badge>
+                  <CategoryBadge category={category} />
                   <Badge
                     variant="secondary"
                     className={cn("border-transparent", walletTone?.className)}
@@ -217,16 +236,14 @@ export function TransactionTable({
         <TableHeader>
           <TableRow>
             <TableHead className={cn("py-3.5", isSharedView ? "w-[12%]" : "w-[10%]")}>Date</TableHead>
-            <TableHead className={cn("py-3.5", isSharedView ? "w-[26%]" : "w-[24%]")}>Title</TableHead>
+            <TableHead className={cn("py-3.5", isSharedView ? "w-[20%]" : "w-[24%]")}>Title</TableHead>
+            <TableHead className={cn("py-3.5", isSharedView ? "w-[16%]" : "w-[15%]")}>Category</TableHead>
             {isSharedView ? (
-              <TableHead className="w-[26%] py-3.5">Logged by</TableHead>
+              <TableHead className="w-[22%] py-3.5">Logged by</TableHead>
             ) : (
-              <>
-                <TableHead className="w-[15%] py-3.5">Category</TableHead>
-                <TableHead className="w-[15%] py-3.5">Wallet</TableHead>
-              </>
+              <TableHead className="w-[15%] py-3.5">Wallet</TableHead>
             )}
-            <TableHead className={cn("py-3.5", isSharedView ? "w-[20%]" : "w-[22%]")}>Note</TableHead>
+            <TableHead className={cn("py-3.5", isSharedView ? "w-[16%]" : "w-[22%]")}>Note</TableHead>
             <TableHead className="w-[10%] py-3.5 text-right">Amount</TableHead>
             <TableHead className="w-[4%] py-3.5 text-right">
               <span className="sr-only">Actions</span>
@@ -237,12 +254,8 @@ export function TransactionTable({
           {transactions.map((transaction) => {
             const category = categoryOf(transaction);
             const wallet = wallets.find(({ id }) => id === transaction.walletId);
-            const CategoryIcon = category?.icon;
             const WalletIcon = wallet?.icon;
             const isExpanded = expandedRowId === transaction.id;
-            const categoryTone = category
-              ? resolveChipTone(category.color, CATEGORY_STYLES, category.id)
-              : undefined;
             const walletTone = wallet
               ? resolveChipTone(wallet.color, WALLET_TYPE_STYLES, wallet.type ?? wallet.id)
               : undefined;
@@ -261,37 +274,24 @@ export function TransactionTable({
                 <TableCell className="truncate py-3.5 font-medium text-foreground">
                   {transaction.title}
                 </TableCell>
+                <TableCell className="py-3.5">
+                  <CategoryBadge category={category} />
+                </TableCell>
                 {isSharedView ? (
                   <TableCell className="py-3.5">
                     <LoggedBy transaction={transaction} />
                   </TableCell>
                 ) : (
-                  <>
-                    <TableCell className="py-3.5">
-                      <Badge
-                        variant="outline"
-                        className={
-                          categoryTone
-                            ? cn("border-transparent", categoryTone.className)
-                            : "border-border bg-muted text-muted-foreground"
-                        }
-                        style={categoryTone?.style}
-                      >
-                        {CategoryIcon ? <CategoryIcon className="size-3" /> : null}
-                        {category?.name ?? FALLBACK_CATEGORY_NAME}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="py-3.5">
-                      <Badge
-                        variant="secondary"
-                        className={cn("border-transparent", walletTone?.className)}
-                        style={walletTone?.style}
-                      >
-                        {WalletIcon ? <WalletIcon className="size-3" /> : null}
-                        {wallet?.name ?? "Unknown wallet"}
-                      </Badge>
-                    </TableCell>
-                  </>
+                  <TableCell className="py-3.5">
+                    <Badge
+                      variant="secondary"
+                      className={cn("border-transparent", walletTone?.className)}
+                      style={walletTone?.style}
+                    >
+                      {WalletIcon ? <WalletIcon className="size-3" /> : null}
+                      {wallet?.name ?? "Unknown wallet"}
+                    </Badge>
+                  </TableCell>
                 )}
                 <TableCell className="py-3.5 text-muted-foreground">
                   {transaction.note ? (

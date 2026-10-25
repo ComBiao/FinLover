@@ -18,6 +18,8 @@ export type HomeSavingGoal = {
 export type HomeTopCategory = {
   rank: number;
   categoryId: string | null;
+  /** Shared wallets only: the fixed preset the row group belongs to (there is no `categoryId`). */
+  categoryKey?: string;
   name: string;
   icon: Category["icon"] | undefined;
   color: string | undefined;
