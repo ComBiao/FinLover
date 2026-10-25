@@ -3,7 +3,6 @@
 import * as React from "react";
 import { Plus, Users, Wallet as WalletIcon } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -63,8 +62,8 @@ export function WalletManagementPage() {
     );
   }
 
-  /** The two total cards for the wallets being shown. */
-  function renderOverview(shown: Wallet[], shared: boolean) {
+  /** The two total cards for the personal wallets; shared wallets are pooled with other people, so they get no totals. */
+  function renderOverview(shown: Wallet[]) {
     const total = shown.reduce((sum, w) => sum + w.balance, 0);
     const savingCount = shown.filter((w) => w.isSaving).length;
 
@@ -72,14 +71,8 @@ export function WalletManagementPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Card className="rounded-2xl bg-gradient-pastel-a shadow-sm">
           <CardContent className="flex flex-col gap-1.5 p-5">
-            <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               Total Balance
-              {shared ? (
-                <Badge variant="secondary" className="gap-1 bg-accent/20 text-[10px] font-semibold tracking-normal text-foreground normal-case">
-                  <Users />
-                  Shared wallets
-                </Badge>
-              ) : null}
             </span>
             <div className="text-3xl font-extrabold text-foreground">
               {isPending ? (
@@ -89,9 +82,7 @@ export function WalletManagementPage() {
               )}
             </div>
             <span className="text-xs text-muted-foreground">
-              {shared
-                ? `Across ${shown.length} shared ${shown.length === 1 ? "wallet" : "wallets"} · pooled with other members`
-                : `Across ${shown.length} ${shown.length === 1 ? "wallet" : "wallets"}`}
+              Across {shown.length} {shown.length === 1 ? "wallet" : "wallets"}
             </span>
           </CardContent>
         </Card>
@@ -99,14 +90,14 @@ export function WalletManagementPage() {
         <Card className="rounded-2xl shadow-sm">
           <CardContent className="flex flex-col gap-1.5 p-5">
             <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              {shared ? "Shared Wallets" : "Total Wallets"}
+              Total Wallets
             </span>
             <div className="flex items-baseline gap-2">
               <div className="text-3xl font-extrabold text-foreground">{shown.length}</div>
               <div className="text-sm font-semibold text-primary">({savingCount} saving)</div>
             </div>
             <span className="text-xs text-muted-foreground">
-              {shared ? "Shared with other people" : "Active accounts"}
+              Active accounts
             </span>
           </CardContent>
         </Card>
@@ -156,7 +147,7 @@ export function WalletManagementPage() {
           ) : null}
 
           <TabsContent value="personal" className="flex flex-col gap-6">
-            {renderOverview(personalWallets, false)}
+            {renderOverview(personalWallets)}
 
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
@@ -197,8 +188,6 @@ export function WalletManagementPage() {
           </TabsContent>
 
           <TabsContent value="shared" className="flex flex-col gap-6">
-            {renderOverview(sharedWallets, true)}
-
             <section aria-label="Shared wallets" className="flex flex-col gap-4">
               <div className="flex items-end justify-between gap-4">
                 <div className="flex flex-col gap-1">
