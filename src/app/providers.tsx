@@ -9,11 +9,21 @@ import { ApiClientError } from '@/lib/api/client';
  * leaving a screen full of failed requests. The full navigation also drops
  * every cached query and in-memory store.
  */
+let signingOut = false;
+
 function redirectOnUnauthorized(error: unknown) {
-  if (error instanceof ApiClientError && error.status === 401 && window.location.pathname !== '/login') {
-    // A full page load (not router.push) on purpose: it drops every cached query and in-memory store.
-    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-    window.location.href = '/login';
+  if (error instanceof ApiClientError && error.status === 401 && window.location.pathname !== '/login' && !signingOut) {
+    signingOut = true;
+    // The cookie may still hold a JWT that verifies but whose user no longer exists (e.g. DB re-seeded).
+    // /login and the private layouts only check the JWT signature, so without clearing the cookie first
+    // /login would bounce straight back to /homepage and loop. Logout is idempotent; navigate regardless.
+    void fetch('/api/v1/auth/logout', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' } })
+      .catch(() => undefined)
+      .finally(() => {
+        // A full page load (not router.push) on purpose: it drops every cached query and in-memory store.
+        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+        window.location.href = '/login';
+      });
   }
 }
 
