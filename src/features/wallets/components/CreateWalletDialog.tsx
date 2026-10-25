@@ -18,6 +18,8 @@ import { hexToRgba } from "@/components/chipColor";
 import { useCreateWallet } from "@/features/wallets/hooks/useWallets";
 import { SwitchField } from "@/features/wallets/shared/SwitchField";
 import { WALLET_ICON_OPTIONS } from "@/features/wallets/walletIcons";
+import { validateInviteEmail } from "@/features/wallets/shared/membersService";
+import { ApiClientError } from "@/lib/api/client";
 
 const PRESET_COLORS = [
   "#4A4757",
@@ -51,6 +53,7 @@ export function CreateWalletDialog({ open, onOpenChange, defaultShared = false }
   const [inviteInput, setInviteInput] = React.useState("");
   const [inviteEmails, setInviteEmails] = React.useState<string[]>([]);
   const [inviteError, setInviteError] = React.useState<string | null>(null);
+  const [isCheckingEmail, setIsCheckingEmail] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
   const createWalletMutation = useCreateWallet();
@@ -65,21 +68,44 @@ export function CreateWalletDialog({ open, onOpenChange, defaultShared = false }
     setInviteInput("");
     setInviteEmails([]);
     setInviteError(null);
+    setIsCheckingEmail(false);
     setError(null);
   }
 
   /** Adds the typed email as a chip; returns false (and shows why) when it can't be added. */
-  function addInviteEmail(): boolean {
+  async function addInviteEmail(): Promise<boolean> {
     const email = inviteInput.trim().toLowerCase();
     if (!email) return true;
     if (!EMAIL_PATTERN.test(email)) {
       setInviteError("Enter a valid email address");
       return false;
     }
-    if (!inviteEmails.includes(email)) setInviteEmails((current) => [...current, email]);
-    setInviteInput("");
+    if (inviteEmails.includes(email)) {
+      setInviteInput("");
+      setInviteError(null);
+      return true;
+    }
+
+    setIsCheckingEmail(true);
     setInviteError(null);
-    return true;
+    try {
+      await validateInviteEmail(email);
+      setInviteEmails((current) => (current.includes(email) ? current : [...current, email]));
+      setInviteInput("");
+      setInviteError(null);
+      return true;
+    } catch (err) {
+      setInviteError(
+        err instanceof ApiClientError
+          ? (err.fields?.email ?? err.message)
+          : err instanceof Error
+            ? err.message
+            : "User not found"
+      );
+      return false;
+    } finally {
+      setIsCheckingEmail(false);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -110,8 +136,9 @@ export function CreateWalletDialog({ open, onOpenChange, defaultShared = false }
     const pendingEmail = inviteInput.trim().toLowerCase();
     let emails = inviteEmails;
     if (isShared && pendingEmail) {
-      if (!addInviteEmail()) return;
-      if (!emails.includes(pendingEmail)) emails = [...emails, pendingEmail];
+      const added = await addInviteEmail();
+      if (!added) return;
+      emails = inviteEmails.includes(pendingEmail) ? inviteEmails : [...inviteEmails, pendingEmail];
     }
 
     setError(null);
@@ -250,6 +277,7 @@ export function CreateWalletDialog({ open, onOpenChange, defaultShared = false }
                   type="email"
                   placeholder="Enter an email and press Enter"
                   value={inviteInput}
+                  disabled={isCheckingEmail}
                   onChange={(e) => {
                     setInviteInput(e.target.value);
                     setInviteError(null);
@@ -257,14 +285,19 @@ export function CreateWalletDialog({ open, onOpenChange, defaultShared = false }
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
-                      addInviteEmail();
+                      void addInviteEmail();
                     }
                   }}
                   aria-invalid={Boolean(inviteError)}
                   aria-describedby={inviteError ? "create-wallet-invite-error" : undefined}
                 />
-                <Button type="button" variant="secondary" onClick={addInviteEmail}>
-                  Add
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={isCheckingEmail || !inviteInput.trim()}
+                  onClick={() => void addInviteEmail()}
+                >
+                  {isCheckingEmail ? "Checking…" : "Add"}
                 </Button>
               </div>
               {inviteError ? (

@@ -69,6 +69,7 @@ export const operations = [
   { action: 'login', method: 'post', path: '/auth/login', status: 200, errors: [400, 401, 500], public: true, description: 'Set HttpOnly session_token for seven days. Missing user and wrong password produce the same credentials error. Password is limited to 72 UTF-8 bytes.' },
   { action: 'logout', method: 'post', path: '/auth/logout', status: 200, errors: [], public: true, description: 'Clear the cookie. Idempotent. Does not revoke previously issued JWTs.' },
   { action: 'getCurrentUser', method: 'get', path: '/auth/me', status: 200, errors: [401, 404, 500], versions: ['v1'], description: 'Return the authenticated user (id, email and optional display name). Never returns passwordHash.' },
+  { action: 'lookupUser', method: 'get', path: '/users/lookup', status: 200, errors: [400, 401, 500], versions: ['v1'], description: 'Check whether a user exists by email for wallet invitations. Unknown email produces 400 with fields.email User not found; self email produces 400 with Cannot invite yourself.' },
   { action: 'deleteAccount', method: 'delete', path: '/auth/delete-account', status: 200, errors: [401, 404, 409, 500], v1Only: true, cookieOnly: true, description: 'Permanently delete the authenticated user and cascade-delete their wallets, categories and transactions atomically. Owners with accepted Contributors must transfer ownership first (409); pending invitations are cleaned up. Session cookie only: any Authorization header, valid or not, is rejected with 401. No password re-authentication. Clears the session cookie, including when the account is already gone (404).'},
   { action: 'listCategories', method: 'get', path: '/categories', status: 200, errors: [400, 401, 500], versions: ['v1'], description: "List the authenticated user's categories (the system defaults seeded at registration plus custom ones), oldest first, optionally narrowed by type." },
   { action: 'createCategory', method: 'post', path: '/categories', status: 201, errors: [400, 401, 409, 500], description: 'Create an owned custom category. Names are trimmed; duplicates conflict.' },
@@ -137,6 +138,7 @@ export function buildSpec(version: 'legacy' | 'v1') {
       : action === 'register' ? obj({ user: publicUser })
       : action === 'login' ? obj({ user: loginUser })
         : action === 'getCurrentUser' ? obj({ user: currentUser })
+        : action === 'lookupUser' ? publicUser
         : action === 'logout' || action === 'deleteAccount' ? obj({ success: { const: true } })
           : action === 'listCategories' ? { type: 'array', items: schema(categoryResponse) }
           : action.includes('Category') ? (v1 ? schema(categoryResponse) : legacyCategory)
@@ -153,6 +155,7 @@ export function buildSpec(version: 'legacy' | 'v1') {
     const walletExample = { id: '507f1f77bcf86cd799439011', name: 'Main', balance: 1250.5, isDefault: true, color: '#12AB34', isSaving: false, goalAmount: 0, createdAt: '2026-09-27T12:00:00.000Z', updatedAt: '2026-09-27T12:00:00.000Z' };
     const responseExample = action === 'listWallets' ? { status: true, data: [walletExample] }
       : action === 'getWallet' || action === 'updateWallet' || action === 'updateWalletSaving' ? { status: true, data: walletExample }
+      : action === 'lookupUser' ? { status: true, data: { id: '507f1f77bcf86cd799439012', email: 'friend@example.com', name: 'Friend User' } }
         : action === 'getTransactionSummary' ? { status: true, data: { totalIncome: 60300, totalExpense: 7495, netBalance: 52805 } }
         : action === 'listSchedulers' ? { status: true, data: [schedulerResponseExample] }
         : action === 'createScheduler' || action === 'getScheduler' || action === 'updateScheduler' || action === 'setSchedulerStatus' ? { status: true, data: schedulerResponseExample }
@@ -197,6 +200,7 @@ export function buildSpec(version: 'legacy' | 'v1') {
         { name: 'status', in: 'query', required: false, schema: { type: 'string', enum: ['active', 'paused', 'completed', 'cancelled'] } },
       ] : []),
       ...(action === 'getHomeSummary' ? [{ name: 'month', in: 'query', required: false, schema: { type: 'string', pattern: '^\\d{4}-(0[1-9]|1[0-2])$' }, example: '2026-10' }, { name: 'walletId', in: 'query', required: false, description: 'all (default) or the id of an owned wallet.', schema: { type: 'string', pattern: '^(all|[a-fA-F0-9]{24})$' }, example: 'all' }] : []),
+      ...(action === 'lookupUser' ? [{ name: 'email', in: 'query', required: true, schema: { type: 'string', format: 'email' }, example: 'friend@example.com' }] : []),
     ];
     paths[path] ??= {};
     paths[path][method] = {

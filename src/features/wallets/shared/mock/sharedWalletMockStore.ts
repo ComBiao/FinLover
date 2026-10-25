@@ -408,6 +408,17 @@ export async function mockInviteMember(walletId: string, rawEmail: string): Prom
   return toMemberRow(member);
 }
 
+export async function mockValidateInviteEmail(rawEmail: string): Promise<{ id: string; email: string; name: string }> {
+  await ensureMe();
+  const email = rawEmail.trim().toLowerCase();
+  if (email === state.users[MOCK_ME_ID].email.toLowerCase()) {
+    throw new ApiClientError("Cannot invite yourself", 400, { email: "Cannot invite yourself" });
+  }
+  const user = Object.values(state.users).find((candidate) => candidate.email.toLowerCase() === email);
+  if (!user) throw new ApiClientError("User not found", 400, { email: "User not found" });
+  return { id: user.id, email: user.email, name: user.name };
+}
+
 /** TODO(backend E7-07): replaced by `DELETE /api/v1/wallets/{id}/members/{userId}` (owner only; also cancels a pending invite). */
 export async function mockRemoveMember(walletId: string, userId: string): Promise<void> {
   await ensureMe();

@@ -315,4 +315,39 @@ describe('E7-01b/02 real database API', () => {
       expect(validate(body), JSON.stringify(validate.errors)).toBe(true);
     }
   });
+
+  describe('GET /api/v1/users/lookup', () => {
+    it('returns user details when the user exists', async () => {
+      const targetEmail = email(pending);
+      const res = await v1.lookupUser(request('GET', owner, undefined, `/api/v1/users/lookup?email=${encodeURIComponent(targetEmail)}`), context());
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.status).toBe(true);
+      expect(body.data).toEqual({ id: pending, email: targetEmail, name: 'Unnamed user' });
+    });
+
+    it('returns 400 User not found when the email does not exist', async () => {
+      const res = await v1.lookupUser(request('GET', owner, undefined, '/api/v1/users/lookup?email=nonexistent%40finlover.com'), context());
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.status).toBe(false);
+      expect(body.error.fields).toEqual({ email: 'User not found' });
+    });
+
+    it('returns 400 Cannot invite yourself when looking up caller own email', async () => {
+      const selfEmail = email(owner);
+      const res = await v1.lookupUser(request('GET', owner, undefined, `/api/v1/users/lookup?email=${encodeURIComponent(selfEmail)}`), context());
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.status).toBe(false);
+      expect(body.error.fields).toEqual({ email: 'Cannot invite yourself' });
+    });
+
+    it('returns 400 when email is invalid and 401 when unauthorized', async () => {
+      const badRes = await v1.lookupUser(request('GET', owner, undefined, '/api/v1/users/lookup?email=not-an-email'), context());
+      expect(badRes.status).toBe(400);
+      const unauthRes = await v1.lookupUser(request('GET', null, undefined, `/api/v1/users/lookup?email=${encodeURIComponent(email(pending))}`), context());
+      expect(unauthRes.status).toBe(401);
+    });
+  });
 });

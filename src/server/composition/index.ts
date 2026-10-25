@@ -21,7 +21,7 @@ import { hashPassword, comparePassword } from '@/server/shared/auth/crypto';
 import { createCategoryRouter } from '../modules/categories/router';
 import { WalletRepository } from '../modules/wallets/repositories/WalletRepository';
 const walletMembershipRepository = new WalletMembershipRepository();
-const userRepository = new UserRepository();
+export const userRepository = new UserRepository();
 export const walletRepository = new WalletRepository(walletMembershipRepository);
 const categoryRepository = new CategoryRepository();
 const personalWalletAccess = new PersonalWalletAccess(walletRepository);
