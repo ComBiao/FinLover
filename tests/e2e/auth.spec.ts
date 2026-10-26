@@ -38,8 +38,8 @@ test('register -> login -> logout -> protected page is closed', async ({ page })
   await page.goto('/login');
   await expect(page).toHaveURL(/\/homepage$/);
 
-  await page.getByRole('button', { name: /e2e user/i }).click({ force: true });
-  await page.getByRole('menuitem', { name: 'Log out' }).click();
+  await page.goto('/profile');
+  await page.getByRole('button', { name: 'Log out' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Log out' }).click();
   await expect(page).toHaveURL(/\/login$/);
 
@@ -86,6 +86,7 @@ test('API: cross-origin login is refused and has no session cookie', async ({ re
 test('API: invalid Authorization header is rejected even with a valid cookie', async ({ page }) => {
   const email = uniqueEmail();
   await register(page, email);
+  await expect(page).toHaveURL(/registered=1/);
   await login(page, email);
   await expect(page).toHaveURL(/\/homepage$/);
 

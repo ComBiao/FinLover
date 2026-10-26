@@ -16,3 +16,11 @@ export interface UserRepositoryPort {
   existsById(userId: string): Promise<boolean>;
 }
 export interface PasswordPort { hash(value: string): Promise<string>; compare(value: string, hash: string): Promise<boolean> }
+
+
+export interface PublicUser { id: string; name: string; email: string }
+export interface UserDirectoryPort {
+  findPublicByIds(ids: string[], context?: TransactionContext): Promise<PublicUser[]>;
+  /** Write-lock a user to serialize invitations with account deletion. */
+  lockById(userId: string, context: TransactionContext): Promise<PublicUser | null>;
+}

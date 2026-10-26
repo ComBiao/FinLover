@@ -15,9 +15,9 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import type { Wallet } from "@/types/wallet";
 import { useUpdateWalletSaving } from "@/features/wallets/hooks/useWallets";
+import { SwitchField } from "@/features/wallets/shared/SwitchField";
 
 type SavingGoalFormProps = {
   wallet: Wallet;
@@ -83,19 +83,15 @@ function SavingGoalForm({ wallet, onSuccess }: SavingGoalFormProps) {
         </div>
       ) : null}
 
-      <div className="flex items-center space-x-2 pt-2">
-        <Checkbox
-          id="saving-toggle"
-          checked={isSaving}
-          onCheckedChange={(checked) => setIsSaving(Boolean(checked))}
-        />
-        <Label htmlFor="saving-toggle" className="cursor-pointer font-medium">
-          Enable saving goal for this wallet
-        </Label>
-      </div>
+      <SwitchField
+        id="saving-toggle"
+        label="Enable saving goal for this wallet"
+        checked={isSaving}
+        onCheckedChange={setIsSaving}
+      />
 
       {isSaving ? (
-        <div className="flex flex-col gap-2 pl-6">
+        <div className="flex flex-col gap-2">
           <Label htmlFor="saving-goal-amount">Target Goal Amount (฿)</Label>
           <Input
             id="saving-goal-amount"
@@ -109,7 +105,7 @@ function SavingGoalForm({ wallet, onSuccess }: SavingGoalFormProps) {
           />
         </div>
       ) : (
-        <p className="pl-6 text-xs text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           Disabling saving will clear the goal amount. Your wallet balance will never be changed.
         </p>
       )}

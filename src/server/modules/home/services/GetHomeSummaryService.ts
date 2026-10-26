@@ -1,6 +1,7 @@
-import type { WalletRecord, WalletRepositoryPort } from '@/server/shared/ports/wallets';
+import type { WalletRecord, WalletRepositoryPort, WalletReaderPort } from '@/server/shared/ports/wallets';
 import type { TransactionRecord, TransactionRepositoryPort } from '@/server/shared/ports/transactions';
 import type { CategoryRepositoryPort } from '@/server/shared/ports/categories';
+import { sharedCategoryOf } from '@/shared/contracts';
 import { AppError } from '@/server/shared/kernel/AppError';
 import { currentMonth, monthBoundaries } from '@/server/modules/transactions/services/GetTransactionsByMonthService';
 
@@ -32,6 +33,24 @@ function topCategoriesOf(transactions: TransactionRecord[], categories: Category
     .map((entry, index) => ({ rank: index + 1, ...entry }));
 }
 
+/** A shared wallet's top expense presets across every member, same ranking as the personal list; rows without a key count as Others. */
+function sharedTopCategoriesOf(transactions: TransactionRecord[]) {
+  const amounts = new Map<string, number>();
+  for (const transaction of transactions) {
+    if (transaction.type !== 'expense') continue;
+    const key = sharedCategoryOf(transaction.categoryKey, 'expense').key;
+    amounts.set(key, (amounts.get(key) ?? 0) + transaction.amount);
+  }
+  return [...amounts.entries()]
+    .map(([key, amount]) => {
+      const { name, icon, color } = sharedCategoryOf(key, 'expense');
+      return { categoryId: null, categoryKey: key, name, icon, color, amount };
+    })
+    .sort((a, b) => b.amount - a.amount || a.name.localeCompare(b.name))
+    .slice(0, TOP_CATEGORY_COUNT)
+    .map((entry, index) => ({ rank: index + 1, ...entry }));
+}
+
 /** Progress toward a saving wallet's goal; null unless that one wallet is selected and is saving with a goal (US2-7). */
 function savingGoalOf(wallet: WalletRecord | undefined) {
   if (!wallet?.isSaving || !wallet.goalAmount) return null;
@@ -49,11 +68,11 @@ function savingGoalOf(wallet: WalletRecord | undefined) {
   };
 }
 
-/** Home page figures for one month and either every owned wallet ("all") or one of them (US2-1 to US2-7). */
+/** Home page figures for one month and either every owned wallet ("all") or one of them (US2-1 to US2-7, US7-4/E7-15). */
 export class GetHomeSummaryService {
   constructor(
-    private wallets: Pick<WalletRepositoryPort, 'list'>,
-    private transactions: Pick<TransactionRepositoryPort, 'findByDateRange'>,
+    private wallets: Partial<WalletReaderPort> & Pick<WalletRepositoryPort, 'list'>,
+    private transactions: Pick<TransactionRepositoryPort, 'findByDateRange' | 'findByWalletAndDateRange'>,
     private categories: Pick<CategoryRepositoryPort, 'list'>,
     private now: () => Date,
     private timezone: () => string,
@@ -61,18 +80,81 @@ export class GetHomeSummaryService {
 
   async execute(userId: string, { month: requestedMonth, walletId }: HomeSummaryQuery) {
     const month = requestedMonth ?? currentMonth(this.now(), this.timezone());
-    const wallets = await this.wallets.list(userId);
-    const scoped = walletId === 'all' ? wallets : wallets.filter(wallet => wallet.id === walletId);
-    // The list is already limited to the caller, so an unknown or foreign id looks the same.
-    if (walletId !== 'all' && scoped.length === 0) throw new AppError('NOT_FOUND', 'Wallet not found');
-
     const { start, end } = monthBoundaries(month);
+
+    if (walletId !== 'all') {
+      let wallet: WalletRecord | null | undefined;
+      if (typeof this.wallets.findAccessible === 'function') {
+        wallet = await this.wallets.findAccessible(walletId, userId);
+      } else {
+        const wallets = await this.wallets.list(userId);
+        wallet = wallets.find(w => w.id === walletId);
+        if (!wallet) throw new AppError('NOT_FOUND', 'Wallet not found');
+      }
+      if (wallet.isShared) {
+        const monthTransactions = this.transactions.findByWalletAndDateRange
+          ? await this.transactions.findByWalletAndDateRange(wallet.id, start, end)
+          : [];
+        const total = (type: 'income' | 'expense') => monthTransactions
+          .filter(transaction => transaction.type === type)
+          .reduce((sum, transaction) => sum + transaction.amount, 0);
+        const income = total('income');
+        const expense = total('expense');
+        const net = income - expense;
+
+        return {
+          month,
+          walletId,
+          balance: {
+            hasWallets: true,
+            totalBalance: wallet.balance,
+            savingGoal: savingGoalOf(wallet),
+          },
+          income,
+          expense,
+          net: { net, status: net > 0 ? 'surplus' : net < 0 ? 'overspending' : 'even' },
+          topCategories: sharedTopCategoriesOf(monthTransactions),
+        };
+      }
+
+      if (wallet.userId !== userId) throw new AppError('NOT_FOUND', 'Wallet not found');
+
+      const [rows, categories] = await Promise.all([
+        this.transactions.findByDateRange(userId, start, end),
+        this.categories.list(userId) as Promise<CategoryDoc[]>,
+      ]);
+      const monthTransactions = rows.filter(transaction => transaction.walletId === walletId);
+      const total = (type: 'income' | 'expense') => monthTransactions
+        .filter(transaction => transaction.type === type)
+        .reduce((sum, transaction) => sum + transaction.amount, 0);
+      const income = total('income');
+      const expense = total('expense');
+      const net = income - expense;
+
+      return {
+        month,
+        walletId,
+        balance: {
+          hasWallets: true,
+          totalBalance: wallet.balance,
+          savingGoal: savingGoalOf(wallet),
+        },
+        income,
+        expense,
+        net: { net, status: net > 0 ? 'surplus' : net < 0 ? 'overspending' : 'even' },
+        topCategories: topCategoriesOf(monthTransactions, categories),
+      };
+    }
+
+    // walletId === 'all': all personal wallets
+    const ownedWallets = await this.wallets.list(userId);
+    const personalWallets = ownedWallets.filter(wallet => !wallet.isShared);
+
     const [rows, categories] = await Promise.all([
       this.transactions.findByDateRange(userId, start, end),
       this.categories.list(userId) as Promise<CategoryDoc[]>,
     ]);
-    const monthTransactions = rows
-      .filter(transaction => walletId === 'all' || transaction.walletId === walletId);
+    const monthTransactions = rows.filter(transaction => personalWallets.some(wallet => wallet.id === transaction.walletId));
     const total = (type: 'income' | 'expense') => monthTransactions
       .filter(transaction => transaction.type === type)
       .reduce((sum, transaction) => sum + transaction.amount, 0);
@@ -84,9 +166,9 @@ export class GetHomeSummaryService {
       month,
       walletId,
       balance: {
-        hasWallets: wallets.length > 0,
-        totalBalance: scoped.reduce((sum, wallet) => sum + wallet.balance, 0),
-        savingGoal: walletId === 'all' ? null : savingGoalOf(scoped[0]),
+        hasWallets: personalWallets.length > 0,
+        totalBalance: personalWallets.reduce((sum, wallet) => sum + wallet.balance, 0),
+        savingGoal: null,
       },
       income,
       expense,

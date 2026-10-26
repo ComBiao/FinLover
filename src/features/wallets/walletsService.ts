@@ -1,8 +1,9 @@
 import { ApiClientError, deleteApi } from "@/lib/api/client";
 import type { Wallet } from "@/types/wallet";
+import type { SharedWalletFields } from "@/features/wallets/shared/types";
 import { resolveWalletIcon } from "./walletIcons";
 
-export type WalletApiRecord = {
+export type WalletApiRecord = SharedWalletFields & {
   id: string;
   name: string;
   balance: number;
@@ -13,6 +14,7 @@ export type WalletApiRecord = {
   goalAmount?: number;
   createdAt?: string;
   updatedAt?: string;
+  membersPreview?: SharedWalletFields['members'];
 };
 
 export type CreateWalletInput = {
@@ -21,6 +23,8 @@ export type CreateWalletInput = {
   icon?: string;
   isSaving?: boolean;
   goalAmount?: number;
+  /** Creates a shared wallet (the caller becomes its Owner, balance starts at ฿0). */
+  isShared?: boolean;
 };
 
 export type UpdateWalletInput = {
@@ -50,6 +54,15 @@ export function mapWalletRecord(record: WalletApiRecord): Wallet {
     type: isSaving ? "savings" : "cash",
     icon: resolveWalletIcon(record.icon, isSaving),
     iconName: record.icon,
+    ...(record.isShared
+      ? {
+          isShared: true,
+          role: record.role,
+          memberCount: record.memberCount,
+          members: record.members ?? record.membersPreview,
+          ownerName: record.ownerName,
+        }
+      : {}),
   };
 }
 

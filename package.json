@@ -21,6 +21,7 @@
     "docs:generate": "node infra-dev/scripts/docs.mjs",
     "docs:check": "node infra-dev/scripts/docs.mjs --check",
     "db:migrate:category-index": "node --import tsx src/server/db/migrations/migrate-category-unique-index.ts",
+    "db:migrate:unset-transaction-recurrence": "node --import tsx src/server/db/migrations/migrate-unset-transaction-recurrence.ts",
     "db:seed:demo": "node --import tsx infra-dev/scripts/seed-demo-user.ts",
     "infra:up": "docker compose -f infra-dev/compose.yml up -d mongo",
     "infra:down": "docker compose -f infra-dev/compose.yml down"

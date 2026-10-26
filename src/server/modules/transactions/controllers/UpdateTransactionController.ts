@@ -7,15 +7,12 @@ import mongoose from 'mongoose';
 import { legacyTransactionUpdate } from '@/shared/contracts';
 import type { RouteContext } from '@/server/shared/http/policy';
 
-// Next.js passes dynamic route parameters as the second argument
 export class UpdateTransactionController {
   constructor(private service: UpdateTransactionService) {}
   async handle(req: Request, { params, principal }: RouteContext) {
     try {
-      // 1. Authentication
       const user_id = principal!.userId;
 
-      // 2. Resolve dynamic params + parse body
       const { id } = await params;
       const body = await readJsonBody(req);
 
@@ -29,12 +26,26 @@ export class UpdateTransactionController {
         return errorResponse(422, 'VALIDATION_ERROR', 'One or more fields are invalid', validationFields(parsed.error));
       }
 
-      const { category_id, type, amount, date, title, note } = parsed.data;
+      const { wallet_id, category_id, category_key, type, amount, date, title, note } = parsed.data;
+      const hasWallet = typeof body === 'object' && body !== null && (
+        ('wallet_id' in body && (body as Record<string, unknown>).wallet_id !== undefined) ||
+        ('walletId' in body && (body as Record<string, unknown>).walletId !== undefined)
+      );
 
-      // 3. Database Operations
       await connectDB();
-      const tx = await this.service.execute(id, user_id, { categoryId: category_id || null, type: type.toLowerCase() as 'income' | 'expense', amount, date: new Date(date), title, note });
-      return NextResponse.json({ data: TransactionResponseDTO.legacy(tx) });
+      const tx = await this.service.execute(id, user_id, {
+        walletId: wallet_id,
+        categoryId: category_id || null,
+        categoryKey: category_key,
+        type: type.toLowerCase() as 'income' | 'expense',
+        amount,
+        date: new Date(date),
+        title,
+        note,
+        explicitWallet: hasWallet,
+      });
+      const data = tx.createdBy ? TransactionResponseDTO.shared(tx) : TransactionResponseDTO.legacy(tx);
+      return NextResponse.json({ data });
 
     } catch (error) {
       return apiErrorResponse(error, { validationStatus: 422 });

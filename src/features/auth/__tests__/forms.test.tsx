@@ -24,8 +24,8 @@ describe('auth forms use the server', () => {
     mount(<Login />); fireEvent.click(screen.getByText('Submit'));
     await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/homepage'));
     expect(fetchMock).toHaveBeenCalledWith('/api/v1/auth/login', expect.objectContaining({ method: 'POST', credentials: 'same-origin', body: JSON.stringify({ email: 'test@example.com', password: 'Password1' }) }));
-    expect(localStorage.length).toBe(0);
-    expect(sessionStorage.length).toBe(0);
+    expect(window?.localStorage?.length ?? 0).toBe(0);
+    expect(window?.sessionStorage?.length ?? 0).toBe(0);
   });
   it('focuses the first invalid login field and does not call the API', async () => {
     mount(<Login />);

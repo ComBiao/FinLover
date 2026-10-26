@@ -1854,7 +1854,7 @@
           "transaction"
         ],
         "summary": "createTransaction",
-        "description": "Create an owned transaction and adjust wallet balance in one MongoDB transaction. Requires a replica set. Category must belong to the user and match the transaction type. Persisted minimum amount is 0.01. Legacy response contract; auth is unified with v1. Cookie writes and login/register/logout require an exact trusted Origin; no Origin is rejected. A valid Bearer on protected APIs does not fall back to cookies.",
+        "description": "Create a transaction and adjust wallet balance in one MongoDB transaction. Requires a replica set. For personal wallets, category must belong to the user and match the transaction type. Shared wallet transactions do not allow categoryId (400 if provided); they take an optional `categoryKey` from the fixed shared presets instead (omitted or null means Others of that type; an unknown key or one of the other type gives 400), and dual attribution is tracked. `categoryKey` is rejected (400) for personal wallets. Outsiders of shared wallets receive 403. Persisted minimum amount is 0.01. Legacy response contract; auth is unified with v1. Cookie writes and login/register/logout require an exact trusted Origin; no Origin is rejected. A valid Bearer on protected APIs does not fall back to cookies.",
         "security": [
           {
             "bearerAuth": []
@@ -1879,6 +1879,32 @@
                       {
                         "type": "string",
                         "minLength": 1
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "category_key": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "food-drinks",
+                          "transportation",
+                          "essentials",
+                          "shopping",
+                          "utilities",
+                          "health",
+                          "entertainment",
+                          "others-expense",
+                          "salary",
+                          "wages",
+                          "allowance-gift",
+                          "bonus",
+                          "investment",
+                          "others-income"
+                        ]
                       },
                       {
                         "type": "null"
@@ -2152,6 +2178,46 @@
               }
             }
           },
+          "409": {
+            "description": "Duplicate email or category name",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "fields": {
+                          "type": "object",
+                          "propertyNames": {
+                            "type": "string"
+                          },
+                          "additionalProperties": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
           "415": {
             "description": "Body-bearing cookie/browser-auth mutation requires application/json",
             "content": {
@@ -2282,7 +2348,7 @@
           "transaction"
         ],
         "summary": "updateTransaction",
-        "description": "Replace editable fields of an owned transaction; reverse old and apply new balance atomically. wallet cannot be changed by this API. Legacy response contract; auth is unified with v1. Cookie writes and login/register/logout require an exact trusted Origin; no Origin is rejected. A valid Bearer on protected APIs does not fall back to cookies.",
+        "description": "Replace editable fields of a transaction; reverse old and apply new balance atomically. For personal wallets, only the owner can update. For shared wallets, any accepted member can modify any transaction; moving wallets and specifying a categoryId are not allowed. The preset `categoryKey` of a shared transaction can be changed by any member; omitting it keeps the current one (reset to Others of that type if the type changed), null resets it. Legacy response contract; auth is unified with v1. Cookie writes and login/register/logout require an exact trusted Origin; no Origin is rejected. A valid Bearer on protected APIs does not fall back to cookies.",
         "security": [
           {
             "bearerAuth": []
@@ -2309,11 +2375,41 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "wallet_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
                   "category_id": {
                     "anyOf": [
                       {
                         "type": "string",
                         "minLength": 1
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "category_key": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "food-drinks",
+                          "transportation",
+                          "essentials",
+                          "shopping",
+                          "utilities",
+                          "health",
+                          "entertainment",
+                          "others-expense",
+                          "salary",
+                          "wages",
+                          "allowance-gift",
+                          "bonus",
+                          "investment",
+                          "others-income"
+                        ]
                       },
                       {
                         "type": "null"
@@ -2354,6 +2450,7 @@
                 "additionalProperties": true
               },
               "example": {
+                "wallet_id": "507f1f77bcf86cd799439011",
                 "category_id": null,
                 "type": "Expense",
                 "amount": 42,
@@ -2585,6 +2682,46 @@
               }
             }
           },
+          "409": {
+            "description": "Duplicate email or category name",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "fields": {
+                          "type": "object",
+                          "propertyNames": {
+                            "type": "string"
+                          },
+                          "additionalProperties": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
           "415": {
             "description": "Body-bearing cookie/browser-auth mutation requires application/json",
             "content": {
@@ -2713,7 +2850,7 @@
           "transaction"
         ],
         "summary": "deleteTransaction",
-        "description": "Delete an owned transaction and reverse its balance atomically. Legacy success has no body. Legacy response contract; auth is unified with v1. Cookie writes and login/register/logout require an exact trusted Origin; no Origin is rejected. A valid Bearer on protected APIs does not fall back to cookies.",
+        "description": "Delete a transaction and reverse its balance atomically. Legacy success has no body. For personal wallets, only the owner can delete. For shared wallets, any accepted member can delete any transaction. Legacy response contract; auth is unified with v1. Cookie writes and login/register/logout require an exact trusted Origin; no Origin is rejected. A valid Bearer on protected APIs does not fall back to cookies.",
         "security": [
           {
             "bearerAuth": []
@@ -2859,6 +2996,46 @@
           },
           "404": {
             "description": "Not found or not owned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "fields": {
+                          "type": "object",
+                          "propertyNames": {
+                            "type": "string"
+                          },
+                          "additionalProperties": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Duplicate email or category name",
             "content": {
               "application/json": {
                 "schema": {

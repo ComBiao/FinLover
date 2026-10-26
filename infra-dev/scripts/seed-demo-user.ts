@@ -6,6 +6,7 @@ import User from "../../src/server/db/models/User";
 import Wallet from "../../src/server/db/models/Wallet";
 import Category from "../../src/server/db/models/Category";
 import Transaction from "../../src/server/db/models/Transaction";
+import Scheduler from "../../src/server/db/models/Scheduler";
 import { DEFAULT_CATEGORIES } from "../../src/server/modules/auth/default-categories";
 
 dotenv.config();
@@ -33,6 +34,7 @@ export async function seedDemoData() {
   for (const existingUser of existingUsers) {
     console.log(`Cleaning up existing records for ${existingUser.email}...`);
     await Transaction.collection.deleteMany({ userId: existingUser._id });
+    await Scheduler.collection.deleteMany({ userId: existingUser._id });
     await Wallet.deleteMany({ userId: existingUser._id });
     await Category.deleteMany({ userId: existingUser._id });
     await User.deleteOne({ _id: existingUser._id });
@@ -188,7 +190,6 @@ export async function seedDemoData() {
       date: new Date("2026-10-01T12:00:00.000Z"),
       title: "Monthly Salary",
       notes: "Tech Corp Oct 2026 salary direct deposit",
-      recurrence: { isRecurring: false, parentId: null },
       createdAt: new Date("2026-10-01T12:00:00.000Z"),
       updatedAt: new Date("2026-10-01T12:00:00.000Z"),
     },
@@ -201,7 +202,6 @@ export async function seedDemoData() {
       date: new Date("2026-10-03T12:00:00.000Z"),
       title: "Quarterly Performance Bonus",
       notes: "Q3 outstanding project delivery bonus",
-      recurrence: { isRecurring: false, parentId: null },
       createdAt: new Date("2026-10-03T12:00:00.000Z"),
       updatedAt: new Date("2026-10-03T12:00:00.000Z"),
     },
@@ -217,7 +217,6 @@ export async function seedDemoData() {
       date: new Date("2026-10-04T12:00:00.000Z"),
       title: "Monthly Supermarket Groceries",
       notes: "Gourmet Market fresh produce and meat",
-      recurrence: { isRecurring: false, parentId: null },
       createdAt: new Date("2026-10-04T12:00:00.000Z"),
       updatedAt: new Date("2026-10-04T12:00:00.000Z"),
     },
@@ -230,7 +229,6 @@ export async function seedDemoData() {
       date: new Date("2026-10-05T12:00:00.000Z"),
       title: "Specialty Drip Coffee",
       notes: "Chiang Mai single origin coffee beans", // Matches Search "coffee" (US3-3)
-      recurrence: { isRecurring: false, parentId: null },
       createdAt: new Date("2026-10-05T12:00:00.000Z"),
       updatedAt: new Date("2026-10-05T12:00:00.000Z"),
     },
@@ -243,7 +241,6 @@ export async function seedDemoData() {
       date: new Date("2026-10-06T12:00:00.000Z"),
       title: "Dinner with Team",
       notes: "Japanese Izakaya dinner party",
-      recurrence: { isRecurring: false, parentId: null },
       createdAt: new Date("2026-10-06T12:00:00.000Z"),
       updatedAt: new Date("2026-10-06T12:00:00.000Z"),
     },
@@ -258,7 +255,6 @@ export async function seedDemoData() {
       date: new Date("2026-10-07T12:00:00.000Z"),
       title: "Uniqlo Autumn Clothing",
       notes: "Work fleece jacket and casual trousers",
-      recurrence: { isRecurring: false, parentId: null },
       createdAt: new Date("2026-10-07T12:00:00.000Z"),
       updatedAt: new Date("2026-10-07T12:00:00.000Z"),
     },
@@ -273,7 +269,6 @@ export async function seedDemoData() {
       date: new Date("2026-10-08T12:00:00.000Z"),
       title: "Condo Electricity & Water",
       notes: "MEA monthly electric bill and water supply",
-      recurrence: { isRecurring: false, parentId: null },
       createdAt: new Date("2026-10-08T12:00:00.000Z"),
       updatedAt: new Date("2026-10-08T12:00:00.000Z"),
     },
@@ -286,7 +281,6 @@ export async function seedDemoData() {
       date: new Date("2026-10-09T12:00:00.000Z"),
       title: "High-Speed Fiber Internet",
       notes: "AIS Fibre home 500/500Mbps monthly plan",
-      recurrence: { isRecurring: false, parentId: null },
       createdAt: new Date("2026-10-09T12:00:00.000Z"),
       updatedAt: new Date("2026-10-09T12:00:00.000Z"),
     },
@@ -301,7 +295,6 @@ export async function seedDemoData() {
       date: new Date("2026-10-10T12:00:00.000Z"),
       title: "BTS & MRT Transit Pass",
       notes: "Rabbit card monthly commuter top-up",
-      recurrence: { isRecurring: false, parentId: null },
       createdAt: new Date("2026-10-10T12:00:00.000Z"),
       updatedAt: new Date("2026-10-10T12:00:00.000Z"),
     },
@@ -314,7 +307,6 @@ export async function seedDemoData() {
       date: new Date("2026-10-11T12:00:00.000Z"),
       title: "Airport Taxi Ride",
       notes: "Grab ride to Don Mueang terminal",
-      recurrence: { isRecurring: false, parentId: null },
       createdAt: new Date("2026-10-11T12:00:00.000Z"),
       updatedAt: new Date("2026-10-11T12:00:00.000Z"),
     },
@@ -329,7 +321,6 @@ export async function seedDemoData() {
       date: new Date("2026-10-01T10:00:00.000Z"),
       title: "ATM Cash Withdrawal",
       notes: "Monthly physical pocket money",
-      recurrence: { isRecurring: false, parentId: null },
       createdAt: new Date("2026-10-01T10:00:00.000Z"),
       updatedAt: new Date("2026-10-01T10:00:00.000Z"),
     },
@@ -342,7 +333,6 @@ export async function seedDemoData() {
       date: new Date("2026-10-02T10:00:00.000Z"),
       title: "ATM Service Fee",
       notes: "Inter-bank cash withdrawal fee (no category chosen)",
-      recurrence: { isRecurring: false, parentId: null },
       createdAt: new Date("2026-10-02T10:00:00.000Z"),
       updatedAt: new Date("2026-10-02T10:00:00.000Z"),
     },
@@ -355,7 +345,6 @@ export async function seedDemoData() {
       date: new Date("2026-10-04T08:00:00.000Z"),
       title: "Morning Iced Coffee",
       notes: "Street cart traditional iced coffee with condensed milk", // Matches Search "coffee"
-      recurrence: { isRecurring: false, parentId: null },
       createdAt: new Date("2026-10-04T08:00:00.000Z"),
       updatedAt: new Date("2026-10-04T08:00:00.000Z"),
     },
@@ -368,7 +357,6 @@ export async function seedDemoData() {
       date: new Date("2026-10-05T18:00:00.000Z"),
       title: "Street Food Pad Thai",
       notes: "Dinner at evening street food market",
-      recurrence: { isRecurring: false, parentId: null },
       createdAt: new Date("2026-10-05T18:00:00.000Z"),
       updatedAt: new Date("2026-10-05T18:00:00.000Z"),
     },
@@ -386,7 +374,6 @@ export async function seedDemoData() {
       date: new Date("2026-09-01T12:00:00.000Z"),
       title: "Freelance Web Design",
       notes: "Landing page UI design contract payout",
-      recurrence: { isRecurring: false, parentId: null },
       createdAt: new Date("2026-09-01T12:00:00.000Z"),
       updatedAt: new Date("2026-09-01T12:00:00.000Z"),
     },
@@ -399,7 +386,6 @@ export async function seedDemoData() {
       date: new Date("2026-09-05T12:00:00.000Z"),
       title: "UltraSharp 4K Monitor",
       notes: "Dell 27-inch USB-C monitor upgrade",
-      recurrence: { isRecurring: false, parentId: null },
       createdAt: new Date("2026-09-05T12:00:00.000Z"),
       updatedAt: new Date("2026-09-05T12:00:00.000Z"),
     },
@@ -412,7 +398,6 @@ export async function seedDemoData() {
       date: new Date("2026-09-12T12:00:00.000Z"),
       title: "Weekend Seafood Buffet",
       notes: "Family reunion dinner",
-      recurrence: { isRecurring: false, parentId: null },
       createdAt: new Date("2026-09-12T12:00:00.000Z"),
       updatedAt: new Date("2026-09-12T12:00:00.000Z"),
     },
@@ -425,7 +410,6 @@ export async function seedDemoData() {
       date: new Date("2026-09-18T12:00:00.000Z"),
       title: "AeroPress Coffee Beans",
       notes: "Specialty Ethiopian roasted coffee beans", // Matches Search "coffee"
-      recurrence: { isRecurring: false, parentId: null },
       createdAt: new Date("2026-09-18T12:00:00.000Z"),
       updatedAt: new Date("2026-09-18T12:00:00.000Z"),
     },
@@ -438,7 +422,6 @@ export async function seedDemoData() {
       date: new Date("2026-09-22T12:00:00.000Z"),
       title: "Monthly Train Commute",
       notes: "SRT red line suburban commuter ticket",
-      recurrence: { isRecurring: false, parentId: null },
       createdAt: new Date("2026-09-22T12:00:00.000Z"),
       updatedAt: new Date("2026-09-22T12:00:00.000Z"),
     },
@@ -453,7 +436,6 @@ export async function seedDemoData() {
       date: new Date("2026-09-01T10:00:00.000Z"),
       title: "Emergency Fund Allocation",
       notes: "High-yield savings target allocation (62% of goal reached)",
-      recurrence: { isRecurring: false, parentId: null },
       createdAt: new Date("2026-09-01T10:00:00.000Z"),
       updatedAt: new Date("2026-09-01T10:00:00.000Z"),
     },
@@ -466,7 +448,6 @@ export async function seedDemoData() {
       date: new Date("2026-09-15T10:00:00.000Z"),
       title: "Japan Travel Flight Savings",
       notes: "Initial Tokyo vacation funding",
-      recurrence: { isRecurring: false, parentId: null },
       createdAt: new Date("2026-09-15T10:00:00.000Z"),
       updatedAt: new Date("2026-09-15T10:00:00.000Z"),
     },
@@ -481,7 +462,6 @@ export async function seedDemoData() {
       date: new Date("2026-09-01T09:00:00.000Z"),
       title: "Old Cash Stash",
       notes: "Initial deposit into old secondary wallet",
-      recurrence: { isRecurring: false, parentId: null },
       createdAt: new Date("2026-09-01T09:00:00.000Z"),
       updatedAt: new Date("2026-09-01T09:00:00.000Z"),
     },
@@ -494,7 +474,6 @@ export async function seedDemoData() {
       date: new Date("2026-09-05T09:00:00.000Z"),
       title: "Vintage Books Purchase",
       notes: "Second-hand programming textbooks",
-      recurrence: { isRecurring: false, parentId: null },
       createdAt: new Date("2026-09-05T09:00:00.000Z"),
       updatedAt: new Date("2026-09-05T09:00:00.000Z"),
     },
@@ -507,7 +486,6 @@ export async function seedDemoData() {
       date: new Date("2026-09-10T09:00:00.000Z"),
       title: "Vintage Denim Jacket",
       notes: "Chatuchak weekend market thrift find",
-      recurrence: { isRecurring: false, parentId: null },
       createdAt: new Date("2026-09-10T09:00:00.000Z"),
       updatedAt: new Date("2026-09-10T09:00:00.000Z"),
     },
@@ -520,7 +498,6 @@ export async function seedDemoData() {
       date: new Date("2026-09-15T09:00:00.000Z"),
       title: "Cold Brew Coffee Beans",
       notes: "Whole bean house blend coffee", // Matches Search "coffee"
-      recurrence: { isRecurring: false, parentId: null },
       createdAt: new Date("2026-09-15T09:00:00.000Z"),
       updatedAt: new Date("2026-09-15T09:00:00.000Z"),
     },
@@ -533,7 +510,6 @@ export async function seedDemoData() {
       date: new Date("2026-09-20T09:00:00.000Z"),
       title: "Bakery Cookies & Croissants",
       notes: "Afternoon team tea-time snack",
-      recurrence: { isRecurring: false, parentId: null },
       createdAt: new Date("2026-09-20T09:00:00.000Z"),
       updatedAt: new Date("2026-09-20T09:00:00.000Z"),
     },
@@ -550,7 +526,6 @@ export async function seedDemoData() {
       date: new Date("2026-08-01T12:00:00.000Z"),
       title: "Opening Balance Funding",
       notes: "Initial savings transfer to start tracking",
-      recurrence: { isRecurring: false, parentId: null },
       createdAt: new Date("2026-08-01T12:00:00.000Z"),
       updatedAt: new Date("2026-08-01T12:00:00.000Z"),
     },
@@ -563,7 +538,6 @@ export async function seedDemoData() {
       date: new Date("2026-08-25T12:00:00.000Z"), // Exactly 2026-08-25 from backlog!
       title: "Sprint 1 Lunch Meeting",
       notes: "Lunch with project team",
-      recurrence: { isRecurring: false, parentId: null },
       createdAt: new Date("2026-08-25T12:00:00.000Z"),
       updatedAt: new Date("2026-08-25T12:00:00.000Z"),
     },
@@ -573,7 +547,161 @@ export async function seedDemoData() {
   console.log(`✅ Seeded ${transactionsData.length} transactions.`);
 
   // -------------------------------------------------------------------------
-  // 6. Create Secondary Disposable Account (EPIC 1: US1-4 Delete Account Demo)
+  // 6. Seed Recurring Transactions (EPIC 4: US4-1 to US4-5)
+  // -------------------------------------------------------------------------
+  console.log("Seeding recurring transaction rules (active, paused, completed, and cascade-ready)...");
+
+  const schedulersData = [
+    // 1. Netflix 4K Subscription (US4-1 / US4-3: Active Monthly Expense, Indefinite)
+    {
+      userId: demoUser._id,
+      walletId: mainBank._id,
+      categoryId: categoryMap.get("expense:Entertainment")!,
+      type: "expense" as const,
+      amount: 419.0,
+      title: "Netflix 4K Premium",
+      notes: "Family plan shared subscription",
+      startDate: new Date("2026-08-15T00:00:00.000Z"),
+      anchorDay: 15,
+      frequency: "monthly" as const,
+      interval: 1,
+      endType: "never" as const,
+      status: "active" as const,
+      createdCount: 3,
+      nextDueDate: new Date("2026-11-15T00:00:00.000Z"),
+      createdAt: new Date("2026-08-15T00:00:00.000Z"),
+      updatedAt: new Date("2026-10-15T00:00:00.000Z"),
+    },
+    // 2. Condo Rental Fee (US4-1: Active Monthly Expense, Fixed Count of 12 occurrences)
+    {
+      userId: demoUser._id,
+      walletId: mainBank._id,
+      categoryId: categoryMap.get("expense:Essentials")!,
+      type: "expense" as const,
+      amount: 12000.0,
+      title: "Condo Rental Fee",
+      notes: "1-year fixed condo lease agreement (12 months)",
+      startDate: new Date("2026-09-01T00:00:00.000Z"),
+      anchorDay: 1,
+      frequency: "monthly" as const,
+      interval: 1,
+      endType: "count" as const,
+      endCount: 12,
+      status: "active" as const,
+      createdCount: 2,
+      nextDueDate: new Date("2026-11-01T00:00:00.000Z"),
+      createdAt: new Date("2026-09-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-10-01T00:00:00.000Z"),
+    },
+    // 3. Tech Corp Monthly Salary (US4-1: Active Recurring Income, Indefinite)
+    {
+      userId: demoUser._id,
+      walletId: mainBank._id,
+      categoryId: categoryMap.get("income:Salary")!,
+      type: "income" as const,
+      amount: 30000.0,
+      title: "Tech Corp Monthly Salary",
+      notes: "Monthly automated payroll salary direct deposit",
+      startDate: new Date("2026-08-01T00:00:00.000Z"),
+      anchorDay: 1,
+      frequency: "monthly" as const,
+      interval: 1,
+      endType: "never" as const,
+      status: "active" as const,
+      createdCount: 3,
+      nextDueDate: new Date("2026-11-01T00:00:00.000Z"),
+      createdAt: new Date("2026-08-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-10-01T00:00:00.000Z"),
+    },
+    // 4. Spotify Family Plan (US4-4: Paused Rule with overdue cycle for Resume demo)
+    {
+      userId: demoUser._id,
+      walletId: mainBank._id,
+      categoryId: categoryMap.get("expense:Entertainment")!,
+      type: "expense" as const,
+      amount: 209.0,
+      title: "Spotify Family Plan",
+      notes: "Temporarily paused subscription",
+      startDate: new Date("2026-07-20T00:00:00.000Z"),
+      anchorDay: 20,
+      frequency: "monthly" as const,
+      interval: 1,
+      endType: "never" as const,
+      status: "paused" as const,
+      createdCount: 2,
+      nextDueDate: new Date("2026-09-20T00:00:00.000Z"),
+      createdAt: new Date("2026-07-20T00:00:00.000Z"),
+      updatedAt: new Date("2026-09-15T00:00:00.000Z"),
+    },
+    // 5. Cloud Storage 2TB (US4-1: Yearly Cadence, Specific End Date)
+    {
+      userId: demoUser._id,
+      walletId: mainBank._id,
+      categoryId: categoryMap.get("expense:Utilities")!,
+      type: "expense" as const,
+      amount: 990.0,
+      title: "Cloud Storage 2TB",
+      notes: "Annual cloud drive backup subscription",
+      startDate: new Date("2026-10-10T00:00:00.000Z"),
+      anchorDay: 10,
+      frequency: "yearly" as const,
+      interval: 1,
+      endType: "endDate" as const,
+      endDate: new Date("2029-10-10T00:00:00.000Z"),
+      status: "active" as const,
+      createdCount: 1,
+      nextDueDate: new Date("2027-10-10T00:00:00.000Z"),
+      createdAt: new Date("2026-10-10T00:00:00.000Z"),
+      updatedAt: new Date("2026-10-10T00:00:00.000Z"),
+    },
+    // 6. Fitness Club 3-Month Trial (US4-2: Completed Schedule)
+    {
+      userId: demoUser._id,
+      walletId: mainBank._id,
+      categoryId: categoryMap.get("expense:Health")!,
+      type: "expense" as const,
+      amount: 1500.0,
+      title: "Fitness Club 3-Month Trial",
+      notes: "3-month promotional summer trial membership",
+      startDate: new Date("2026-07-01T00:00:00.000Z"),
+      anchorDay: 1,
+      frequency: "monthly" as const,
+      interval: 1,
+      endType: "count" as const,
+      endCount: 3,
+      status: "completed" as const,
+      createdCount: 3,
+      nextDueDate: null,
+      createdAt: new Date("2026-07-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-09-01T00:00:00.000Z"),
+    },
+    // 7. Tech Magazine Quarterly (US6-5 / US4-5: Linked to Old Fund for Cascade Deletion)
+    {
+      userId: demoUser._id,
+      walletId: oldFund._id,
+      categoryId: categoryMap.get("expense:Shopping")!,
+      type: "expense" as const,
+      amount: 450.0,
+      title: "Tech Magazine Quarterly",
+      notes: "Quarterly print magazine subscription on Old Fund",
+      startDate: new Date("2026-09-01T00:00:00.000Z"),
+      anchorDay: 1,
+      frequency: "monthly" as const,
+      interval: 3,
+      endType: "never" as const,
+      status: "active" as const,
+      createdCount: 1,
+      nextDueDate: new Date("2026-12-01T00:00:00.000Z"),
+      createdAt: new Date("2026-09-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-09-01T00:00:00.000Z"),
+    },
+  ];
+
+  await Scheduler.collection.insertMany(schedulersData);
+  console.log(`✅ Seeded ${schedulersData.length} recurring transaction rules.`);
+
+  // -------------------------------------------------------------------------
+  // 7. Create Secondary Disposable Account (EPIC 1: US1-4 Delete Account Demo)
   // -------------------------------------------------------------------------
   console.log(`Creating secondary disposable account: ${DELETE_DEMO_EMAIL}`);
   const deleteDemoUser = await User.create({
@@ -611,7 +739,6 @@ export async function seedDemoData() {
     date: new Date("2026-10-01T12:00:00.000Z"),
     title: "Test Initial Balance",
     notes: "Disposable transaction for testing delete-account cascade",
-    recurrence: { isRecurring: false, parentId: null },
     createdAt: new Date("2026-10-01T12:00:00.000Z"),
     updatedAt: new Date("2026-10-01T12:00:00.000Z"),
   });
@@ -623,6 +750,7 @@ export async function seedDemoData() {
   console.log(`   Email:    ${DEMO_EMAIL}`);
   console.log(`   Password: ${PASSWORD_PLAIN}`);
   console.log(`   Name:     Alex Demo (FinLover)`);
+  console.log(`   Data:     5 Wallets, 17 Categories, 28 Transactions, 7 Recurring Rules`);
   console.log("");
   console.log("👤 Disposable User (for US1-4 Account Deletion Demo):");
   console.log(`   Email:    ${DELETE_DEMO_EMAIL}`);

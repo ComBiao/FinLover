@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { resolvePrincipal, type AuthenticatedPrincipal } from './auth';
 import { logError } from './logging';
 import { publicOrigins } from '@/server/shared/config/env';
-export interface RouteContext { params: Promise<{ id: string }>; principal?: AuthenticatedPrincipal }
+export interface RouteContext { params: Promise<{ id: string; userId?: string }>; principal?: AuthenticatedPrincipal }
 export type Handler = (request: Request, context: RouteContext) => Promise<Response>;
 export interface Policy {
   protected?: boolean;
@@ -35,8 +35,20 @@ export function secure(handler: Handler, policy: Policy = {}) {
       let origin: string | undefined;
       try { if (raw && raw !== 'null') { const url = new URL(raw); if (raw === url.origin) origin = url.origin; } } catch { /* deny invalid origins */ }
       if (!origin || !publicOrigins().has(origin)) return error(403, 'FORBIDDEN', 'A trusted Origin is required');
-      // DELETE/logout need not carry a body. Body-bearing cookie mutations are JSON only.
-      if (request.body !== null && request.headers.get('content-type')?.split(';')[0].trim().toLowerCase() !== 'application/json') return error(415, 'UNSUPPORTED_MEDIA_TYPE', 'Content-Type must be application/json');
+      // Next's Node adapter exposes empty POST/DELETE requests as streams,
+      // sometimes without Content-Length. For non-JSON media types inspect
+      // actual bytes rather than trusting a client-supplied length header.
+      // JSON bodies are left untouched; nonempty non-JSON bodies are rejected.
+      if (request.body !== null && request.headers.get('content-type')?.split(';')[0].trim().toLowerCase() !== 'application/json') {
+        const reader = request.body.getReader();
+        try {
+          for (;;) {
+            const chunk = await reader.read();
+            if (chunk.done) break;
+            if (chunk.value.byteLength > 0) return error(415, 'UNSUPPORTED_MEDIA_TYPE', 'Content-Type must be application/json');
+          }
+        } finally { reader.releaseLock(); }
+      }
     }
     // Last, so bad tokens and untrusted origins never cost a database read.
     if (principal && !policy.allowMissingAccount) {

@@ -31,7 +31,10 @@ export class GetTransactionSummaryService {
   ) {}
 
   async execute(userId: string, { from, to, walletId, categoryId, type, search }: TransactionSummaryQuery) {
-    if (walletId && !await this.wallets.findOwned(walletId, userId)) throw new AppError('NOT_FOUND', 'Wallet not found');
+    if (walletId) {
+      const wallet = await this.wallets.findOwned(walletId, userId);
+      if (!wallet || wallet.isShared) throw new AppError('NOT_FOUND', 'Wallet not found');
+    }
 
     let categoryIds: (string | null)[] | undefined;
     if (categoryId) {

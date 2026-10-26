@@ -30,6 +30,7 @@ export function ProfilePage() {
   const deleteAccount = useMutation({ mutationFn: () => deleteApi("/api/v1/auth/delete-account") });
   const [logoutOpen, setLogoutOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
+  const [deleteError, setDeleteError] = React.useState<string | null>(null);
 
   async function handleConfirmLogout() {
     try {
@@ -52,6 +53,7 @@ export function ProfilePage() {
   }
 
   async function handleConfirmDelete() {
+    setDeleteError(null);
     try {
       await deleteAccount.mutateAsync();
       toast.success("Your account has been deleted");
@@ -61,6 +63,13 @@ export function ProfilePage() {
       if (error instanceof ApiClientError && error.status === 404) {
         toast.success("Your account has been deleted");
         leaveAfterAccountGone();
+      } else if (error instanceof ApiClientError && error.status === 409) {
+        // An Owner of a shared wallet that still has other members must hand it over first.
+        setDeleteError(
+          error.message && error.message !== "Request failed"
+            ? error.message
+            : "You still own a shared wallet with other members. Transfer ownership before deleting your account."
+        );
       } else if (error instanceof ApiClientError && error.status === 401) {
         toast.error("Your session has expired. Please log in again.");
         leaveAfterAccountGone();
@@ -140,7 +149,14 @@ export function ProfilePage() {
           transactions. This cannot be undone.
         </p>
         <div>
-          <Button variant="destructive" onClick={() => setDeleteOpen(true)} className="gap-2">
+          <Button
+            variant="destructive"
+            onClick={() => {
+              setDeleteError(null);
+              setDeleteOpen(true);
+            }}
+            className="gap-2"
+          >
             <Trash2 className="size-4" />
             Delete account
           </Button>
@@ -177,6 +193,11 @@ export function ProfilePage() {
               All of your data will be permanently deleted. This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
+          {deleteError ? (
+            <div role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+              {deleteError}
+            </div>
+          ) : null}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setDeleteOpen(false)}>
               Cancel

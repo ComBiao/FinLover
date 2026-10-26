@@ -4,17 +4,24 @@ import { toLocalISODate } from "@/lib/utils";
 import type { TransactionType } from "@/types/category";
 import type { Transaction } from "@/types/transaction";
 import type { TransactionSummary } from "@/features/transactions/transactions";
+import type { TransactionAuthor } from "@/features/wallets/shared/types";
 
 /** One row of `GET/POST /api/v1/transactions` (see `transactionResponse` in `@/shared/contracts`). */
 type TransactionDto = {
   id: string;
   walletId: string;
-  categoryId: string | null;
+  /** Absent on shared-wallet rows, which use `category` instead. */
+  categoryId?: string | null;
   type: TransactionType;
   amount: number;
   date: string;
   title: string;
   note?: string;
+  /** Shared wallets only: the fixed preset this row belongs to (shared rows have no `categoryId`). */
+  category?: { key: string };
+  /** Shared wallets only. */
+  createdBy?: TransactionAuthor;
+  editedBy?: TransactionAuthor | null;
 };
 
 /** Parses `YYYY-MM-DD` as a local date — `new Date(value)` would be UTC midnight and can show the previous day. */
@@ -28,11 +35,14 @@ function toTransaction(dto: TransactionDto): Transaction {
     id: dto.id,
     walletId: dto.walletId,
     categoryId: dto.categoryId ?? undefined,
+    ...(dto.category ? { categoryKey: dto.category.key } : {}),
     type: dto.type,
     amount: dto.amount,
     date: parseLocalISODate(dto.date),
     title: dto.title,
     note: dto.note,
+    ...(dto.createdBy ? { createdBy: dto.createdBy } : {}),
+    ...(dto.editedBy ? { editedBy: dto.editedBy } : {}),
   };
 }
 
@@ -47,10 +57,15 @@ export async function getTransactions(months: MonthKey[]): Promise<Transaction[]
     .sort((a, b) => b.date.getTime() - a.date.getTime());
 }
 
+/** Shared wallets send a preset `categoryKey` (and must not send `categoryId`); personal wallets send `categoryId`. */
+function categoryFields(input: Pick<Transaction, "categoryId" | "categoryKey">) {
+  return input.categoryKey ? { categoryKey: input.categoryKey } : { categoryId: input.categoryId ?? null };
+}
+
 export async function createTransaction(input: Omit<Transaction, "id">): Promise<Transaction> {
   const created = await postApi<TransactionDto>("/api/v1/transactions", {
     walletId: input.walletId,
-    categoryId: input.categoryId ?? null,
+    ...categoryFields(input),
     type: input.type,
     amount: input.amount,
     date: toLocalISODate(input.date),
@@ -60,13 +75,14 @@ export async function createTransaction(input: Omit<Transaction, "id">): Promise
   return toTransaction(created);
 }
 
-/** `PUT` replaces the editable fields; the wallet can't be changed, so it isn't sent. */
+/** `PUT` replaces the editable fields (including moving the transaction to a different wallet). */
 export async function updateTransaction(
   id: string,
   input: Omit<Transaction, "id">
 ): Promise<Transaction> {
   const updated = await putApi<TransactionDto>(`/api/v1/transactions/${id}`, {
-    categoryId: input.categoryId ?? null,
+    walletId: input.walletId,
+    ...categoryFields(input),
     type: input.type,
     amount: input.amount,
     date: toLocalISODate(input.date),
@@ -78,6 +94,15 @@ export async function updateTransaction(
 
 export function deleteTransaction(id: string): Promise<void> {
   return deleteApi(`/api/v1/transactions/${id}`);
+}
+
+/**
+ * One shared wallet's transactions for a month, newest first, from every member
+ * (`createdBy` / `editedBy` set on each row). Members only.
+ */
+export async function getSharedWalletTransactions(walletId: string, month: MonthKey): Promise<Transaction[]> {
+  const rows = await getApi<TransactionDto[]>(`/api/v1/wallets/${walletId}/transactions?month=${month}`);
+  return rows.map(toTransaction).sort((a, b) => b.date.getTime() - a.date.getTime());
 }
 
 /** Query for `GET /api/v1/transactions/summary`: an inclusive `YYYY-MM-DD` range plus the list's optional filters. */

@@ -1,40 +1,8 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import mongooseLeanGetters from 'mongoose-lean-getters';
+import { SHARED_CATEGORY_PRESETS } from '@/shared/contracts';
 import { assertTransactionWrite } from '../transaction-write-guard';
 
-
-// ---------------------------------------------------------------------------
-// Recurrence sub-document
-// ---------------------------------------------------------------------------
-export interface IRecurrence {
-  isRecurring: boolean;
-  frequency?: 'weekly' | 'monthly';
-  startDate?: Date;
-  parentId?: mongoose.Types.ObjectId | null;
-}
-
-const RecurrenceSchema = new Schema<IRecurrence>(
-  {
-    isRecurring: { type: Boolean, default: false },
-    frequency: {
-      type: String,
-      enum: ['weekly', 'monthly'],
-      required: [
-        function (this: IRecurrence) { return this.isRecurring; },
-        'recurrence.frequency is required when isRecurring is true',
-      ],
-    },
-    startDate: {
-      type: Date,
-      required: [
-        function (this: IRecurrence) { return this.isRecurring; },
-        'recurrence.startDate is required when isRecurring is true',
-      ],
-    },
-    parentId: { type: Schema.Types.ObjectId, ref: 'Transaction', default: null },
-  },
-  { _id: false }
-);
 
 // ---------------------------------------------------------------------------
 // Transaction document interface
@@ -43,6 +11,8 @@ export interface ITransaction extends Document {
   userId: mongoose.Types.ObjectId;
   walletId: mongoose.Types.ObjectId;
   categoryId: mongoose.Types.ObjectId | null;
+  /** Shared wallets only: a key of SHARED_CATEGORY_PRESETS; absent on older rows, which count as "Others". */
+  categoryKey?: string | null;
   type: 'income' | 'expense';
   amount: number;
   date: Date;
@@ -56,7 +26,7 @@ export interface ITransaction extends Document {
   title?: string;
   notes?: string;
   note?: string;
-  recurrence: IRecurrence;
+  updatedBy?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -67,11 +37,13 @@ export interface ITransaction extends Document {
 const TransactionSchema: Schema = new Schema({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   walletId: { type: Schema.Types.ObjectId, ref: 'Wallet', required: true },
+  updatedBy: { type: Schema.Types.ObjectId, ref: 'User' },
   categoryId: {
     type: Schema.Types.ObjectId,
     ref: 'Category',
     default: null,
   },
+  categoryKey: { type: String, enum: SHARED_CATEGORY_PRESETS.map(preset => preset.key) },
   type: {
     type: String,
     enum: ['income', 'expense'],
@@ -84,7 +56,6 @@ const TransactionSchema: Schema = new Schema({
   date: { type: Date, required: true },
   title: { type: String, required: true, trim: true, maxlength: 100 },
   notes: { type: String, maxlength: 255, alias: 'note' },
-  recurrence: { type: RecurrenceSchema, default: () => ({ isRecurring: false }) },
 }, {
   timestamps: true,
   toJSON: { getters: true },
@@ -98,7 +69,6 @@ TransactionSchema.index({ userId: 1, date: -1, _id: -1 });
 TransactionSchema.index({ walletId: 1, date: -1 });
 TransactionSchema.index({ walletId: 1, userId: 1 });
 TransactionSchema.index({ categoryId: 1 });
-TransactionSchema.index({ 'recurrence.parentId': 1 });
 
 // No balance hooks: reject unsupported writes instead of silently drifting balances.
 TransactionSchema.pre('save', function () { assertTransactionWrite(this, this.$session()); });

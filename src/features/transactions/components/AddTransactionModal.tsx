@@ -22,8 +22,12 @@ import { WalletSelector } from "@/components/WalletSelector";
 import { ApiClientError } from "@/lib/api/client";
 import { cn, todayISODate, toLocalISODate } from "@/lib/utils";
 import { isFallbackCategory } from "@/features/categories/categoriesService";
+import { resolveCategoryIcon } from "@/features/categories/categoryIcons";
 import { useCategories } from "@/features/categories/hooks/useCategories";
+import { displayName, useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
+import { useWallets } from "@/features/wallets/hooks/useWallets";
 import { useTransactionModal } from "@/features/transactions/store/useTransactionModal";
+import { SHARED_CATEGORY_PRESETS, defaultSharedCategoryKey } from "@/shared/contracts";
 import type { TransactionType } from "@/types/category";
 import type { Transaction } from "@/types/transaction";
 
@@ -42,6 +46,8 @@ const addTransactionFormSchema = z.object({
   date: z.string().min(1, "Date is required"),
   walletId: z.string().min(1, "Wallet is required"),
   categoryId: z.string().optional(),
+  /** Shared wallets pick one of the fixed presets by key instead of a personal category. */
+  categoryKey: z.string().optional(),
   note: z.string().optional(),
 });
 
@@ -164,6 +170,7 @@ function toFormValues(
       date: todayISODate(),
       walletId: fallbackWalletId ?? "",
       categoryId: "",
+      categoryKey: "",
       note: "",
     };
   }
@@ -175,8 +182,21 @@ function toFormValues(
     date: toLocalISODate(transaction.date),
     walletId: transaction.walletId,
     categoryId: transaction.categoryId ?? "",
+    categoryKey: transaction.categoryKey ?? "",
     note: transaction.note ?? "",
   };
+}
+
+/** Shared wallets only: tells the user whose name the transaction will carry. Its own component so the user query only runs for shared wallets. */
+function LoggedByNote({ transaction }: { transaction: Transaction | null | undefined }) {
+  const { data: currentUser } = useCurrentUser();
+  const name = transaction?.createdBy?.name ?? displayName(currentUser);
+  if (!name) return null;
+  return (
+    <p className="text-xs text-muted-foreground">
+      {transaction?.createdBy ? `Logged by ${name}` : `Will be logged by ${name}`}
+    </p>
+  );
 }
 
 /**
@@ -193,6 +213,7 @@ export function AddTransactionModal({
   const { isOpen, defaultType, defaultWalletId, editingTransaction, closeModal, openDeleteModal } =
     useTransactionModal();
   const { data: categories = [] } = useCategories();
+  const { data: wallets = [] } = useWallets();
   const effectiveInitialData = initialData ?? editingTransaction;
   const isEditMode = Boolean(effectiveInitialData);
 
@@ -213,7 +234,11 @@ export function AddTransactionModal({
   const type = useWatch({ control, name: "type" });
   const watchedValues = useWatch({ control });
   const categoryIdValue = useWatch({ control, name: "categoryId" });
+  const categoryKeyValue = useWatch({ control, name: "categoryKey" });
+  const walletIdValue = useWatch({ control, name: "walletId" });
   const mode = MODE_STYLES[type];
+  // Shared wallets offer the fixed preset categories (by key) instead of the user's own.
+  const isSharedWallet = Boolean(wallets.find((wallet) => wallet.id === walletIdValue)?.isShared);
 
   React.useEffect(() => {
     if (isOpen) {
@@ -232,6 +257,7 @@ export function AddTransactionModal({
   function handleTypeChange(nextType: TransactionType) {
     setValue("type", nextType);
     setValue("categoryId", "");
+    setValue("categoryKey", "");
   }
 
   /**
@@ -249,7 +275,8 @@ export function AddTransactionModal({
       amount: Number(values.amount),
       date: parseLocalISODate(values.date),
       walletId: values.walletId,
-      categoryId: values.categoryId ? values.categoryId : undefined,
+      categoryId: !isSharedWallet && values.categoryId ? values.categoryId : undefined,
+      categoryKey: isSharedWallet && values.categoryKey ? values.categoryKey : undefined,
       note: values.note ? values.note : undefined,
     };
 
@@ -287,13 +314,32 @@ export function AddTransactionModal({
   // and leaves the field empty if this user has no seeded "Others".
   const fallbackCategoryId = fallbackCategory?.id;
   React.useEffect(() => {
-    if (isOpen && !categoryIdValue && fallbackCategoryId) {
+    if (isOpen && !isSharedWallet && !categoryIdValue && fallbackCategoryId) {
       setValue("categoryId", fallbackCategoryId);
     }
-  }, [isOpen, categoryIdValue, fallbackCategoryId, setValue]);
+  }, [isOpen, isSharedWallet, categoryIdValue, fallbackCategoryId, setValue]);
 
-  const categoryChips = orderedCategories.map((category) => {
-    const selected = categoryIdValue === category.id;
+  // Same for a shared wallet: preselect its "Others" for the current type whenever the key is empty.
+  React.useEffect(() => {
+    if (isOpen && isSharedWallet && !categoryKeyValue) setValue("categoryKey", defaultSharedCategoryKey(type));
+  }, [isOpen, isSharedWallet, categoryKeyValue, type, setValue]);
+
+  // Picking a shared wallet drops any category chosen for a personal one, and the other way round.
+  React.useEffect(() => {
+    if (isSharedWallet && categoryIdValue) setValue("categoryId", "");
+    if (!isSharedWallet && categoryKeyValue) setValue("categoryKey", "");
+  }, [isSharedWallet, categoryIdValue, categoryKeyValue, setValue]);
+
+  // Shared wallets list the fixed presets (same order as the personal defaults, "Others" last).
+  const sharedCategories = SHARED_CATEGORY_PRESETS.filter((preset) => preset.type === type).map((preset) => ({
+    id: preset.key,
+    name: preset.name,
+    icon: resolveCategoryIcon(preset.icon),
+    color: preset.color,
+  }));
+  const selectedCategoryValue = isSharedWallet ? categoryKeyValue : categoryIdValue;
+  const categoryChips = (isSharedWallet ? sharedCategories : orderedCategories).map((category) => {
+    const selected = selectedCategoryValue === category.id;
     const hex = resolveCategoryChipHex(category.id, category.color);
     const textColor = shadeHex(hex, 0.6);
     return {
@@ -481,8 +527,10 @@ export function AddTransactionModal({
                       id="transaction-wallet"
                       value={field.value}
                       onValueChange={(nextWalletId) => field.onChange(nextWalletId ?? "")}
-                      // The update API can't move a transaction between wallets.
-                      disabled={isEditMode}
+                      // Editing never moves a row into or out of a shared wallet: a shared row's wallet is
+                      // locked (still shown), and a personal row can only go to another personal wallet.
+                      includeShared={!isEditMode || isSharedWallet}
+                      disabled={isSubmitting || (isEditMode && isSharedWallet)}
                     />
                   )}
                 />
@@ -506,7 +554,7 @@ export function AddTransactionModal({
                       type="button"
                       role="radio"
                       aria-checked={chip.selected}
-                      onClick={() => setValue("categoryId", chip.id)}
+                      onClick={() => setValue(isSharedWallet ? "categoryKey" : "categoryId", chip.id)}
                       className="inline-flex h-10 items-center gap-1.5 rounded-full border-2 px-3.5 text-sm font-semibold transition-colors"
                       style={{
                         backgroundColor: chip.backgroundColor,
@@ -531,6 +579,8 @@ export function AddTransactionModal({
                 {...register("note")}
               />
             </div>
+
+            {isSharedWallet ? <LoggedByNote transaction={effectiveInitialData} /> : null}
 
             {errors.root ? (
               <p className="text-destructive text-sm" role="alert">

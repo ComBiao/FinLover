@@ -40,6 +40,16 @@ const testWallets: Wallet[] = [
     icon: WalletIcon,
     type: "savings",
   },
+  {
+    id: "w3",
+    name: "Empty Wallet",
+    balance: 0,
+    isDefault: false,
+    color: "#4A4757",
+    isSaving: false,
+    icon: WalletIcon,
+    type: "cash",
+  },
 ];
 
 const testCategories: Category[] = [
@@ -126,7 +136,7 @@ describe("Task 66 — Summary Cards Recalculation", () => {
     vi.spyOn(categoriesService, "getCategories").mockResolvedValue(testCategories);
     vi.spyOn(transactionsService, "getTransactions").mockResolvedValue(testTransactions);
     vi.spyOn(transactionsService, "getTransactionSummary").mockImplementation(async (query) => {
-      if (query.walletId === "empty-wallet" || query.categoryId === "empty-cat") {
+      if (query.walletId === "w3" || query.categoryId === "empty-cat") {
         return { totalIncome: 0, totalExpense: 0, netBalance: 0 };
       }
       if (query.walletId === "w1") {
@@ -317,7 +327,7 @@ describe("Task 66 — Summary Cards Recalculation", () => {
       act(() => {
         useTransactionFilters.getState().setFilters({
           ...useTransactionFilters.getState().filters,
-          walletId: "empty-wallet",
+          walletId: "w3",
         });
       });
 

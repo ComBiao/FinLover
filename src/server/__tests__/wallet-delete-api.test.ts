@@ -1,3 +1,5 @@
+import { CategoryRepository } from '@/server/modules/categories/repositories/CategoryRepository';
+import { WalletMembershipRepository } from '@/server/modules/wallets/repositories/WalletMembershipRepository';
 // @vitest-environment node
 /** DELETE /api/v1/wallets/[id] → src/app/api/v1/wallets/[id]/route.ts */
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
@@ -107,12 +109,12 @@ describe('DELETE /api/v1/wallets/{id}', () => {
 
   it('rolls back everything when a later step fails', async () => {
     const w = await wallet(); await seedTx(USER, w._id, 5);
-    const repo = new WalletRepository();
+    const repo = new WalletRepository(new WalletMembershipRepository());
     const failing = Object.assign(Object.create(repo), {
       findOwned: repo.findOwned.bind(repo),
       delete: async () => { throw new Error('boom'); },
     });
-    const service = new DeleteWalletService(failing, new TransactionRepository(), new MongoUnitOfWork());
+    const service = new DeleteWalletService(failing, new TransactionRepository(repo, new CategoryRepository()), new MongoUnitOfWork());
     await expect(service.execute(String(w._id), USER.toString())).rejects.toThrow('boom');
     expect(await Wallet.findById(w._id)).not.toBeNull();
     expect(await txCount(w._id)).toBe(5);

@@ -9,19 +9,20 @@ import { DeleteTransactionDialog } from "@/features/transactions/components/Dele
 import { TransactionFilterBar } from "@/features/transactions/components/TransactionFilterBar";
 import { TransactionTable } from "@/features/transactions/components/TransactionTable";
 import { Button } from "@/components/ui/button";
-import { useTransactions } from "@/features/transactions/hooks/useTransactions";
+import { useSharedWalletPeriodTransactions, useTransactions } from "@/features/transactions/hooks/useTransactions";
 import { useTransactionSummary } from "@/features/transactions/hooks/useTransactionSummary";
 import {
   useCreateTransaction,
   useDeleteTransaction,
   useUpdateTransaction,
 } from "@/features/transactions/hooks/useTransactionMutations";
-import { filterTransactions, withFallbackCategory } from "@/features/transactions/transactions";
+import { filterTransactions, summarizeTransactions, withFallbackCategory } from "@/features/transactions/transactions";
 import { useCategories } from "@/features/categories/hooks/useCategories";
+import { useWallets } from "@/features/wallets/hooks/useWallets";
 import { periodMonthKeys } from "@/features/transactions/period";
 import { useTransactionFilters } from "@/features/transactions/store/useTransactionFilters";
 import { useTransactionModal } from "@/features/transactions/store/useTransactionModal";
-import type { Transaction } from "@/types/transaction";
+import type { Transaction, TransactionFilters } from "@/types/transaction";
 
 import { SummaryCards } from "./SummaryCards";
 
@@ -37,6 +38,7 @@ export default function TransactionsPage() {
   const months = useMemo(() => periodMonthKeys(period), [period]);
   const { data: transactions = [] } = useTransactions(months);
   const { data: categories = [] } = useCategories();
+  const { data: wallets = [], isPending: isWalletsPending } = useWallets();
   const createTransaction = useCreateTransaction();
   const updateTransaction = useUpdateTransaction();
   const deleteTransaction = useDeleteTransaction();
@@ -52,12 +54,57 @@ export default function TransactionsPage() {
   const closeDeleteModal = useTransactionModal((state) => state.closeDeleteModal);
   const deletingTransaction = useTransactionModal((state) => state.deletingTransaction);
 
-  const { data: summary, isPending: isSummaryPending } = useTransactionSummary(period, filters);
+  // The wallet filter is shared with Home and the Wallets page, so a wallet picked there (shared or
+  // personal) opens here. An id that no longer resolves (wallet deleted, or the user left it) falls
+  // back to "All wallets", which lists personal wallets only.
+  const selectedWallet = filters.walletId ? wallets.find((wallet) => wallet.id === filters.walletId) : undefined;
+  const isSharedView = Boolean(selectedWallet?.isShared);
+  const walletFilterId = isWalletsPending ? filters.walletId : selectedWallet?.id;
+  // Personal wallets filter by `categoryId`, shared ones by the preset `categoryKey`: ignore the other kind's.
+  const effectiveFilters = useMemo<TransactionFilters>(
+    () => ({
+      ...filters,
+      walletId: walletFilterId,
+      categoryId: isSharedView ? undefined : filters.categoryId,
+      categoryKey: isSharedView ? filters.categoryKey : undefined,
+    }),
+    [filters, walletFilterId, isSharedView]
+  );
+
+  // Switching between a personal and a shared wallet drops the category: the two lists differ.
+  function handleFiltersChange(next: TransactionFilters) {
+    const isShared = (walletId?: string) => Boolean(wallets.find((wallet) => wallet.id === walletId)?.isShared);
+    if (isShared(next.walletId) !== isShared(effectiveFilters.walletId)) {
+      setFilters({ ...next, categoryId: undefined, categoryKey: undefined });
+      return;
+    }
+    setFilters(next);
+  }
+
+  // The server totals personal wallets only; a shared wallet's rows are all loaded, so the page totals them.
+  const { data: serverSummary, isPending: isServerSummaryPending } = useTransactionSummary(period, effectiveFilters, {
+    enabled: !isWalletsPending && !isSharedView,
+  });
+  const { data: sharedTransactions = [], isPending: isSharedPending } = useSharedWalletPeriodTransactions(
+    isSharedView ? selectedWallet?.id : undefined,
+    months
+  );
 
   const filteredTransactions = useMemo(
-    () => filterTransactions(withFallbackCategory(transactions, categories), filters),
-    [transactions, categories, filters]
+    () =>
+      isSharedView
+        ? filterTransactions(sharedTransactions, effectiveFilters)
+        : filterTransactions(
+            withFallbackCategory(
+              transactions.filter((transaction) => !wallets.find((wallet) => wallet.id === transaction.walletId)?.isShared),
+              categories
+            ),
+            effectiveFilters
+          ),
+    [isSharedView, sharedTransactions, transactions, wallets, categories, effectiveFilters]
   );
+  const summary = isSharedView ? summarizeTransactions(filteredTransactions) : serverSummary;
+  const isSummaryPending = isSharedView ? isSharedPending : isServerSummaryPending;
 
   function handleDeleteTransaction(id: string) {
     deleteTransaction.mutate(id, {
@@ -89,7 +136,7 @@ export default function TransactionsPage() {
               View, search, and manage every transaction.
             </p>
           </div>
-          <Button type="button" onClick={() => openModal()}>
+          <Button type="button" onClick={() => openModal(undefined, isSharedView ? selectedWallet?.id : undefined)}>
             <Plus className="size-4" />
             Add Transaction
           </Button>
@@ -98,9 +145,10 @@ export default function TransactionsPage() {
         <SummaryCards summary={summary} period={period} isLoading={isSummaryPending} />
 
         <TransactionFilterBar
-          value={filters}
+          value={effectiveFilters}
           categories={categories}
-          onValueChange={setFilters}
+          sharedWallet={isSharedView}
+          onValueChange={handleFiltersChange}
           period={period}
           onPeriodChange={setPeriod}
           onPeriodModeChange={setPeriodMode}

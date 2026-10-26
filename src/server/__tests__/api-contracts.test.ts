@@ -246,6 +246,21 @@ describe.each(["legacy", "v1"] as const)("%s API contracts", (version) => {
       ),
     );
     expect((await Wallet.findById(wallet))!.balance).toBe(-50);
+    const wallet2 = (await Wallet.create({ userId: user, name: "Second Wallet" })).id;
+    const moveBody = version === "v1" ? { ...body, amount: 60, walletId: wallet2 } : { ...body, amount: 60, wallet_id: wallet2 };
+    const movedRes = await t.update(
+      request("PUT", `${txPath}/${tx.data.id}`, moveBody),
+      context(tx.data.id),
+    );
+    expect(movedRes.status).toBe(200);
+    const movedTx = await contract(version, `${txPath}/{id}`, "put", movedRes);
+    if (version === "v1") {
+      expect(movedTx.data.walletId).toBe(wallet2);
+    } else {
+      expect(movedTx.data.wallet_id).toBe(wallet2);
+    }
+    expect((await Wallet.findById(wallet))!.balance).toBe(0);
+    expect((await Wallet.findById(wallet2))!.balance).toBe(-60);
     await contract(
       version,
       `${catPath}/{id}`,
@@ -253,14 +268,14 @@ describe.each(["legacy", "v1"] as const)("%s API contracts", (version) => {
       await c.remove(request("DELETE", `${catPath}/${id}`), context(id)),
     );
     expect((await Transaction.findById(tx.data.id))!.categoryId).toBeNull();
-    expect((await Wallet.findById(wallet))!.balance).toBe(-50);
+    expect((await Wallet.findById(wallet2))!.balance).toBe(-60);
     const removed = await t.remove(
       request("DELETE", `${txPath}/${tx.data.id}`),
       context(tx.data.id),
     );
     expect(removed.status).toBe(version === "v1" ? 200 : 204);
     await contract(version, `${txPath}/{id}`, "delete", removed);
-    expect((await Wallet.findById(wallet))!.balance).toBe(0);
+    expect((await Wallet.findById(wallet2))!.balance).toBe(0);
   });
   it("covers transaction invalid body, ID, JSON, token, and ownership responses", async () => {
     const base = version === "v1" ? "/api/v1/transactions" : "/api/transaction";
@@ -584,7 +599,6 @@ describe('v1 monthly transaction reads', () => {
       type: 'expense',
       amount: 10,
       date: new Date('2026-10-05'),
-      recurrence: { isRecurring: false },
       createdAt: new Date(),
       updatedAt: new Date(),
     });
