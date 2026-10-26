@@ -1,5 +1,6 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import mongooseLeanGetters from 'mongoose-lean-getters';
+import { SHARED_CATEGORY_PRESETS } from '@/shared/contracts';
 import { assertTransactionWrite } from '../transaction-write-guard';
 
 
@@ -10,6 +11,8 @@ export interface ITransaction extends Document {
   userId: mongoose.Types.ObjectId;
   walletId: mongoose.Types.ObjectId;
   categoryId: mongoose.Types.ObjectId | null;
+  /** Shared wallets only: a key of SHARED_CATEGORY_PRESETS; absent on older rows, which count as "Others". */
+  categoryKey?: string | null;
   type: 'income' | 'expense';
   amount: number;
   date: Date;
@@ -40,6 +43,7 @@ const TransactionSchema: Schema = new Schema({
     ref: 'Category',
     default: null,
   },
+  categoryKey: { type: String, enum: SHARED_CATEGORY_PRESETS.map(preset => preset.key) },
   type: {
     type: String,
     enum: ['income', 'expense'],

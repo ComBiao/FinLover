@@ -41,7 +41,6 @@ import {
 import { displayName, useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
 
 import { useActiveWallet } from "@/features/wallets/store/useActiveWallet";
-import { useBalanceVisibility } from "@/features/wallets/store/useBalanceVisibility";
 
 function monthKeyOfDate(date: Date): MonthKey {
   return formatMonthKey(date.getFullYear(), date.getMonth() + 1);
@@ -79,15 +78,7 @@ export function HomePage() {
   const {
     data: summary,
     isPending: isSummaryPending,
-    isError: isSummaryError,
   } = useHomeSummary(month, walletId);
-
-  // If fetching summary encounters an error, revert balance visibility to hidden (#78)
-  React.useEffect(() => {
-    if (isSummaryError) {
-      useBalanceVisibility.getState().onError();
-    }
-  }, [isSummaryError]);
 
   const createTransaction = useCreateTransaction();
   const updateTransaction = useUpdateTransaction();
@@ -206,14 +197,11 @@ export function HomePage() {
             expense={summary?.expense ?? 0}
             isLoading={isSummaryPending}
           />
-          {/* Shared wallets have no categories, so there is nothing to rank. */}
-          {isSharedSelected ? null : (
-            <TopCategoriesCard
-              monthLabel={monthLabel}
-              topCategories={summary?.topCategories ?? []}
-              isLoading={isSummaryPending}
-            />
-          )}
+          <TopCategoriesCard
+            monthLabel={monthLabel}
+            topCategories={summary?.topCategories ?? []}
+            isLoading={isSummaryPending}
+          />
         </div>
 
         <div className="flex items-baseline justify-between gap-3">

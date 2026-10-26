@@ -24,6 +24,8 @@ export type Transaction = {
   type: TransactionType;
   /** Absent/undefined means the transaction is uncategorized. */
   categoryId?: string;
+  /** Shared wallets only: a key of the fixed shared presets (`SHARED_CATEGORY_PRESETS`) instead of `categoryId`. */
+  categoryKey?: string;
   walletId: string;
   date: Date;
   note?: string;
@@ -39,6 +41,8 @@ export type TransactionFilters = {
   type?: TransactionType;
   walletId?: string;
   categoryId?: string;
+  /** Shared wallets only: one of the fixed presets, used instead of `categoryId` while a shared wallet is filtered. */
+  categoryKey?: string;
   dateRange?: DateRange;
 };
 
@@ -47,5 +51,6 @@ export const DEFAULT_TRANSACTION_FILTERS: TransactionFilters = {
   type: undefined,
   walletId: undefined,
   categoryId: undefined,
+  categoryKey: undefined,
   dateRange: undefined,
 };

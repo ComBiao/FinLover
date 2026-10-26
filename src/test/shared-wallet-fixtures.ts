@@ -81,6 +81,7 @@ export function sharedTransactions(year: number, month: number): Transaction[] {
       amount: 599,
       date: new Date(year, month - 1, 15),
       title: "Internet",
+      categoryKey: "utilities",
       createdBy: { id: "u-guy", name: "Guy", isYou: false },
       editedBy: { id: "u-me", name: "Tul", isYou: true },
     },

@@ -1,13 +1,12 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import React from "react";
 
 import { WalletManagementPage } from "../components/WalletManagementPage";
 import { DeleteWalletDialog } from "../components/DeleteWalletDialog";
 import * as walletsService from "../walletsService";
-import { useBalanceVisibility } from "../store/useBalanceVisibility";
 import { useActiveWallet } from "../store/useActiveWallet";
 import type { Wallet } from "@/types/wallet";
 import { PiggyBank, Wallet as WalletIcon } from "lucide-react";
@@ -47,7 +46,6 @@ function renderWithClient(ui: React.ReactElement) {
 
 describe("WalletManagementPage UI", () => {
   beforeEach(() => {
-    useBalanceVisibility.setState({ isVisible: true });
     useActiveWallet.setState({ activeWalletId: "all" });
     vi.spyOn(walletsService, "getWallets").mockResolvedValue(testWallets);
   });
@@ -77,6 +75,22 @@ describe("WalletManagementPage UI", () => {
     expect(screen.queryByText("Saving Wallet")).not.toBeInTheDocument();
     expect(screen.queryByText("Set Active")).not.toBeInTheDocument();
     expect(screen.queryByText("Select as Active")).not.toBeInTheDocument();
+  });
+
+  it("marks no wallet card as active and offers no Select as Active action", async () => {
+    // A wallet picked on Home (or by clicking its name here) stays plain on this page.
+    useActiveWallet.setState({ activeWalletId: "wallet-1" });
+    renderWithClient(<WalletManagementPage />);
+
+    const card = (await screen.findByText("Main Cash")).closest('[data-slot="card"]') as HTMLElement;
+    expect(card.className).not.toMatch(/ring-primary|ring-offset/);
+    // The border keeps the same soft tint as every other card.
+    expect(card.style.borderColor).not.toBe("rgb(74, 71, 87)");
+
+    fireEvent.pointerDown(within(card).getByRole("button", { name: "Wallet actions" }), { button: 0, ctrlKey: false });
+    fireEvent.click(within(card).getByRole("button", { name: "Wallet actions" }));
+    expect(await screen.findByRole("menuitem", { name: "Edit" })).toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: /Select as Active/ })).not.toBeInTheDocument();
   });
 
   it("opens Create Wallet dialog when clicking Create Wallet button", async () => {

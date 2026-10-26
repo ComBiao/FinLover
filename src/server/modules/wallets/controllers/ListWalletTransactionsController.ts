@@ -5,6 +5,7 @@ import type { TransactionRepositoryPort } from '@/server/shared/ports/transactio
 import type { RouteContext } from '@/server/shared/http/policy';
 import { NextResponse } from 'next/server';
 import { connectDB } from '@/server/db/index';
+import { sharedCategory } from '@/server/modules/transactions/dtos/TransactionResponseDTO';
 import { currentMonth, monthBoundaries } from '@/server/modules/transactions/services/GetTransactionsByMonthService';
 import { applicationTimezone } from '@/server/shared/config/env';
 
@@ -71,6 +72,7 @@ export class ListWalletTransactionsController {
           date: doc.date instanceof Date ? doc.date.toISOString().split('T')[0] : String(doc.date).split('T')[0],
           title: doc.title ?? '(untitled)',
           createdBy,
+          category: sharedCategory(doc),
         };
         if (doc.note !== undefined && doc.note !== null) {
           item.note = doc.note;

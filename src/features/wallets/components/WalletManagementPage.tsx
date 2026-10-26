@@ -3,15 +3,13 @@
 import * as React from "react";
 import { Plus, Users, Wallet as WalletIcon } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsIndicator, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatBaht } from "@/lib/utils";
 import type { Wallet } from "@/types/wallet";
 import { useWallets } from "@/features/wallets/hooks/useWallets";
-import { useBalanceVisibility } from "@/features/wallets/store/useBalanceVisibility";
 import { CreateWalletDialog } from "./CreateWalletDialog";
 import { EditWalletDialog } from "./EditWalletDialog";
 import { SavingGoalDialog } from "./SavingGoalDialog";
@@ -23,15 +21,17 @@ import { WalletCard } from "./WalletCard";
 
 type WalletView = "personal" | "shared";
 
-/** Idle tabs read as normal text; the selected one gets the same soft tint-and-border as a wallet card, in the app's green. */
+/**
+ * Idle tabs read as normal text; the selected one turns green. Its soft tint-and-border (the same as a
+ * wallet card, in the app's green) is the sliding `TabsIndicator` behind the triggers, so the trigger
+ * itself stays transparent.
+ */
 const TAB_TRIGGER_CLASS =
-  "gap-1.5 px-4 font-semibold text-foreground/75 hover:text-foreground data-active:border-primary/40 data-active:bg-primary/10 data-active:text-success data-active:shadow-none";
+  "gap-1.5 px-4 font-semibold text-foreground/75 transition-colors hover:text-foreground data-active:bg-transparent data-active:text-success data-active:shadow-none dark:data-active:border-transparent dark:data-active:bg-transparent";
+const TAB_INDICATOR_CLASS = "rounded-md border border-primary/40 bg-primary/10";
 
 export function WalletManagementPage() {
-  const { data: wallets = [], isPending, isError } = useWallets();
-
-  const isVisible = useBalanceVisibility((state) => state.isVisible);
-  const onError = useBalanceVisibility((state) => state.onError);
+  const { data: wallets = [], isPending } = useWallets();
 
   const [selectedView, setSelectedView] = React.useState<WalletView>("personal");
   const [createOpen, setCreateOpen] = React.useState(false);
@@ -40,13 +40,6 @@ export function WalletManagementPage() {
   const [deletingWallet, setDeletingWallet] = React.useState<Wallet | null>(null);
   const [membersWalletId, setMembersWalletId] = React.useState<string | null>(null);
   const [leavingWalletId, setLeavingWalletId] = React.useState<string | null>(null);
-
-  // If fetching wallets fails, revert balance visibility to hidden (#78)
-  React.useEffect(() => {
-    if (isError) {
-      onError();
-    }
-  }, [isError, onError]);
 
   // Personal and shared wallets are shown one at a time, each with its own totals:
   // shared wallets are pooled with other people, so they never mix into the personal numbers.
@@ -74,8 +67,8 @@ export function WalletManagementPage() {
     );
   }
 
-  /** The two total cards for the wallets being shown. */
-  function renderOverview(shown: Wallet[], shared: boolean) {
+  /** The two total cards for the personal wallets; shared wallets are pooled with other people, so they get no totals. */
+  function renderOverview(shown: Wallet[]) {
     const total = shown.reduce((sum, w) => sum + w.balance, 0);
     const savingCount = shown.filter((w) => w.isSaving).length;
 
@@ -83,28 +76,18 @@ export function WalletManagementPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Card className="rounded-2xl bg-gradient-pastel-a shadow-sm">
           <CardContent className="flex flex-col gap-1.5 p-5">
-            <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               Total Balance
-              {shared ? (
-                <Badge variant="secondary" className="gap-1 bg-accent/20 text-[10px] font-semibold tracking-normal text-foreground normal-case">
-                  <Users />
-                  Shared wallets
-                </Badge>
-              ) : null}
             </span>
             <div className="text-3xl font-extrabold text-foreground">
               {isPending ? (
                 <Skeleton className="h-9 w-32" />
-              ) : isVisible ? (
-                formatBaht(total)
               ) : (
-                "••••••"
+                formatBaht(total)
               )}
             </div>
             <span className="text-xs text-muted-foreground">
-              {shared
-                ? `Across ${shown.length} shared ${shown.length === 1 ? "wallet" : "wallets"} · pooled with other members`
-                : `Across ${shown.length} ${shown.length === 1 ? "wallet" : "wallets"}`}
+              Across {shown.length} {shown.length === 1 ? "wallet" : "wallets"}
             </span>
           </CardContent>
         </Card>
@@ -112,14 +95,14 @@ export function WalletManagementPage() {
         <Card className="rounded-2xl shadow-sm">
           <CardContent className="flex flex-col gap-1.5 p-5">
             <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              {shared ? "Shared Wallets" : "Total Wallets"}
+              Total Wallets
             </span>
             <div className="flex items-baseline gap-2">
               <div className="text-3xl font-extrabold text-foreground">{shown.length}</div>
               <div className="text-sm font-semibold text-primary">({savingCount} saving)</div>
             </div>
             <span className="text-xs text-muted-foreground">
-              {shared ? "Shared with other people" : "Active accounts"}
+              Active accounts
             </span>
           </CardContent>
         </Card>
@@ -154,8 +137,9 @@ export function WalletManagementPage() {
           {hasShared ? (
             <TabsList
               aria-label="Wallet type"
-              className="h-11 w-fit border border-border bg-card p-1 shadow-sm group-data-horizontal/tabs:h-11"
+              className="relative h-11 w-fit border border-border bg-card p-1 shadow-sm group-data-horizontal/tabs:h-11"
             >
+              <TabsIndicator className={TAB_INDICATOR_CLASS} />
               <TabsTrigger value="personal" className={TAB_TRIGGER_CLASS}>
                 Personal{" "}
                 <span className="text-xs font-bold opacity-80">{personalWallets.length}</span>
@@ -169,7 +153,7 @@ export function WalletManagementPage() {
           ) : null}
 
           <TabsContent value="personal" className="flex flex-col gap-6">
-            {renderOverview(personalWallets, false)}
+            {renderOverview(personalWallets)}
 
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
@@ -210,8 +194,6 @@ export function WalletManagementPage() {
           </TabsContent>
 
           <TabsContent value="shared" className="flex flex-col gap-6">
-            {renderOverview(sharedWallets, true)}
-
             <section aria-label="Shared wallets" className="flex flex-col gap-4">
               <div className="flex items-end justify-between gap-4">
                 <div className="flex flex-col gap-1">

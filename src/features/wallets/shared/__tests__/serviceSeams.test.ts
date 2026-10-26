@@ -10,8 +10,6 @@ import {
 import { createWallet, deleteWallet, getWallets, mapWalletRecord } from "@/features/wallets/walletsService";
 import { acceptInvitation, getInvitations } from "../invitationsService";
 import { getMembers, inviteMember } from "../membersService";
-import { isMockTarget, sharedWalletMocksEnabled } from "../mockFlag";
-import { resetMockStore } from "../mock/sharedWalletMockStore";
 
 const fetchMock = vi.fn();
 
@@ -24,68 +22,37 @@ const month = () => {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 };
 
+const walletId = "64b0000000000000000000a1";
+
 beforeEach(() => {
   fetchMock.mockReset();
   vi.stubGlobal("fetch", fetchMock);
-  resetMockStore({ meName: "Tul" });
 });
 
 afterEach(() => {
   vi.unstubAllGlobals();
-  vi.unstubAllEnvs();
 });
 
-describe("mock flag", () => {
-  it("is off by default and opt-in via NEXT_PUBLIC_SHARED_WALLET_MOCKS=true", () => {
-    expect(sharedWalletMocksEnabled()).toBe(false);
-
-    vi.stubEnv("NEXT_PUBLIC_SHARED_WALLET_MOCKS", "true");
-    expect(sharedWalletMocksEnabled()).toBe(true);
-
-    vi.stubEnv("NEXT_PUBLIC_SHARED_WALLET_MOCKS", "");
-    expect(sharedWalletMocksEnabled()).toBe(false);
-
-    vi.stubEnv("NEXT_PUBLIC_SHARED_WALLET_MOCKS", "false");
-    expect(sharedWalletMocksEnabled()).toBe(false);
-  });
-
-  it("only treats mock-prefixed ids as mock targets while the flag is on", () => {
-    expect(isMockTarget("mock-wallet-housemate")).toBe(false);
-
-    vi.stubEnv("NEXT_PUBLIC_SHARED_WALLET_MOCKS", "true");
-    expect(isMockTarget("mock-wallet-housemate")).toBe(true);
-    expect(isMockTarget("64b0000000000000000000a1")).toBe(false);
-    expect(isMockTarget(undefined)).toBe(false);
-  });
-});
-
-describe("walletsService with the mock layer", () => {
-  it("adds the shared wallets after the real ones when the flag is on", async () => {
-    vi.stubEnv("NEXT_PUBLIC_SHARED_WALLET_MOCKS", "true");
+describe("walletsService shared wallets", () => {
+  it("returns the wallets the API sends, shared ones included", async () => {
     fetchMock.mockResolvedValue(
-      ok([{ id: "64b0000000000000000000a1", name: "Cash", balance: 100, isDefault: true, isSaving: false }])
+      ok([
+        { id: walletId, name: "Cash", balance: 100, isDefault: true, isSaving: false },
+        { id: "64b0000000000000000000b2", name: "Pool", balance: 0, isShared: true, role: "owner", memberCount: 2, ownerName: "Tul" },
+      ])
     );
 
     const wallets = await getWallets();
 
     expect(wallets.map((wallet) => [wallet.name, Boolean(wallet.isShared)])).toEqual([
       ["Cash", false],
-      ["Housemate Fund", true],
-      ["Japan Trip 2027", true],
+      ["Pool", true],
     ]);
-    expect(wallets[1]).toMatchObject({ role: "owner", memberCount: 3, ownerName: "Tul" });
-  });
-
-  it("returns only the API's wallets when the flag is off", async () => {
-    fetchMock.mockResolvedValue(
-      ok([{ id: "64b0000000000000000000a1", name: "Cash", balance: 100, isDefault: true, isSaving: false }])
-    );
-
-    expect((await getWallets()).map((wallet) => wallet.name)).toEqual(["Cash"]);
+    expect(wallets[1]).toMatchObject({ role: "owner", memberCount: 2, ownerName: "Tul" });
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it("maps the shared fields a real backend record will carry", () => {
+  it("maps the shared fields the backend record carries", () => {
     const wallet = mapWalletRecord({
       id: "64b0000000000000000000b2",
       name: "Pool",
@@ -101,133 +68,131 @@ describe("walletsService with the mock layer", () => {
     expect(mapWalletRecord({ id: "1", name: "Plain", balance: 0 })).not.toHaveProperty("isShared");
   });
 
-  it("creates a shared wallet in the mock store, but a personal one through the API", async () => {
-    vi.stubEnv("NEXT_PUBLIC_SHARED_WALLET_MOCKS", "true");
+  it("creates a shared wallet through POST /api/v1/wallets with isShared", async () => {
+    fetchMock.mockResolvedValue(
+      ok({ id: "64b0000000000000000000c3", name: "Trip", balance: 0, isShared: true, role: "owner", memberCount: 1 })
+    );
 
     const shared = await createWallet({ name: "Trip", isShared: true });
-    expect(shared).toMatchObject({ name: "Trip", isShared: true, role: "owner" });
-    expect(fetchMock).not.toHaveBeenCalled();
 
-    fetchMock.mockResolvedValue(ok({ id: "64b0000000000000000000c3", name: "Cash", balance: 0, isDefault: false, isSaving: false }));
-    await createWallet({ name: "Cash" });
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(shared).toMatchObject({ name: "Trip", isShared: true, role: "owner" });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/v1/wallets",
+      expect.objectContaining({ method: "POST", body: JSON.stringify({ name: "Trip", isShared: true }) })
+    );
   });
 
-  it("deletes a mock wallet locally and a real one through the API", async () => {
-    vi.stubEnv("NEXT_PUBLIC_SHARED_WALLET_MOCKS", "true");
-
-    await deleteWallet("mock-wallet-housemate");
-    expect(fetchMock).not.toHaveBeenCalled();
-
+  it("deletes a wallet through the API", async () => {
     fetchMock.mockResolvedValue(ok(null));
-    await deleteWallet("64b0000000000000000000a1");
-    expect(fetchMock).toHaveBeenCalledWith("/api/v1/wallets/64b0000000000000000000a1", expect.objectContaining({ method: "DELETE" }));
+
+    await deleteWallet(walletId);
+
+    expect(fetchMock).toHaveBeenCalledWith(`/api/v1/wallets/${walletId}`, expect.objectContaining({ method: "DELETE" }));
   });
 });
 
-describe("transactionsService with the mock layer", () => {
-  it("reads a shared wallet's month from the mock store when on, from the API when off", async () => {
-    vi.stubEnv("NEXT_PUBLIC_SHARED_WALLET_MOCKS", "true");
-    const rows = await getSharedWalletTransactions("mock-wallet-housemate", month());
-    expect(rows).toHaveLength(6);
-    expect(rows[0]).toMatchObject({ title: "Groceries", createdBy: { name: "Guy" } });
-    expect(fetchMock).not.toHaveBeenCalled();
-
-    vi.unstubAllEnvs();
+describe("transactionsService shared wallets", () => {
+  it("reads a shared wallet's month from the API with its author fields", async () => {
     fetchMock.mockResolvedValue(
       ok([
         {
           id: "t1",
-          walletId: "64b0000000000000000000d4",
+          walletId,
           categoryId: null,
           type: "expense",
           amount: 10,
           date: "2026-10-03",
           title: "Tea",
+          category: { key: "food-drinks" },
           createdBy: { id: "u1", name: "Guy", isYou: false },
           editedBy: { id: "u2", name: "Tul", isYou: true },
         },
       ])
     );
-    const [real] = await getSharedWalletTransactions("64b0000000000000000000d4", month());
-    expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/api/v1/wallets/64b0000000000000000000d4/transactions?month="), expect.anything());
-    expect(real).toMatchObject({ createdBy: { name: "Guy" }, editedBy: { name: "Tul", isYou: true } });
-  });
 
-  it("routes create, update and delete for mock ids to the store", async () => {
-    vi.stubEnv("NEXT_PUBLIC_SHARED_WALLET_MOCKS", "true");
+    const [row] = await getSharedWalletTransactions(walletId, month());
 
-    const created = await createTransaction({
-      walletId: "mock-wallet-housemate",
-      type: "expense",
-      amount: 50,
-      date: new Date(2026, 9, 3),
-      title: "Snacks",
-    });
-    expect(created).toMatchObject({ title: "Snacks", createdBy: { isYou: true } });
-
-    const updated = await updateTransaction(created.id, {
-      walletId: "mock-wallet-housemate",
-      type: "expense",
-      amount: 60,
-      date: new Date(2026, 9, 3),
-      title: "Snacks",
-    });
-    expect(updated.amount).toBe(60);
-
-    await deleteTransaction(created.id);
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
-
-  it("still sends a real wallet's transaction to the API", async () => {
-    vi.stubEnv("NEXT_PUBLIC_SHARED_WALLET_MOCKS", "true");
-    fetchMock.mockResolvedValue(
-      ok({ id: "t9", walletId: "64b0000000000000000000a1", categoryId: null, type: "expense", amount: 5, date: "2026-10-03", title: "Gum" })
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining(`/api/v1/wallets/${walletId}/transactions?month=`),
+      expect.anything()
     );
+    expect(row).toMatchObject({
+      categoryKey: "food-drinks",
+      createdBy: { name: "Guy" },
+      editedBy: { name: "Tul", isYou: true },
+    });
+  });
 
-    await createTransaction({ walletId: "64b0000000000000000000a1", type: "expense", amount: 5, date: new Date(2026, 9, 3), title: "Gum" });
+  it("sends create, update and delete to /api/v1/transactions, with categoryKey for a shared wallet", async () => {
+    const dto = { id: "t9", walletId, categoryId: null, type: "expense", amount: 5, date: "2026-10-03", title: "Gum" };
+    fetchMock.mockImplementation(async () => ok(dto));
 
-    expect(fetchMock).toHaveBeenCalledWith("/api/v1/transactions", expect.objectContaining({ method: "POST" }));
+    await createTransaction({
+      walletId,
+      categoryKey: "shopping",
+      type: "expense",
+      amount: 5,
+      date: new Date(2026, 9, 3),
+      title: "Gum",
+    });
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      "/api/v1/transactions",
+      expect.objectContaining({ method: "POST" })
+    );
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({ categoryKey: "shopping" });
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).not.toHaveProperty("categoryId");
+
+    await updateTransaction("t9", {
+      walletId,
+      categoryKey: "shopping",
+      type: "expense",
+      amount: 6,
+      date: new Date(2026, 9, 3),
+      title: "Gum",
+    });
+    expect(fetchMock).toHaveBeenLastCalledWith("/api/v1/transactions/t9", expect.objectContaining({ method: "PUT" }));
+
+    fetchMock.mockResolvedValue(ok(null));
+    await deleteTransaction("t9");
+    expect(fetchMock).toHaveBeenLastCalledWith("/api/v1/transactions/t9", expect.objectContaining({ method: "DELETE" }));
   });
 });
 
-describe("homeService with the mock layer", () => {
-  it("answers for a mock shared wallet and passes a real wallet to the API", async () => {
-    vi.stubEnv("NEXT_PUBLIC_SHARED_WALLET_MOCKS", "true");
-    const summary = await getHomeSummary(month(), "mock-wallet-housemate");
-    expect(summary.balance.totalBalance).toBe(9391);
-    expect(summary.topCategories).toEqual([]);
-    expect(fetchMock).not.toHaveBeenCalled();
-
+describe("homeService", () => {
+  it("passes any wallet id, shared included, to the home summary API", async () => {
     fetchMock.mockResolvedValue(
-      ok({ month: month(), walletId: "all", balance: { hasWallets: true, totalBalance: 1, savingGoal: null }, income: 0, expense: 0, net: { net: 0, status: "even" }, topCategories: [] })
+      ok({ month: month(), walletId, balance: { hasWallets: true, totalBalance: 1, savingGoal: null }, income: 0, expense: 0, net: { net: 0, status: "even" }, topCategories: [] })
     );
-    await getHomeSummary(month(), "all");
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    await getHomeSummary(month(), walletId);
+
+    expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining(`walletId=${walletId}`), expect.anything());
   });
 });
 
 describe("members and invitations services", () => {
-  it("use the mock store for mock wallets and the API otherwise", async () => {
-    vi.stubEnv("NEXT_PUBLIC_SHARED_WALLET_MOCKS", "true");
+  it("call the real members and invitations endpoints", async () => {
+    fetchMock.mockResolvedValue(ok({ members: [{ userId: "u1", name: "Guy", email: "guy@example.com", role: "owner", status: "accepted" }] }));
+    expect((await getMembers(walletId)).map((member) => member.name)).toEqual(["Guy"]);
+    expect(fetchMock).toHaveBeenLastCalledWith(`/api/v1/wallets/${walletId}/members`, expect.anything());
 
-    expect((await getMembers("mock-wallet-housemate")).map((member) => member.name)).toContain("Guy");
-    expect((await getInvitations()).map((invitation) => invitation.walletName)).toContain("Office Lunch");
-    await acceptInvitation("mock-invite-mock-wallet-office");
-    expect(fetchMock).not.toHaveBeenCalled();
+    fetchMock.mockResolvedValue(ok({ items: [], total: 0 }));
+    expect(await getInvitations()).toEqual([]);
+    expect(fetchMock).toHaveBeenLastCalledWith("/api/v1/invitations", expect.anything());
 
-    fetchMock.mockResolvedValue(ok({ userId: "u9", name: "Boss", email: "boss@example.com", role: "contributor", status: "pending", isYou: false }));
-    await inviteMember("64b0000000000000000000e5", "boss@example.com");
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/api/v1/wallets/64b0000000000000000000e5/invitations",
-      expect.objectContaining({ method: "POST", body: JSON.stringify({ email: "boss@example.com" }) })
-    );
+    fetchMock.mockResolvedValue(ok(null));
+    await acceptInvitation("inv1");
+    expect(fetchMock).toHaveBeenLastCalledWith("/api/v1/invitations/inv1/accept", expect.objectContaining({ method: "POST" }));
   });
 
-  it("call the real invitations endpoint once the mocks are off", async () => {
-    fetchMock.mockResolvedValue(ok({ items: [], total: 0 }));
+  it("invites a member by email", async () => {
+    fetchMock.mockResolvedValue(ok({ userId: "u9", name: "Boss", email: "boss@example.com", role: "contributor", status: "pending", isYou: false }));
 
-    expect(await getInvitations()).toEqual([]);
-    expect(fetchMock).toHaveBeenCalledWith("/api/v1/invitations", expect.anything());
+    await inviteMember(walletId, "boss@example.com");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/api/v1/wallets/${walletId}/invitations`,
+      expect.objectContaining({ method: "POST", body: JSON.stringify({ email: "boss@example.com" }) })
+    );
   });
 });

@@ -9952,7 +9952,7 @@
           "transaction"
         ],
         "summary": "createTransaction",
-        "description": "Create a transaction and adjust wallet balance in one MongoDB transaction. Requires a replica set. For personal wallets, category must belong to the user and match the transaction type. Shared wallet transactions do not allow categoryId (400 if provided) and dual attribution is tracked. Outsiders of shared wallets receive 403. Persisted minimum amount is 0.01. Authorization takes precedence over cookie. Cookie writes require an Origin in PUBLIC_ORIGINS; missing Origin is rejected. Implemented.",
+        "description": "Create a transaction and adjust wallet balance in one MongoDB transaction. Requires a replica set. For personal wallets, category must belong to the user and match the transaction type. Shared wallet transactions do not allow categoryId (400 if provided); they take an optional `categoryKey` from the fixed shared presets instead (omitted or null means Others of that type; an unknown key or one of the other type gives 400), and dual attribution is tracked. `categoryKey` is rejected (400) for personal wallets. Outsiders of shared wallets receive 403. Persisted minimum amount is 0.01. Authorization takes precedence over cookie. Cookie writes require an Origin in PUBLIC_ORIGINS; missing Origin is rejected. Implemented.",
         "security": [
           {
             "bearerAuth": []
@@ -9977,6 +9977,32 @@
                       {
                         "type": "string",
                         "pattern": "^[a-f0-9]{24}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "categoryKey": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "food-drinks",
+                          "transportation",
+                          "essentials",
+                          "shopping",
+                          "utilities",
+                          "health",
+                          "entertainment",
+                          "others-expense",
+                          "salary",
+                          "wages",
+                          "allowance-gift",
+                          "bonus",
+                          "investment",
+                          "others-income"
+                        ]
                       },
                       {
                         "type": "null"
@@ -10526,7 +10552,7 @@
           "wallets"
         ],
         "summary": "listSharedWalletTransactions",
-        "description": "List shared wallet transactions for an optional YYYY-MM month, defaulting to the current month in APPLICATION_TIMEZONE. Members only; non-members receive 403. Dual attribution (createdBy and editedBy) included; category is omitted. Authorization takes precedence over cookie. Cookie-authenticated GETs do not require an Origin. Implemented.",
+        "description": "List shared wallet transactions for an optional YYYY-MM month, defaulting to the current month in APPLICATION_TIMEZONE. Members only; non-members receive 403. Dual attribution (createdBy and editedBy) included; each row carries its fixed preset category as `category` ({key,name,icon,color}), and rows saved without one count as Others of that type. Authorization takes precedence over cookie. Cookie-authenticated GETs do not require an Origin. Implemented.",
         "security": [
           {
             "bearerAuth": []
@@ -10640,6 +10666,66 @@
                               "name"
                             ],
                             "additionalProperties": false
+                          },
+                          "category": {
+                            "type": "object",
+                            "properties": {
+                              "key": {
+                                "type": "string",
+                                "enum": [
+                                  "food-drinks",
+                                  "transportation",
+                                  "essentials",
+                                  "shopping",
+                                  "utilities",
+                                  "health",
+                                  "entertainment",
+                                  "others-expense",
+                                  "salary",
+                                  "wages",
+                                  "allowance-gift",
+                                  "bonus",
+                                  "investment",
+                                  "others-income"
+                                ]
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "icon": {
+                                "type": "string",
+                                "enum": [
+                                  "Utensils",
+                                  "Car",
+                                  "Home",
+                                  "ShoppingCart",
+                                  "Zap",
+                                  "HeartPulse",
+                                  "Film",
+                                  "Wallet",
+                                  "Banknote",
+                                  "Gift",
+                                  "Award",
+                                  "PieChart",
+                                  "MoreHorizontal",
+                                  "Star",
+                                  "Smile",
+                                  "GraduationCap",
+                                  "Briefcase",
+                                  "CreditCard"
+                                ]
+                              },
+                              "color": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "key",
+                              "name",
+                              "icon",
+                              "color"
+                            ],
+                            "additionalProperties": false
                           }
                         },
                         "required": [
@@ -10649,7 +10735,8 @@
                           "date",
                           "title",
                           "id",
-                          "createdBy"
+                          "createdBy",
+                          "category"
                         ],
                         "additionalProperties": false
                       }
@@ -11388,7 +11475,7 @@
           "transaction"
         ],
         "summary": "updateTransaction",
-        "description": "Replace editable fields of a transaction; reverse old and apply new balance atomically. For personal wallets, only the owner can update. For shared wallets, any accepted member can modify any transaction; moving wallets and specifying a category are not allowed. Authorization takes precedence over cookie. Cookie writes require an Origin in PUBLIC_ORIGINS; missing Origin is rejected. Implemented.",
+        "description": "Replace editable fields of a transaction; reverse old and apply new balance atomically. For personal wallets, only the owner can update. For shared wallets, any accepted member can modify any transaction; moving wallets and specifying a categoryId are not allowed. The preset `categoryKey` of a shared transaction can be changed by any member; omitting it keeps the current one (reset to Others of that type if the type changed), null resets it. Authorization takes precedence over cookie. Cookie writes require an Origin in PUBLIC_ORIGINS; missing Origin is rejected. Implemented.",
         "security": [
           {
             "bearerAuth": []
@@ -11424,6 +11511,32 @@
                       {
                         "type": "string",
                         "pattern": "^[a-f0-9]{24}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "categoryKey": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "food-drinks",
+                          "transportation",
+                          "essentials",
+                          "shopping",
+                          "utilities",
+                          "health",
+                          "entertainment",
+                          "others-expense",
+                          "salary",
+                          "wages",
+                          "allowance-gift",
+                          "bonus",
+                          "investment",
+                          "others-income"
+                        ]
                       },
                       {
                         "type": "null"
@@ -15835,7 +15948,7 @@
           "home"
         ],
         "summary": "getHomeSummary",
-        "description": "Home page figures for an optional YYYY-MM month (defaulting to the current month in APPLICATION_TIMEZONE) and either every owned personal wallet (walletId=all, the default) or one accessible wallet. When a shared wallet is selected, totals reflect all members' transactions and topCategories is empty. totalBalance sums the scoped wallets' current balances; hasWallets reports whether the caller owns any wallet; savingGoal shows the selected wallet's progress (percent floored to 0–100) when it is a saving wallet with a goal, otherwise null, and is always null for walletId=all. income and expense total the scoped transactions dated in that month; net is income minus expense with status surplus, overspending or even. topCategories lists up to three expense categories by amount spent (ties by name); expenses without a category count toward the seeded expense Others. An invalid walletId returns 400; another user's or a missing wallet returns 404; non-member access to a shared wallet returns 403. Authorization takes precedence over cookie. Cookie-authenticated GETs do not require an Origin. Implemented.",
+        "description": "Home page figures for an optional YYYY-MM month (defaulting to the current month in APPLICATION_TIMEZONE) and either every owned personal wallet (walletId=all, the default) or one accessible wallet. When a shared wallet is selected, totals reflect all members' transactions and topCategories ranks the fixed shared presets (items have categoryId null and a categoryKey). totalBalance sums the scoped wallets' current balances; hasWallets reports whether the caller owns any wallet; savingGoal shows the selected wallet's progress (percent floored to 0–100) when it is a saving wallet with a goal, otherwise null, and is always null for walletId=all. income and expense total the scoped transactions dated in that month; net is income minus expense with status surplus, overspending or even. topCategories lists up to three expense categories by amount spent (ties by name); expenses without a category count toward the seeded expense Others. An invalid walletId returns 400; another user's or a missing wallet returns 404; non-member access to a shared wallet returns 403. Authorization takes precedence over cookie. Cookie-authenticated GETs do not require an Origin. Implemented.",
         "security": [
           {
             "bearerAuth": []

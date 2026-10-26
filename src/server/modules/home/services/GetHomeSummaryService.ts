@@ -1,6 +1,7 @@
 import type { WalletRecord, WalletRepositoryPort, WalletReaderPort } from '@/server/shared/ports/wallets';
 import type { TransactionRecord, TransactionRepositoryPort } from '@/server/shared/ports/transactions';
 import type { CategoryRepositoryPort } from '@/server/shared/ports/categories';
+import { sharedCategoryOf } from '@/shared/contracts';
 import { AppError } from '@/server/shared/kernel/AppError';
 import { currentMonth, monthBoundaries } from '@/server/modules/transactions/services/GetTransactionsByMonthService';
 
@@ -26,6 +27,24 @@ function topCategoriesOf(transactions: TransactionRecord[], categories: Category
     .map(([categoryId, amount]) => {
       const category = categoryId === null ? undefined : byId.get(categoryId);
       return { categoryId, name: category?.name ?? FALLBACK_CATEGORY_NAME, icon: category?.icon ?? null, color: category?.color ?? null, amount };
+    })
+    .sort((a, b) => b.amount - a.amount || a.name.localeCompare(b.name))
+    .slice(0, TOP_CATEGORY_COUNT)
+    .map((entry, index) => ({ rank: index + 1, ...entry }));
+}
+
+/** A shared wallet's top expense presets across every member, same ranking as the personal list; rows without a key count as Others. */
+function sharedTopCategoriesOf(transactions: TransactionRecord[]) {
+  const amounts = new Map<string, number>();
+  for (const transaction of transactions) {
+    if (transaction.type !== 'expense') continue;
+    const key = sharedCategoryOf(transaction.categoryKey, 'expense').key;
+    amounts.set(key, (amounts.get(key) ?? 0) + transaction.amount);
+  }
+  return [...amounts.entries()]
+    .map(([key, amount]) => {
+      const { name, icon, color } = sharedCategoryOf(key, 'expense');
+      return { categoryId: null, categoryKey: key, name, icon, color, amount };
     })
     .sort((a, b) => b.amount - a.amount || a.name.localeCompare(b.name))
     .slice(0, TOP_CATEGORY_COUNT)
@@ -94,7 +113,7 @@ export class GetHomeSummaryService {
           income,
           expense,
           net: { net, status: net > 0 ? 'surplus' : net < 0 ? 'overspending' : 'even' },
-          topCategories: [],
+          topCategories: sharedTopCategoriesOf(monthTransactions),
         };
       }
 

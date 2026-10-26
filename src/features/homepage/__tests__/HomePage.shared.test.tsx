@@ -9,7 +9,6 @@ import * as categoriesService from "@/features/categories/categoriesService";
 import * as invitationsService from "@/features/wallets/shared/invitationsService";
 import * as membersService from "@/features/wallets/shared/membersService";
 import { useActiveWallet } from "@/features/wallets/store/useActiveWallet";
-import { useBalanceVisibility } from "@/features/wallets/store/useBalanceVisibility";
 import * as walletsService from "@/features/wallets/walletsService";
 import { useTransactionModal } from "@/features/transactions/store/useTransactionModal";
 import * as transactionsService from "@/features/transactions/transactionsService";
@@ -52,7 +51,6 @@ function renderHome() {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  useBalanceVisibility.setState({ isVisible: true });
   useActiveWallet.setState({ activeWalletId: "all" });
   useTransactionModal.setState({ isOpen: false, defaultType: "expense", defaultWalletId: undefined, editingTransaction: null, deletingTransaction: null });
 
@@ -70,7 +68,9 @@ beforeEach(() => {
     income: walletId === OWNED_SHARED_WALLET.id ? 12000 : 0,
     expense: walletId === OWNED_SHARED_WALLET.id ? 2609 : 150,
     net: { net: walletId === OWNED_SHARED_WALLET.id ? 9391 : -150, status: walletId === OWNED_SHARED_WALLET.id ? "surplus" : "overspending" },
-    topCategories: [],
+    topCategories: walletId === OWNED_SHARED_WALLET.id
+      ? [{ rank: 1, categoryId: null, categoryKey: "utilities", name: "Utilities", icon: undefined, color: "#CA8A04", amount: 599 }]
+      : [],
   }));
 });
 
@@ -114,20 +114,23 @@ describe("Home — a shared wallet selected", () => {
     expect(screen.queryByText("Lunch Noodles")).not.toBeInTheDocument();
   });
 
-  it("shows who logged each row, with Logged by in place of Category", async () => {
+  it("shows who logged each row, with Logged by in place of Wallet", async () => {
     renderHome();
 
     expect((await screen.findAllByText("Logged by Guy")).length).toBeGreaterThan(0);
     expect(screen.getAllByText("edited by Tul (you)").length).toBeGreaterThan(0);
     expect(screen.getByRole("columnheader", { name: "Logged by" })).toBeInTheDocument();
-    expect(screen.queryByRole("columnheader", { name: "Category" })).not.toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Category" })).toBeInTheDocument();
+    expect(screen.queryByRole("columnheader", { name: "Wallet" })).not.toBeInTheDocument();
   });
 
-  it("has no Top categories card, since shared wallets have no categories", async () => {
+  it("ranks the shared wallet's top categories from the fixed presets", async () => {
     renderHome();
 
     await screen.findAllByText("Internet");
-    expect(screen.queryByText(/Top categories/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Top categories/)).toBeInTheDocument();
+    // Once in the Top categories card, plus the Internet row's chip in both table layouts.
+    await waitFor(() => expect(screen.getAllByText("Utilities")).toHaveLength(3));
   });
 
   it("shows the member count and opens the Members dialog from it", async () => {

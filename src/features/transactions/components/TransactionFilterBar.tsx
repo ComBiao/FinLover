@@ -11,12 +11,27 @@ import { Input } from "@/components/ui/input";
 import { PeriodPicker } from "@/features/transactions/components/PeriodPicker";
 import type { PeriodMode, TransactionPeriod } from "@/features/transactions/period";
 import { cn } from "@/lib/utils";
+import { resolveCategoryIcon } from "@/features/categories/categoryIcons";
+import { SHARED_CATEGORY_PRESETS } from "@/shared/contracts";
 import type { Category, TransactionType } from "@/types/category";
 import type { TransactionFilters } from "@/types/transaction";
+
+/** The fixed shared presets in the shape `CategorySelector` expects; `id` is the preset key. */
+const SHARED_CATEGORIES: Category[] = SHARED_CATEGORY_PRESETS.map((preset) => ({
+  id: preset.key,
+  name: preset.name,
+  type: preset.type,
+  icon: resolveCategoryIcon(preset.icon),
+  iconName: preset.icon,
+  isSystem: true,
+  color: preset.color,
+}));
 
 type TransactionFilterBarProps = {
   value: TransactionFilters;
   categories: Category[];
+  /** A shared wallet is being filtered: Category offers the fixed shared presets (by key) instead of the user's own. */
+  sharedWallet?: boolean;
   onValueChange: (filters: TransactionFilters) => void;
   period: TransactionPeriod;
   onPeriodChange: (period: TransactionPeriod) => void;
@@ -46,7 +61,8 @@ type TransactionFilterBarProps = {
  */
 export function TransactionFilterBar({
   value,
-  categories,
+  categories: personalCategories,
+  sharedWallet = false,
   onValueChange,
   period,
   onPeriodChange,
@@ -60,21 +76,26 @@ export function TransactionFilterBar({
     onValueChange({ ...value, ...partial });
   }
 
+  // Shared wallets pick from the presets and filter by `categoryKey`; personal wallets by `categoryId`.
+  const categories = sharedWallet ? SHARED_CATEGORIES : personalCategories;
+  const categoryField = sharedWallet ? "categoryKey" : "categoryId";
+  const categoryValue = value[categoryField];
+
   function handleTypeChange(type: TransactionType | undefined) {
-    const selected = categories.find((category) => category.id === value.categoryId);
+    const selected = categories.find((category) => category.id === categoryValue);
     const keepsCategory = !type || !selected || selected.type === type;
-    patch(keepsCategory ? { type } : { type, categoryId: undefined });
+    patch(keepsCategory ? { type } : { type, [categoryField]: undefined });
   }
 
   function handleCategoryChange(categoryId: string | undefined) {
     const selected = categories.find((category) => category.id === categoryId);
-    patch(selected ? { categoryId, type: selected.type } : { categoryId });
+    patch(selected ? { [categoryField]: categoryId, type: selected.type } : { [categoryField]: categoryId });
   }
 
   const activeFilterCount = [
     value.type,
     value.walletId,
-    value.categoryId,
+    categoryValue,
     value.dateRange?.from ?? value.dateRange?.to,
   ].filter(Boolean).length;
 
@@ -118,15 +139,14 @@ export function TransactionFilterBar({
             />
             <CategorySelector
               type={value.type}
-              value={value.categoryId}
+              value={categoryValue}
               onValueChange={handleCategoryChange}
               categories={categories}
               allowAll
               className="w-full"
             />
             <WalletSelector
-              includeShared={false}
-              value={value.walletId}
+                value={value.walletId}
               onValueChange={(walletId) => patch({ walletId })}
               allowAll
               className="w-full"
@@ -170,14 +190,13 @@ export function TransactionFilterBar({
           />
           <CategorySelector
             type={value.type}
-            value={value.categoryId}
+            value={categoryValue}
             onValueChange={handleCategoryChange}
             categories={categories}
             allowAll
             className="min-w-[110px] flex-1 sm:max-w-44 sm:flex-none"
           />
           <WalletSelector
-            includeShared={false}
             value={value.walletId}
             onValueChange={(walletId) => patch({ walletId })}
             allowAll

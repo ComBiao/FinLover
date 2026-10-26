@@ -25,8 +25,6 @@ const server = spawn(
       PUBLIC_ORIGINS: `http://localhost:${port}`,
       // Fixed on purpose: the spec sends the same value, and e2e must never use a real secret.
       CRON_SECRET: 'test-cron-secret-2026',
-      // e2e talks to the real API only; the shared-wallet mock layer must stay off.
-      NEXT_PUBLIC_SHARED_WALLET_MOCKS: 'false',
     },
   }
 );
