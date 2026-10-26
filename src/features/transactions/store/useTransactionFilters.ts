@@ -48,3 +48,32 @@ export const useTransactionFilters = create<TransactionFiltersState>((set, get) 
   },
   resetFilters: () => set({ filters: defaultFilters(), period: currentPeriod(), anchor: todayAnchor() }),
 }));
+
+export function restoreTransactionFilters() {
+  const saved = window.sessionStorage.getItem("transactionFilters");
+  if (!saved) return;
+  try {
+    const parsed = JSON.parse(saved);
+    const period: TransactionPeriod = parsed.period.mode === "day"
+      ? { mode: "day", from: new Date(parsed.period.from), to: new Date(parsed.period.to) }
+      : parsed.period;
+    const dateRange = periodToDateRange(period);
+    useTransactionFilters.setState({
+      period,
+      anchor: new Date(parsed.anchor),
+      filters: { ...defaultFilters(), ...parsed.filters, dateRange },
+    });
+  } catch {
+    window.sessionStorage.removeItem("transactionFilters");
+  }
+}
+
+if (typeof window !== "undefined") {
+  useTransactionFilters.subscribe((state) => {
+    window.sessionStorage.setItem("transactionFilters", JSON.stringify({
+      filters: state.filters,
+      period: state.period,
+      anchor: state.anchor,
+    }));
+  });
+}

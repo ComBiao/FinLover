@@ -46,6 +46,7 @@ function renderWithClient(ui: React.ReactElement) {
 
 describe("WalletManagementPage UI", () => {
   beforeEach(() => {
+    window.sessionStorage.removeItem("walletView");
     useActiveWallet.setState({ activeWalletId: "all" });
     vi.spyOn(walletsService, "getWallets").mockResolvedValue(testWallets);
   });
@@ -58,7 +59,7 @@ describe("WalletManagementPage UI", () => {
   it("renders page header, stats and wallets list", async () => {
     renderWithClient(<WalletManagementPage />);
 
-    expect(screen.getByRole("heading", { name: "Wallets" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Wallets" })).toBeInTheDocument();
     expect(await screen.findByText("Main Cash")).toBeInTheDocument();
     expect(screen.getByText("Trip Fund")).toBeInTheDocument();
     expect(screen.getByText("Default")).toBeInTheDocument();

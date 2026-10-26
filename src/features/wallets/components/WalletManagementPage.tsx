@@ -6,6 +6,7 @@ import { Plus, Users, Wallet as WalletIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useSessionPageState } from "@/hooks/useSessionPageState";
 import { Tabs, TabsContent, TabsIndicator, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatBaht } from "@/lib/utils";
 import type { Wallet } from "@/types/wallet";
@@ -20,6 +21,7 @@ import { NotificationBell } from "./NotificationBell";
 import { WalletCard } from "./WalletCard";
 
 type WalletView = "personal" | "shared";
+const isWalletView = (value: string): value is WalletView => value === "personal" || value === "shared";
 
 /**
  * Idle tabs read as normal text; the selected one turns green. Its soft tint-and-border (the same as a
@@ -33,7 +35,7 @@ const TAB_INDICATOR_CLASS = "rounded-md border border-primary/40 bg-primary/10";
 export function WalletManagementPage() {
   const { data: wallets = [], isPending } = useWallets();
 
-  const [selectedView, setSelectedView] = React.useState<WalletView>("personal");
+  const [selectedView, setSelectedView, viewRestored] = useSessionPageState("walletView", "personal" as WalletView, isWalletView);
   const [createOpen, setCreateOpen] = React.useState(false);
   const [editingWallet, setEditingWallet] = React.useState<Wallet | null>(null);
   const [savingWallet, setSavingWallet] = React.useState<Wallet | null>(null);
@@ -108,6 +110,10 @@ export function WalletManagementPage() {
         </Card>
       </div>
     );
+  }
+
+  if (!viewRestored || isPending) {
+    return <main className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-8"><Skeleton className="h-9 w-48" /><Skeleton className="h-11 w-64" /><div className="grid gap-4 sm:grid-cols-2"><Skeleton className="h-36 rounded-2xl" /><Skeleton className="h-36 rounded-2xl" /></div><Skeleton className="h-48 rounded-2xl" /></main>;
   }
 
   return (

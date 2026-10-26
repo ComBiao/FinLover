@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 
@@ -9,6 +9,7 @@ import { DeleteTransactionDialog } from "@/features/transactions/components/Dele
 import { TransactionFilterBar } from "@/features/transactions/components/TransactionFilterBar";
 import { TransactionTable } from "@/features/transactions/components/TransactionTable";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useSharedWalletPeriodTransactions, useTransactions } from "@/features/transactions/hooks/useTransactions";
 import { useTransactionSummary } from "@/features/transactions/hooks/useTransactionSummary";
 import {
@@ -20,7 +21,7 @@ import { filterTransactions, summarizeTransactions, withFallbackCategory } from 
 import { useCategories } from "@/features/categories/hooks/useCategories";
 import { useWallets } from "@/features/wallets/hooks/useWallets";
 import { periodMonthKeys } from "@/features/transactions/period";
-import { useTransactionFilters } from "@/features/transactions/store/useTransactionFilters";
+import { restoreTransactionFilters, useTransactionFilters } from "@/features/transactions/store/useTransactionFilters";
 import { useTransactionModal } from "@/features/transactions/store/useTransactionModal";
 import type { Transaction, TransactionFilters } from "@/types/transaction";
 
@@ -34,6 +35,13 @@ import { SummaryCards } from "./SummaryCards";
  * page is visible in both.
  */
 export default function TransactionsPage() {
+  const [filtersRestored, setFiltersRestored] = useState(false);
+  useEffect(() => {
+    queueMicrotask(() => {
+      restoreTransactionFilters();
+      setFiltersRestored(true);
+    });
+  }, []);
   const period = useTransactionFilters((state) => state.period);
   const months = useMemo(() => periodMonthKeys(period), [period]);
   const { data: transactions = [] } = useTransactions(months);
@@ -124,6 +132,10 @@ export default function TransactionsPage() {
     const { id, ...input } = updatedTransaction;
     await updateTransaction.mutateAsync({ id, input });
     toast.success("Transaction updated");
+  }
+
+  if (!filtersRestored || isWalletsPending) {
+    return <main className="mx-auto flex max-w-6xl flex-col gap-5 px-4 py-6"><Skeleton className="h-8 w-48" /><div className="grid gap-4 sm:grid-cols-3"><Skeleton className="h-36 rounded-xl" /><Skeleton className="h-36 rounded-xl" /><Skeleton className="h-36 rounded-xl" /></div><Skeleton className="h-14 rounded-xl" /><Skeleton className="h-52 rounded-xl" /></main>;
   }
 
   return (

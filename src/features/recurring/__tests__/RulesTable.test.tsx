@@ -108,7 +108,7 @@ describe("RulesTable (US4-3, US4-4, US4-5)", () => {
       />
     );
 
-    expect(screen.getByText("No recurring transactions found")).toBeInTheDocument();
+    expect(await screen.findByText("No recurring transactions found")).toBeInTheDocument();
     const createBtn = screen.getByRole("button", { name: /create recurring transaction/i });
     expect(createBtn).toBeInTheDocument();
 
@@ -116,7 +116,7 @@ describe("RulesTable (US4-3, US4-4, US4-5)", () => {
     expect(onOpenCreate).toHaveBeenCalledTimes(1);
   });
 
-  it("renders rules with titles, currency amounts, cadences, end conditions, and status badges", () => {
+  it("renders rules with titles, currency amounts, cadences, end conditions, and status badges", async () => {
     render(
       <RulesTable
         rules={mockRules}
@@ -132,7 +132,7 @@ describe("RulesTable (US4-3, US4-4, US4-5)", () => {
     );
 
     // Titles
-    expect(screen.getByText("Netflix 4K")).toBeInTheDocument();
+    expect(await screen.findByText("Netflix 4K")).toBeInTheDocument();
     expect(screen.getByText("Gym Membership")).toBeInTheDocument();
     expect(screen.getByText("Loan Installment")).toBeInTheDocument();
 
@@ -177,7 +177,7 @@ describe("RulesTable (US4-3, US4-4, US4-5)", () => {
       />
     );
 
-    const pauseBtn = screen.getByRole("button", { name: /pause rule/i });
+    const pauseBtn = await screen.findByRole("button", { name: /pause rule/i });
     await user.click(pauseBtn);
     expect(onPause).toHaveBeenCalledWith("r1");
   });
@@ -200,7 +200,7 @@ describe("RulesTable (US4-3, US4-4, US4-5)", () => {
       />
     );
 
-    const resumeBtn = screen.getByRole("button", { name: /resume rule/i });
+    const resumeBtn = await screen.findByRole("button", { name: /resume rule/i });
     await user.click(resumeBtn);
     expect(onResume).toHaveBeenCalledWith("r2");
   });
@@ -223,7 +223,7 @@ describe("RulesTable (US4-3, US4-4, US4-5)", () => {
     );
 
     // Open dropdown menu
-    const moreBtn = screen.getByRole("button", { name: /more actions/i });
+    const moreBtn = await screen.findByRole("button", { name: /more actions/i });
     fireEvent.click(moreBtn);
 
     // Find delete menu item
@@ -261,7 +261,7 @@ describe("RulesTable (US4-3, US4-4, US4-5)", () => {
     );
 
     // Open dropdown menu
-    const moreBtn = screen.getByRole("button", { name: /more actions/i });
+    const moreBtn = await screen.findByRole("button", { name: /more actions/i });
     fireEvent.click(moreBtn);
 
     // Edit Rule should NOT be in the document

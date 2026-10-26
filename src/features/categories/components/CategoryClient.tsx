@@ -11,6 +11,7 @@ import { FALLBACK_CATEGORY_NAME } from "@/features/categories/categoriesService"
 import { ApiClientError } from "@/lib/api/client";
 import { hexToRgba } from "@/components/chipColor";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useSessionPageState } from "@/hooks/useSessionPageState";
 import type { CategoryIcon } from "@/shared/contracts";
 import type { Category } from "@/types/category";
 import { z } from "zod";
@@ -74,13 +75,17 @@ const otherLast = (categories: Category[]) =>
   [...categories].sort((a, b) => Number(isFallback(a)) - Number(isFallback(b)));
 const isFallback = (category: Category) =>
   Boolean(category.isSystem) && category.name === FALLBACK_CATEGORY_NAME;
+const isCategoryType = (value: string): value is "expense" | "income" => value === "expense" || value === "income";
 
 const categorySchema = z.object({
   name: z.string().min(1, "Name is required").max(50, "Name must not exceed 50 characters"),
 });
 
 export function CategoryClient() {
-  const [type, setType] = useState<"expense" | "income">("expense");
+  const [type, setType, typeRestored] = useSessionPageState(
+    "categoryType", "expense" as "expense" | "income",
+    isCategoryType
+  );
   const { data: categories = [], isLoading, isError, refetch } = useCategories();
   const createMutation = useCreateCategory();
   const updateMutation = useUpdateCategory();
@@ -176,6 +181,10 @@ export function CategoryClient() {
     setNewIcon(ICONS[0].name);
     setNewColor(COLORS[0]);
   };
+
+  if (!typeRestored) {
+    return <main className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-8"><Skeleton className="h-8 w-44" /><Skeleton className="h-11 w-60" /><div className="grid gap-4 sm:grid-cols-3"><Skeleton className="h-36 rounded-2xl" /><Skeleton className="h-36 rounded-2xl" /><Skeleton className="h-36 rounded-2xl" /></div></main>;
+  }
 
   return (
     <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
