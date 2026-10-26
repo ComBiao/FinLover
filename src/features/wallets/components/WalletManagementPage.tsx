@@ -6,7 +6,7 @@ import { Plus, Users, Wallet as WalletIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsIndicator, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatBaht } from "@/lib/utils";
 import type { Wallet } from "@/types/wallet";
 import { useWallets } from "@/features/wallets/hooks/useWallets";
@@ -21,9 +21,14 @@ import { WalletCard } from "./WalletCard";
 
 type WalletView = "personal" | "shared";
 
-/** Idle tabs read as normal text; the selected one gets the same soft tint-and-border as a wallet card, in the app's green. */
+/**
+ * Idle tabs read as normal text; the selected one turns green. Its soft tint-and-border (the same as a
+ * wallet card, in the app's green) is the sliding `TabsIndicator` behind the triggers, so the trigger
+ * itself stays transparent.
+ */
 const TAB_TRIGGER_CLASS =
-  "gap-1.5 px-4 font-semibold text-foreground/75 hover:text-foreground data-active:border-primary/40 data-active:bg-primary/10 data-active:text-success data-active:shadow-none";
+  "gap-1.5 px-4 font-semibold text-foreground/75 transition-colors hover:text-foreground data-active:bg-transparent data-active:text-success data-active:shadow-none dark:data-active:border-transparent dark:data-active:bg-transparent";
+const TAB_INDICATOR_CLASS = "rounded-md border border-primary/40 bg-primary/10";
 
 export function WalletManagementPage() {
   const { data: wallets = [], isPending } = useWallets();
@@ -132,8 +137,9 @@ export function WalletManagementPage() {
           {hasShared ? (
             <TabsList
               aria-label="Wallet type"
-              className="h-11 w-fit border border-border bg-card p-1 shadow-sm group-data-horizontal/tabs:h-11"
+              className="relative h-11 w-fit border border-border bg-card p-1 shadow-sm group-data-horizontal/tabs:h-11"
             >
+              <TabsIndicator className={TAB_INDICATOR_CLASS} />
               <TabsTrigger value="personal" className={TAB_TRIGGER_CLASS}>
                 Personal{" "}
                 <span className="text-xs font-bold opacity-80">{personalWallets.length}</span>
