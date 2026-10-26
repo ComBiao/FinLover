@@ -80,6 +80,7 @@ export function restoreTransactionFilters() {
 }
 
 if (typeof window !== "undefined") {
+  restoreTransactionFilters();
   useTransactionFilters.subscribe((state) => {
     try {
       window.sessionStorage.setItem("transactionFilters", JSON.stringify({
