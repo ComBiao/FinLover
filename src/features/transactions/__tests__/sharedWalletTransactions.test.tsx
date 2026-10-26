@@ -75,11 +75,44 @@ describe("TransactionTable — shared wallet rows", () => {
   it("shows who logged each row and who edited it when that is someone else", () => {
     renderWithClient(<TransactionTable transactions={SHARED_ROWS} onDeleteRequest={vi.fn()} />);
 
-    // Each row renders once for mobile and once for desktop.
-    expect(screen.getAllByText("Logged by Guy")).toHaveLength(2);
+    // Each row renders twice: the mobile card says "Logged by …"; the desktop table's column header already says it, so the cell is just the name.
+    expect(screen.getAllByText("Logged by Guy")).toHaveLength(1);
+    expect(screen.getAllByText("Guy")).toHaveLength(1);
+    expect(screen.getAllByText("Logged by Tul (you)")).toHaveLength(1);
+    expect(screen.getAllByText("Tul (you)")).toHaveLength(1);
     expect(screen.getAllByText("edited by Tul (you)")).toHaveLength(2);
-    expect(screen.getAllByText("Logged by Tul (you)")).toHaveLength(2);
     expect(screen.queryByText(/edited by Guy/)).not.toBeInTheDocument();
+  });
+
+  it("offers no chevron when the names fit", () => {
+    renderWithClient(<TransactionTable transactions={SHARED_ROWS} onDeleteRequest={vi.fn()} />);
+
+    // jsdom has no layout, so nothing overflows.
+    expect(screen.queryByRole("button", { name: "Show full names" })).not.toBeInTheDocument();
+  });
+
+  describe("when a name is cut off", () => {
+    beforeEach(() => {
+      // Pretend every text node is wider than its box.
+      vi.spyOn(HTMLElement.prototype, "scrollWidth", "get").mockReturnValue(300);
+      vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(100);
+    });
+
+    it("expands the names in full from the chevron, and collapses them again", () => {
+      renderWithClient(<TransactionTable transactions={SHARED_ROWS} onDeleteRequest={vi.fn()} />);
+
+      const chevrons = screen.getAllByRole("button", { name: "Show full names" });
+      expect(chevrons).toHaveLength(2);
+      expect(screen.getByText("Guy")).toHaveClass("truncate");
+
+      fireEvent.click(chevrons[0]);
+
+      expect(screen.getByRole("button", { name: "Collapse names" })).toHaveAttribute("aria-expanded", "true");
+      expect(screen.getByText("Guy")).not.toHaveClass("truncate");
+
+      fireEvent.click(screen.getByRole("button", { name: "Collapse names" }));
+      expect(screen.getByText("Guy")).toHaveClass("truncate");
+    });
   });
 
   it("lets any member edit or delete any row", () => {

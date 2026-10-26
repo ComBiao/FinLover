@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -42,25 +42,69 @@ function formatAmount(amount: number, type: Transaction["type"]) {
   return `${type === "income" ? "+" : "-"}${formatBaht(amount)}`;
 }
 
-/** Shared wallets: "Logged by Guy", plus "edited by Tul" when someone else changed the row. */
-function LoggedBy({ transaction }: { transaction: Transaction }) {
+/**
+ * Shared wallets: who logged the row, plus "edited by Tul" when someone else changed it. Where the
+ * column already says "Logged by" (desktop table) pass `withLabel={false}`; give it `onToggle` to
+ * show a chevron that expands the (truncated) names in full, like the Note column.
+ */
+function LoggedBy({
+  transaction,
+  withLabel = true,
+  expanded = false,
+  onToggle,
+}: {
+  transaction: Transaction;
+  withLabel?: boolean;
+  expanded?: boolean;
+  onToggle?: () => void;
+}) {
   const { createdBy, editedBy } = transaction;
+  const textRef = useRef<HTMLDivElement>(null);
+  const [isTruncated, setIsTruncated] = useState(false);
+
+  // Only offer the chevron when a name is actually cut off with "…". Measured while collapsed (an
+  // expanded name wraps, so it never overflows) and re-measured when the column is resized.
+  useLayoutEffect(() => {
+    const element = textRef.current;
+    if (!onToggle || expanded || !element) return;
+    const measure = () =>
+      setIsTruncated(Array.from(element.children).some((child) => child.scrollWidth > child.clientWidth));
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [onToggle, expanded, createdBy?.name, editedBy?.name]);
+
   if (!createdBy) return null;
+  const textClass = expanded ? "break-words whitespace-pre-wrap" : "truncate";
   return (
-    <div className="flex min-w-0 items-center gap-2">
+    <div className="flex min-w-0 items-start gap-2">
       <MemberAvatar id={createdBy.id} name={createdBy.name} size="sm" />
-      <div className="flex min-w-0 flex-col leading-tight">
-        <span className="truncate text-sm text-foreground">
-          Logged by {createdBy.name}
+      <div ref={textRef} className="flex min-w-0 flex-1 flex-col leading-tight">
+        <span className={cn("text-sm text-foreground", textClass)}>
+          {withLabel ? "Logged by " : ""}
+          {createdBy.name}
           {createdBy.isYou ? " (you)" : ""}
         </span>
         {editedBy ? (
-          <span className="truncate text-xs text-muted-foreground">
+          <span className={cn("text-xs text-muted-foreground", textClass)}>
             edited by {editedBy.name}
             {editedBy.isYou ? " (you)" : ""}
           </span>
         ) : null}
       </div>
+      {onToggle && (isTruncated || expanded) ? (
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={expanded}
+          aria-label={expanded ? "Collapse names" : "Show full names"}
+          className="mt-0.5 shrink-0 text-muted-foreground/70 transition-colors hover:text-foreground"
+        >
+          {expanded ? <ChevronUp className="size-3.5 text-primary" /> : <ChevronDown className="size-3.5" />}
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -279,7 +323,12 @@ export function TransactionTable({
                 </TableCell>
                 {isSharedView ? (
                   <TableCell className="py-3.5">
-                    <LoggedBy transaction={transaction} />
+                    <LoggedBy
+                      transaction={transaction}
+                      withLabel={false}
+                      expanded={isExpanded}
+                      onToggle={() => setExpandedRowId((current) => (current === transaction.id ? null : transaction.id))}
+                    />
                   </TableCell>
                 ) : (
                   <TableCell className="py-3.5">
