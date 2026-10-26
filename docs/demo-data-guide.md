@@ -12,7 +12,7 @@ This guide details the complete demo data and step-by-step presentation script f
 
 | Account Purpose | Email | Password | Name | Initial State & Role in Demo |
 | :--- | :--- | :--- | :--- | :--- |
-| **Primary Demo User** | `demo@finlover.com` | `Password123` | Alex Demo (FinLover) | **5 Personal Wallets** (฿66,380 combined), **17 Categories**, **28 Personal Txns**, **8 Recurring Rules**.<br>**Owner**: *"Family Living & Bills"* (3 members)<br>**Contributor**: *"Japan Vacation Fund"* (Saving goal 40%)<br>**Pending Invites**: 2 invites waiting in banner & bell! |
+| **Primary Demo User** | `demo@finlover.com` | `Password123` | Alex Demo (FinLover) | **5 Personal Wallets** (฿66,380 combined), **17 Categories**, **31 Personal Txns**, **8 Recurring Rules**.<br>**Owner**: *"Family Living & Bills"* (3 members)<br>**Contributor**: *"Japan Vacation Fund"* (Saving goal 40%)<br>**Pending Invites**: 2 invites waiting in banner & bell! |
 | **Partner (Owner & Contributor)** | `partner@finlover.com` | `Password123` | Sarah Partner | **Owner**: *"Japan Vacation Fund"* & *"Weekend Camping Trip"*<br>**Contributor**: *"Family Living & Bills"* (Simulate collaborative logging/editing) |
 | **Roommate (Contributor & Owner)** | `roommate@finlover.com` | `Password123` | Bob Roommate | **Contributor**: *"Family Living & Bills"*<br>**Owner**: *"Office Coffee & Snacks"* (Simulate 2nd pending invitation) |
 | **Colleague (Pending Invitee)** | `dave@finlover.com` | `Password123` | Dave Colleague | **Pending Invitee** in *"Family Living & Bills"* (Demonstrates pending member state in Owner's Members Dialog) |
@@ -75,7 +75,7 @@ npm run db:seed:demo
 
 | Story ID | Feature | How to Demo with Seeded Data | Backlog AC Reference |
 | :--- | :--- | :--- | :--- |
-| **US4-1** | **Create Recurring Rule & Cadence Models** | Click **"Create Recurring Transaction"** $\rightarrow$ fill title, amount, interval & unit (`Day(s)`, `Week(s)`, `Month(s)`, `Year(s)`), start date, and end condition (`Never`, `On Date`, `After Count`). Pre-seeded examples demonstrate weekly (`Weekly Badminton`), monthly (`Netflix 4K`, `Condo Rental`), quarterly (`Tech Magazine`), and yearly (`Cloud Storage 2TB`) cadences with month-end anchor day clamping. Immediate posting triggers if `startDate === today`. | **US4-1 Scenario 1 & 2** (Cadence models, anchor-day calculation, immediate execution on today's start date). |
+| **US4-1** | **Create Recurring Rule & Cadence Models** | Click **"Create Recurring Transaction"** $\rightarrow$ fill title, amount, interval & unit (`Day(s)`, `Week(s)`, `Month(s)`, `Year(s)`), start date, and end condition (`Never`, `On Date`, `After Count`). Pre-seeded examples demonstrate weekly (`Weekly Badminton` on Cash), monthly (`Netflix 4K`, `Condo Rental`), quarterly (`Tech Magazine`), and yearly (`Cloud Storage 2TB`) cadences with month-end anchor day clamping. Immediate posting triggers if `startDate === today`. | **US4-1 Scenario 1 & 2** (Cadence models, anchor-day calculation, immediate execution on today's start date). |
 | **US4-2** | **Automated Execution & Completion** | Inspect **"Fitness Club 3-Month Trial"**: all 3 occurrences posted (`3 of 3 posted`), status is `Completed`, and `Next Due Date` is `null` / dash (`—`). When the backend cron runs or final occurrence posts, rules cleanly transition to `Completed` without further executions. | **US4-2 Scenario 1 & 2** (Cron execution, count/date completion, overdraft-tolerant execution). |
 | **US4-3** | **View & Manage Unified Recurring Rules List** | Navigate to `/recurring`. View unified schedules list displaying category chip, title, amount, wallet tag, frequency badge (`"Every 1 Week"`, `"Every 1 Month"`, `"Every 3 Months"`, `"Every 1 Year"`), next scheduled due date, progress counter (`"2 of 12 posted"`), and status badge (`Active`, `Paused`, `Completed`). | **US4-3 Scenario 1** (Unified list view, responsive badges, loading & empty states). |
 | **US4-4** | **Pause & Resume Recurring Rule** | 1. Click **Pause** on an active rule $\rightarrow$ status badge optimistically changes to `Paused`.<br>2. Inspect seeded **"Spotify Family Plan"** (Paused with past due date `2026-09-20`) $\rightarrow$ click **Resume** $\rightarrow$ status reverts to `Active` and `Next Due Date` advances forward to the upcoming cycle without retroactively posting missed occurrences. | **US4-4 Scenario 1 & 2** (Pause halts scheduler; Resume advances overdue cycle without backfill). |
@@ -128,12 +128,12 @@ npm run db:seed:demo
 ### Personal Wallets (Owned by Alex Demo)
 | Wallet Name | Type / Tag | Color | Balance | Goal Amount | Progress | Associated Txns | Purpose in Demo |
 | :--- | :--- | :--- | :---: | :---: | :---: | :---: | :--- |
-| **Main Bank** | Standard | `#3B82F6` | **฿33,140.00** | — | — | 14 txns | Main spending & salary account (Oct Surplus + Sep Deficit) |
-| **Cash** | Default | `#4A4757` | **฿2,840.00** | — | — | 4 txns | Everyday cash + "Not Chosen" category transaction demo |
+| **Main Bank** | Standard | `#3B82F6` | **฿33,140.00** | — | — | 17 txns | Main spending & salary account (Oct Surplus + Sep Deficit) |
+| **Cash** | Default | `#4A4757` | **฿2,840.00** | — | — | 7 txns | Everyday cash + Badminton weekly sessions (3 posted) + "Not Chosen" demo |
 | **Emergency Fund** | Saving | `#10B981` | **฿12,400.00** | ฿20,000.00 | **62%** | 1 txn | US2-7 & US6-3 embedded saving goal demo (62%) |
 | **Trip to Japan** | Saving | `#EC4899` | **฿15,000.00** | ฿50,000.00 | **30%** | 1 txn | US6-6 & US6-3 travel savings demo |
 | **Old Fund** | Standard | `#8B5CF6` | **฿3,000.00** | — | — | **5 txns** | Dedicated wallet for US6-5 Cascade Deletion demo |
-| **Personal Total** | — | — | **฿66,380.00** | — | — | **25 txns** | Displayed when "All Wallets" is selected |
+| **Personal Total** | — | — | **฿66,380.00** | — | — | **31 txns** | Displayed when "All Wallets" is selected |
 
 ### Shared Wallets (Collaborative Multi-User)
 | Wallet Name | User Role | Color | Balance | Goal Amount | Members Count | Active Members | Purpose in Demo |
@@ -176,7 +176,7 @@ npm run db:seed:demo
 
 | Rule Name | Type | Category | Wallet | Cadence | Next Due Date | End Condition / Progress | Status | Purpose in Demo |
 | :--- | :---: | :--- | :--- | :--- | :---: | :---: | :---: | :--- |
-| **Weekly Badminton Court** | Expense | Health | Main Bank | **Every 1 Week** (Tue) | 2026-11-03 | Never / 4 posted | `Active` | Weekly cadence model & active sports subscription |
+| **Weekly Badminton Court** | Expense | Health | Cash | **Every 1 Week** (Tue) | 2026-10-27 | Never / 3 posted | `Active` | Weekly cadence model (3 posted ledger entries on Cash, next due 2026-10-27) |
 | **Netflix 4K Premium** | Expense | Entertainment | Main Bank | **Every 1 Month** (Day 15) | 2026-11-15 | Never / 3 posted | `Active` | Indefinite active monthly entertainment expense (US4-1, US4-3) |
 | **Condo Rental Fee** | Expense | Essentials | Main Bank | **Every 1 Month** (Day 1) | 2026-11-01 | After 12 / 2 of 12 posted | `Active` | Count-based end condition & future-only edit demo (US4-1, US4-5) |
 | **Tech Corp Monthly Salary** | Income | Salary | Main Bank | **Every 1 Month** (Day 1) | 2026-11-01 | Never / 3 posted | `Active` | Regular recurring income automation rule (US4-1, US4-3) |
@@ -226,7 +226,7 @@ When presenting to the instructor, follow this narrative order for the smoothest
 ### Phase 4: Recurring Transactions Automation
 8. Navigate to `/recurring`:
    - Highlight the unified schedule list:
-     - **Weekly**: *Weekly Badminton Court* (`Every 1 Week`)
+     - **Weekly**: *Weekly Badminton Court* (`Every 1 Week` on Cash, 3 posted, next due 2026-10-27)
      - **Monthly**: *Netflix 4K Premium* (`Every 1 Month`)
      - **Quarterly**: *Tech Magazine Quarterly* (`Every 3 Months`)
      - **Yearly**: *Cloud Storage 2TB* (`Every 1 Year`)

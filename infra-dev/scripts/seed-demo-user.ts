@@ -47,12 +47,10 @@ export async function seedDemoData() {
   const walletIds = existingWallets.map((w) => w._id);
 
   console.log(`Cleaning up existing records for demo accounts (${ALL_DEMO_EMAILS.join(", ")})...`);
-  await Transaction.collection.deleteMany({
-    $or: [{ userId: { $in: userIds } }, { walletId: { $in: walletIds } }],
-  });
-  await Scheduler.collection.deleteMany({
-    $or: [{ userId: { $in: userIds } }, { walletId: { $in: walletIds } }],
-  });
+  // Strictly delete transactions belonging to demo wallets being reset.
+  // Preserves author history and ledger balances for any surviving external shared wallets (P1).
+  await Transaction.collection.deleteMany({ walletId: { $in: walletIds } });
+  await Scheduler.collection.deleteMany({ walletId: { $in: walletIds } });
   await WalletMember.collection.deleteMany({
     $or: [
       { userId: { $in: userIds } },
@@ -562,6 +560,43 @@ export async function seedDemoData() {
       createdAt: new Date("2026-10-05T18:00:00.000Z"),
       updatedAt: new Date("2026-10-05T18:00:00.000Z"),
     },
+    // Weekly Badminton Court Bookings (Occurrences 1, 2, and 3 supporting US4-1/US4-3 weekly rule)
+    {
+      userId: demoUser._id,
+      walletId: cashWallet._id,
+      categoryId: categoryMap.get("expense:Health")!,
+      type: "expense",
+      amount: 400.0,
+      date: new Date("2026-10-06T18:00:00.000Z"),
+      title: "Weekly Badminton Court Booking",
+      notes: "Tuesday evening court session (occurrence 1)",
+      createdAt: new Date("2026-10-06T18:00:00.000Z"),
+      updatedAt: new Date("2026-10-06T18:00:00.000Z"),
+    },
+    {
+      userId: demoUser._id,
+      walletId: cashWallet._id,
+      categoryId: categoryMap.get("expense:Health")!,
+      type: "expense",
+      amount: 400.0,
+      date: new Date("2026-10-13T18:00:00.000Z"),
+      title: "Weekly Badminton Court Booking",
+      notes: "Tuesday evening court session (occurrence 2)",
+      createdAt: new Date("2026-10-13T18:00:00.000Z"),
+      updatedAt: new Date("2026-10-13T18:00:00.000Z"),
+    },
+    {
+      userId: demoUser._id,
+      walletId: cashWallet._id,
+      categoryId: categoryMap.get("expense:Health")!,
+      type: "expense",
+      amount: 400.0,
+      date: new Date("2026-10-20T18:00:00.000Z"),
+      title: "Weekly Badminton Court Booking",
+      notes: "Tuesday evening court session (occurrence 3)",
+      createdAt: new Date("2026-10-20T18:00:00.000Z"),
+      updatedAt: new Date("2026-10-20T18:00:00.000Z"),
+    },
 
     // =========================================================================
     // SEPTEMBER 2026 (Previous Month - Deficit / Overspending: US2-5 Scenario 2)
@@ -1067,7 +1102,7 @@ export async function seedDemoData() {
     // 8. Badminton Court Weekly Session (US4-1 / US4-3: Weekly Cadence demonstration)
     {
       userId: demoUser._id,
-      walletId: mainBank._id,
+      walletId: cashWallet._id,
       categoryId: categoryMap.get("expense:Health")!,
       type: "expense" as const,
       amount: 400.0,
@@ -1079,10 +1114,10 @@ export async function seedDemoData() {
       interval: 1,
       endType: "never" as const,
       status: "active" as const,
-      createdCount: 4,
-      nextDueDate: new Date("2026-11-03T00:00:00.000Z"),
+      createdCount: 3,
+      nextDueDate: new Date("2026-10-27T00:00:00.000Z"),
       createdAt: new Date("2026-10-06T00:00:00.000Z"),
-      updatedAt: new Date("2026-10-27T00:00:00.000Z"),
+      updatedAt: new Date("2026-10-20T00:00:00.000Z"),
     },
   ];
 
@@ -1138,7 +1173,7 @@ export async function seedDemoData() {
   console.log("👤 Primary Demo Account (Alex Demo):");
   console.log(`   Email:        ${DEMO_EMAIL}`);
   console.log(`   Password:     ${PASSWORD_PLAIN}`);
-  console.log(`   Personal:     5 Wallets (฿66,380 combined), 17 Categories, 28 Transactions, 8 Recurring Rules`);
+  console.log(`   Personal:     5 Wallets (฿66,380 combined), 17 Categories, 31 Transactions, 8 Recurring Rules`);
   console.log(`   Shared:       Owner: "Family Living & Bills" (3 members)`);
   console.log(`                 Contributor: "Japan Vacation Fund" (Saving Goal ฿60k, 40%)`);
   console.log(`                 Pending Invites: 2 ("Weekend Camping Trip", "Office Coffee & Snacks")`);
