@@ -4,7 +4,7 @@ import type { WalletMembershipPort } from '@/server/shared/ports/wallet-membersh
 import type { WalletRepositoryPort } from '@/server/shared/ports/wallets';
 import type { UserDirectoryPort } from '@/server/shared/ports/users';
 import { AppError } from '@/server/shared/kernel/AppError';
-import { delta } from './rules';
+import { delta, resolveSharedCategoryKey } from './rules';
 
 export class CreateTransactionService {
   constructor(
@@ -37,7 +37,8 @@ export class CreateTransactionService {
       if (input.categoryId !== undefined && input.categoryId !== null && input.categoryId !== '') {
         throw new AppError('VALIDATION_ERROR', 'One or more fields are invalid', { categoryId: 'Category is not allowed for shared wallets' });
       }
-      const tx = await this.repo.create(userId, { ...input, categoryId: null }, context);
+      const categoryKey = resolveSharedCategoryKey(input.type, input.categoryKey);
+      const tx = await this.repo.create(userId, { ...input, categoryId: null, categoryKey }, context);
       await this.wallets.adjust(tx.walletId, userId, delta(tx.type, tx.amount), context);
       if (this.users) {
         const publicUsers = await this.users.findPublicByIds([userId], context);
@@ -48,6 +49,9 @@ export class CreateTransactionService {
     }
 
     if (wallet.userId !== userId) throw new AppError('NOT_FOUND', 'Wallet not found');
+    if (input.categoryKey) {
+      throw new AppError('VALIDATION_ERROR', 'One or more fields are invalid', { categoryKey: 'Category key is only allowed for shared wallets' });
+    }
     if (input.categoryId) {
       const type = /^[a-f0-9]{24}$/i.test(input.categoryId) ? await this.categories.typeOf(input.categoryId, userId, context) : null;
       if (type !== input.type) throw new AppError('VALIDATION_ERROR', 'One or more fields are invalid', { categoryId: 'Referenced category does not exist or type mismatch' });

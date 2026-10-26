@@ -17,6 +17,7 @@ function record(doc: ITransaction): TransactionRecord {
     userId: String(doc.userId),
     walletId: String(doc.walletId),
     categoryId: doc.categoryId ? String(doc.categoryId) : null,
+    categoryKey: doc.categoryKey ?? null,
     type: doc.type,
     amount: Number(doc.amount),
     date: doc.date,
@@ -148,6 +149,7 @@ export class TransactionRepository implements TransactionRepositoryPort, Transac
     if (input.updatedBy) doc.updatedBy = new Types.ObjectId(input.updatedBy);
     if (input.walletId) doc.walletId = new Types.ObjectId(input.walletId);
     if (input.categoryId !== undefined) doc.categoryId = input.categoryId ? new Types.ObjectId(input.categoryId) : null;
+    if (input.categoryKey !== undefined) doc.categoryKey = input.categoryKey ?? undefined;
     if (input.type) doc.type = input.type;
     if (input.amount !== undefined) doc.amount = input.amount;
     if (input.date) doc.date = input.date;

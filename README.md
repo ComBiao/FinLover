@@ -18,7 +18,7 @@ Login, registration and logout call the API. `/` redirects to `/login`; authenti
 
 The v1 reports API (`/api/v1/reports/summary`, `/cash-flow`, `/category-distribution`, `/running-balance`) returns report figures for a set of personal wallets and an inclusive date range; see the [API guide](docs/api/README.md).
 
-Shared wallets (Epic 7): the UI for sharing wallets, inviting members and logging transactions together is fully implemented and wired to `/api/v1` backend endpoints. The in-memory mock layer is disabled by default and opt-in via `NEXT_PUBLIC_SHARED_WALLET_MOCKS=true`.
+Shared wallets (Epic 7): the UI for sharing wallets, inviting members and logging transactions together is fully implemented and wired to `/api/v1` backend endpoints.
 
 The Category screen lists the user's categories from `GET /api/v1/categories`: the 14 system defaults seeded at registration (8 expense, 6 income, each type including an Others) plus custom ones. System categories cannot be opened, edited or deleted; custom categories are created, edited and deleted through the API, and the seeded Others stays last in each list. `/profile` shows the account's name and email and can permanently delete the account.
 

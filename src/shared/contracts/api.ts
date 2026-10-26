@@ -22,6 +22,39 @@ export const CATEGORY_ICON_NAMES = [
 ] as const;
 export const categoryIcon = z.enum(CATEGORY_ICON_NAMES);
 export type CategoryIcon = z.infer<typeof categoryIcon>;
+
+/**
+ * The fixed category list shared wallets use. Real Category documents belong to one
+ * user, so a shared transaction stores one of these keys instead: every member sees
+ * the same list and it cannot be added to or edited. Order matches the defaults seeded
+ * for each user at registration, and each key is unique across income and expense.
+ */
+export const SHARED_CATEGORY_PRESETS = [
+  { key: 'food-drinks', name: 'Food & Drinks', type: 'expense', color: '#EA580C', icon: 'Utensils' },
+  { key: 'transportation', name: 'Transportation', type: 'expense', color: '#2563EB', icon: 'Car' },
+  { key: 'essentials', name: 'Essentials', type: 'expense', color: '#16A34A', icon: 'Home' },
+  { key: 'shopping', name: 'Shopping', type: 'expense', color: '#DB2777', icon: 'ShoppingCart' },
+  { key: 'utilities', name: 'Utilities', type: 'expense', color: '#CA8A04', icon: 'Zap' },
+  { key: 'health', name: 'Health', type: 'expense', color: '#DC2626', icon: 'HeartPulse' },
+  { key: 'entertainment', name: 'Entertainment', type: 'expense', color: '#9333EA', icon: 'Film' },
+  { key: 'others-expense', name: 'Others', type: 'expense', color: '#4B5563', icon: 'MoreHorizontal' },
+  { key: 'salary', name: 'Salary', type: 'income', color: '#16A34A', icon: 'Wallet' },
+  { key: 'wages', name: 'Wages', type: 'income', color: '#059669', icon: 'Banknote' },
+  { key: 'allowance-gift', name: 'Allowance/Gift', type: 'income', color: '#DB2777', icon: 'Gift' },
+  { key: 'bonus', name: 'Bonus', type: 'income', color: '#CA8A04', icon: 'Award' },
+  { key: 'investment', name: 'Investment', type: 'income', color: '#2563EB', icon: 'PieChart' },
+  { key: 'others-income', name: 'Others', type: 'income', color: '#4B5563', icon: 'MoreHorizontal' },
+] as const satisfies readonly { key: string; name: string; type: 'income' | 'expense'; color: string; icon: CategoryIcon }[];
+export type SharedCategoryPreset = (typeof SHARED_CATEGORY_PRESETS)[number];
+export type SharedCategoryKey = SharedCategoryPreset['key'];
+export const sharedCategoryKey = z.enum(SHARED_CATEGORY_PRESETS.map(preset => preset.key) as [SharedCategoryKey, ...SharedCategoryKey[]]);
+/** The per-type catch-all; a shared transaction without a stored key counts as this. */
+export const defaultSharedCategoryKey = (type: 'income' | 'expense'): SharedCategoryKey => type === 'income' ? 'others-income' : 'others-expense';
+/** The preset a stored key points to; a missing or unknown key falls back to the type's "Others". */
+export function sharedCategoryOf(key: string | null | undefined, type: 'income' | 'expense'): SharedCategoryPreset {
+  return SHARED_CATEGORY_PRESETS.find(preset => preset.key === key) ?? SHARED_CATEGORY_PRESETS.find(preset => preset.key === defaultSharedCategoryKey(type))!;
+}
+export const sharedCategoryResponse = z.object({ key: sharedCategoryKey, name: z.string(), icon: categoryIcon, color: z.string() });
 export const categoryInput = z.object({
   name: z.string().trim().min(1).max(50),
   type: z.enum(['income', 'expense']),
@@ -30,11 +63,12 @@ export const categoryInput = z.object({
 });
 export const categoryUpdate = categoryInput.partial();
 export const categoryListQuery = z.object({ type: z.enum(['income', 'expense']).optional() });
-export const transactionInput = z.object({ walletId: objectId, categoryId: objectId.nullable().optional(), type: z.enum(['income', 'expense']), amount: z.number().min(0.01), date: z.iso.date(), title: z.string().trim().min(1).max(100), note: z.string().max(255).optional() });
+// `categoryKey` is for shared wallets only (see SHARED_CATEGORY_PRESETS); personal wallets use `categoryId`.
+export const transactionInput = z.object({ walletId: objectId, categoryId: objectId.nullable().optional(), categoryKey: sharedCategoryKey.nullable().optional(), type: z.enum(['income', 'expense']), amount: z.number().min(0.01), date: z.iso.date(), title: z.string().trim().min(1).max(100), note: z.string().max(255).optional() });
 export const transactionUpdate = transactionInput.extend({ walletId: objectId.optional() });
 export const transactionAttribution = z.object({ id: objectId, name: z.string().min(1) });
 // Optional during the E7 contract-first rollout; personal responses omit attribution.
-export const transactionResponse = transactionInput.extend({ id: objectId, categoryId: objectId.nullable(), createdBy: transactionAttribution.optional(), editedBy: transactionAttribution.optional() });
+export const transactionResponse = transactionInput.omit({ categoryKey: true }).extend({ id: objectId, categoryId: objectId.nullable(), createdBy: transactionAttribution.optional(), editedBy: transactionAttribution.optional() });
 export const transactionMonthQuery = z.object({
   month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'month must use YYYY-MM format').optional(),
   // Case-insensitive substring match on title or note; blank means no search.
@@ -55,6 +89,10 @@ export const homeSummaryQuery = z.object({
   // "all" (the default) totals every owned wallet; an id scopes the summary to that wallet.
   walletId: z.union([z.literal('all'), objectId]).optional().transform(value => value ?? 'all'),
 });
+const homeTopCategory = z.object({
+  rank: z.number().int().min(1), categoryId: objectId.nullable(), name: z.string(),
+  icon: z.string().nullable(), color: z.string().nullable(), amount: z.number(),
+});
 export const homeSummaryResponse = z.object({
   month: z.string(),
   walletId: z.string(),
@@ -69,10 +107,7 @@ export const homeSummaryResponse = z.object({
   income: z.number(),
   expense: z.number(),
   net: z.object({ net: z.number(), status: z.enum(['surplus', 'overspending', 'even']) }),
-  topCategories: z.array(z.object({
-    rank: z.number().int().min(1), categoryId: objectId.nullable(), name: z.string(),
-    icon: z.string().nullable(), color: z.string().nullable(), amount: z.number(),
-  })),
+  topCategories: z.array(homeTopCategory),
 });
 
 // Reports (Epic 8, contract v1.1). Dates are inclusive YYYY-MM-DD calendar days; money is rounded to 2 places by the server.
@@ -150,6 +185,7 @@ export type ApiResult<T> = { status: true; data: T } | { status: false; error: z
 export const legacyTransactionInput = z.object({
   wallet_id: z.string().min(1, 'wallet_id is required'),
   category_id: z.string().min(1).optional().nullable(),
+  category_key: sharedCategoryKey.optional().nullable(),
   type: z.enum(['Income', 'Expense'], {
   error: 'type is required and must be "Income" or "Expense"',}),
   amount: z.number({ error: 'amount is required and must be a number' }).positive('amount must be greater than 0'),
@@ -161,6 +197,7 @@ export const legacyTransactionInput = z.object({
 export const legacyTransactionUpdate = z.object({
   wallet_id: z.string().min(1).optional(),
   category_id: z.string().min(1).optional().nullable(),
+  category_key: sharedCategoryKey.optional().nullable(),
   type: z.enum(['Income', 'Expense'], {
     error: 'type is required and must be "Income" or "Expense"',
   }),
@@ -187,15 +224,18 @@ export const walletInvitationResponse = z.object({
 });
 export const myInvitationsResponse = z.object({ items: z.array(walletInvitationResponse), total: z.number().int().nonnegative() });
 export const transferOwnershipInput = z.object({ userId: objectId });
-// Strict target schemas reject categoryId, including null, and wallet moves.
+// Strict target schemas reject categoryId, including null, and wallet moves; a shared
+// transaction picks from the fixed presets with `categoryKey` instead.
 // Services must select these using the persisted wallet, never a client flag.
 export const sharedTransactionInput = transactionInput.omit({ categoryId: true }).strict();
 export const sharedTransactionUpdate = sharedTransactionInput.omit({ walletId: true }).strict();
 export const sharedTransactionResponse = transactionResponse.omit({ categoryId: true }).extend({
   createdBy: transactionAttribution,
+  category: sharedCategoryResponse,
 }).strict();
 export const sharedHomeSummaryResponse = homeSummaryResponse.extend({
-  walletId: objectId, topCategories: z.array(z.never()).max(0),
+  walletId: objectId,
+  topCategories: z.array(homeTopCategory.extend({ categoryId: z.null(), categoryKey: sharedCategoryKey })).max(3),
 });
 export const invitationEmailError = apiError.extend({
   code: z.literal('VALIDATION_ERROR'),

@@ -25,9 +25,10 @@ function useDebouncedValue<T>(value: T, delayMs: number) {
  * Server-computed Spent / Income / Net for the Transactions page's period and
  * filters (US3-6). Keyed under `TRANSACTIONS_QUERY_KEY`, so every mutation
  * that refreshes the list refreshes these totals too. Previous totals stay on
- * screen while new ones load.
+ * screen while new ones load. Pass `enabled: false` while a shared wallet is
+ * filtered: the server has no summary for those (the page totals its rows instead).
  */
-export function useTransactionSummary(period: TransactionPeriod, filters: TransactionFilters) {
+export function useTransactionSummary(period: TransactionPeriod, filters: TransactionFilters, { enabled = true } = {}) {
   const search = useDebouncedValue(filters.search.trim().slice(0, MAX_SEARCH_LENGTH), SUMMARY_SEARCH_DELAY_MS);
   // Every period mode yields both ends; `DateRange` only types them optional for the free-form filter.
   const { from, to } = periodToDateRange(period);
@@ -44,5 +45,6 @@ export function useTransactionSummary(period: TransactionPeriod, filters: Transa
     queryKey: [...TRANSACTIONS_QUERY_KEY, "summary", query],
     queryFn: () => getTransactionSummary(query),
     placeholderData: keepPreviousData,
+    enabled,
   });
 }

@@ -10,7 +10,7 @@ import Transaction from '@/server/db/models/Transaction';
 import { signToken } from '@/server/shared/auth/crypto';
 import { seedSharedWallet } from '@/test/shared-wallet-fixture';
 import { v1 } from '@/server/shared/http/versioned-handlers';
-import { sharedTransactionResponse } from '@/shared/contracts';
+import { sharedHomeSummaryResponse, sharedTransactionResponse } from '@/shared/contracts';
 
 vi.mock('@/server/db/index', () => ({ connectDB: vi.fn(async () => {}) }));
 
@@ -40,6 +40,7 @@ async function insertTx(data: {
   title: string;
   note?: string;
   categoryId?: string | null;
+  categoryKey?: string;
   updatedBy?: string;
 }) {
   const _id = new Types.ObjectId();
@@ -53,6 +54,7 @@ async function insertTx(data: {
     title: data.title,
     note: data.note,
     categoryId: data.categoryId ? new Types.ObjectId(data.categoryId) : null,
+    categoryKey: data.categoryKey,
     updatedBy: data.updatedBy ? new Types.ObjectId(data.updatedBy) : undefined,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -87,8 +89,8 @@ describe('Shared Wallet Transactions and Lifecycle Integration (Epic 7)', () => 
     await User.create({ _id: outsider, email: 'outsider@example.com', name: 'Outsider User', passwordHash: 'hash', dataPrivacyConsent: true });
   });
 
-  describe('E7-11: Shared Transaction Creation and Category Rejection', () => {
-    it('creates a transaction on a shared wallet without categoryId and adjusts wallet balance', async () => {
+  describe('E7-11: Shared Transaction Creation and Categories', () => {
+    it('creates a transaction on a shared wallet defaulting to Others and adjusts wallet balance', async () => {
       const { wallet } = await seedSharedWallet(owner, [{ userId: member, status: 'accepted' }]);
       const walletId = String(wallet._id);
 
@@ -113,9 +115,54 @@ describe('Shared Wallet Transactions and Lifecycle Integration (Epic 7)', () => 
       expect(tx.title).toBe('Team Dinner');
       expect(tx.createdBy).toEqual({ id: member, name: 'Member User' });
       expect(tx).not.toHaveProperty('categoryId');
+      expect(tx.category).toEqual({ key: 'others-expense', name: 'Others', icon: 'MoreHorizontal', color: '#4B5563' });
 
       const updatedWallet = await Wallet.findById(walletId);
       expect(updatedWallet?.balance).toBe(-250);
+    });
+
+    it('stores the chosen preset categoryKey, so any member sees the same category', async () => {
+      const { wallet } = await seedSharedWallet(owner, [{ userId: member, status: 'accepted' }]);
+      const walletId = String(wallet._id);
+
+      const createReq = req('http://localhost:3000/api/v1/transactions', 'POST', member, {
+        walletId, categoryKey: 'food-drinks', type: 'expense', amount: 90, date: '2026-10-15', title: 'Noodles',
+      });
+      const created = sharedTransactionResponse.parse((await (await v1.createTransaction(createReq, ctx())).json()).data);
+      expect(created.category).toEqual({ key: 'food-drinks', name: 'Food & Drinks', icon: 'Utensils', color: '#EA580C' });
+      expect((await Transaction.findById(created.id))?.categoryKey).toBe('food-drinks');
+      expect((await Transaction.findById(created.id))?.categoryId).toBeNull();
+
+      const listReq = req(`http://localhost:3000/api/v1/wallets/${walletId}/transactions?month=2026-10`, 'GET', owner);
+      const listed = (await (await v1.listSharedWalletTransactions(listReq, ctx(walletId))).json()).data;
+      expect(listed[0].category.key).toBe('food-drinks');
+    });
+
+    it('rejects an unknown categoryKey or one that belongs to the other type with 400', async () => {
+      const { wallet } = await seedSharedWallet(owner, [{ userId: member, status: 'accepted' }]);
+      const walletId = String(wallet._id);
+      const create = (categoryKey: string, type: 'income' | 'expense') => v1.createTransaction(
+        req('http://localhost:3000/api/v1/transactions', 'POST', member, { walletId, categoryKey, type, amount: 10, date: '2026-10-15', title: 'X' }),
+        ctx(),
+      );
+
+      expect((await create('not-a-category', 'expense')).status).toBe(400);
+      const mismatch = await create('salary', 'expense');
+      expect(mismatch.status).toBe(400);
+      expect((await mismatch.json()).error.fields?.categoryKey).toBe('Category does not exist or does not match the transaction type');
+      expect((await Wallet.findById(walletId))?.balance).toBe(0);
+    });
+
+    it('rejects categoryKey on a personal wallet with 400', async () => {
+      const personal = await Wallet.create({ userId: owner, name: 'Personal', balance: 0 });
+      const res = await v1.createTransaction(
+        req('http://localhost:3000/api/v1/transactions', 'POST', owner, {
+          walletId: String(personal._id), categoryKey: 'food-drinks', type: 'expense', amount: 10, date: '2026-10-15', title: 'X',
+        }),
+        ctx(),
+      );
+      expect(res.status).toBe(400);
+      expect((await res.json()).error.fields?.categoryKey).toBe('Category key is only allowed for shared wallets');
     });
 
     it('rejects categoryId on shared wallet creation with 400 when category is provided', async () => {
@@ -168,7 +215,7 @@ describe('Shared Wallet Transactions and Lifecycle Integration (Epic 7)', () => 
   });
 
   describe('E7-11 & E7-06: Shared Wallet Month Transactions List and Attribution', () => {
-    it('lists transactions for a shared wallet by month with dual attribution and omits categoryId', async () => {
+    it('lists transactions for a shared wallet by month with dual attribution and preset categories', async () => {
       const { wallet } = await seedSharedWallet(owner, [{ userId: member, status: 'accepted' }]);
       const walletId = String(wallet._id);
 
@@ -180,6 +227,7 @@ describe('Shared Wallet Transactions and Lifecycle Integration (Epic 7)', () => 
         amount: 150,
         date: new Date('2026-10-10T10:00:00.000Z'),
         title: 'Snacks',
+        categoryKey: 'food-drinks',
       });
 
       // Owner updates member's transaction
@@ -211,6 +259,7 @@ describe('Shared Wallet Transactions and Lifecycle Integration (Epic 7)', () => 
         createdBy?: { id: string; name: string };
         editedBy?: { id: string; name: string };
         categoryId?: unknown;
+        category?: { key: string };
       }
       const body = (await res.json()) as { status: boolean; data: SharedTxItem[] };
       expect(body.status).toBe(true);
@@ -221,6 +270,8 @@ describe('Shared Wallet Transactions and Lifecycle Integration (Epic 7)', () => 
       expect(topup!.createdBy).toEqual({ id: owner, name: 'Owner User' });
       expect(topup!.editedBy).toBeUndefined();
       expect(topup).not.toHaveProperty('categoryId');
+      // Rows saved without a key count as the type's Others
+      expect(topup!.category?.key).toBe('others-income');
 
       const snacks = body.data.find(d => d.title === 'Snacks');
       expect(snacks).toBeDefined();
@@ -228,6 +279,7 @@ describe('Shared Wallet Transactions and Lifecycle Integration (Epic 7)', () => 
       expect(snacks!.editedBy).toEqual({ id: owner, name: 'Owner User' });
       expect(snacks!.amount).toBe(180);
       expect(snacks).not.toHaveProperty('categoryId');
+      expect(snacks!.category?.key).toBe('food-drinks');
     });
 
     it('falls back to "Deleted user" for deleted accounts and "Unnamed user" for nameless users', async () => {
@@ -325,6 +377,30 @@ describe('Shared Wallet Transactions and Lifecycle Integration (Epic 7)', () => 
       const selfBody = await selfRes.json();
       expect(selfBody.data.createdBy).toEqual({ id: owner, name: 'Owner User' });
       expect(selfBody.data.editedBy).toBeUndefined();
+    });
+
+    it('lets another member change the category, keeps it when omitted and resets it when the type changes', async () => {
+      const { wallet } = await seedSharedWallet(owner, [{ userId: member, status: 'accepted' }]);
+      const walletId = String(wallet._id);
+      const tx = await insertTx({ userId: owner, walletId, type: 'expense', amount: 100, date: new Date('2026-10-10T10:00:00.000Z'), title: 'Bus', categoryKey: 'transportation' });
+      await Wallet.findByIdAndUpdate(walletId, { $inc: { balance: -100 } });
+      const update = (as: string, body: Record<string, unknown>) => v1.updateTransaction(
+        req(`http://localhost:3000/api/v1/transactions/${tx._id}`, 'PUT', as, { amount: 100, type: 'expense', date: '2026-10-10', title: 'Bus', ...body }),
+        ctx(String(tx._id)),
+      );
+
+      // Omitted keeps the author's category
+      expect((await (await update(member, {})).json()).data.category.key).toBe('transportation');
+      // Another member picks a different one
+      expect((await (await update(member, { categoryKey: 'shopping' })).json()).data.category.key).toBe('shopping');
+      // null resets to Others
+      expect((await (await update(owner, { categoryKey: null })).json()).data.category.key).toBe('others-expense');
+      // A key of the other type is rejected and nothing changes
+      expect((await update(member, { categoryKey: 'salary' })).status).toBe(400);
+      // Switching type with no key falls back to the new type's Others
+      await update(member, { categoryKey: 'health' });
+      const switched = await (await update(member, { type: 'income' })).json();
+      expect(switched.data.category.key).toBe('others-income');
     });
 
     it('rejects changing walletId or providing categoryId on shared transaction update', async () => {
@@ -493,14 +569,17 @@ describe('Shared Wallet Transactions and Lifecycle Integration (Epic 7)', () => 
   });
 
   describe('E7-15: Shared Home Summary', () => {
-    it('computes home summary across all members with empty topCategories for a shared wallet', async () => {
+    it('computes home summary and top categories across all members for a shared wallet', async () => {
       const { wallet } = await seedSharedWallet(owner, [{ userId: member, status: 'accepted' }]);
       const walletId = String(wallet._id);
       await Wallet.findByIdAndUpdate(walletId, { balance: 800 });
 
       // Owner income 1000, Member expense 200
       await insertTx({ userId: owner, walletId, type: 'income', amount: 1000, date: new Date('2026-10-01T10:00:00.000Z'), title: 'Deposit' });
-      await insertTx({ userId: member, walletId, type: 'expense', amount: 200, date: new Date('2026-10-02T10:00:00.000Z'), title: 'Lunch' });
+      await insertTx({ userId: member, walletId, type: 'expense', amount: 200, date: new Date('2026-10-02T10:00:00.000Z'), title: 'Lunch', categoryKey: 'food-drinks' });
+      await insertTx({ userId: owner, walletId, type: 'expense', amount: 150, date: new Date('2026-10-03T10:00:00.000Z'), title: 'Dinner', categoryKey: 'food-drinks' });
+      await insertTx({ userId: owner, walletId, type: 'expense', amount: 80, date: new Date('2026-10-04T10:00:00.000Z'), title: 'Misc' });
+      await insertTx({ userId: member, walletId, type: 'expense', amount: 30, date: new Date('2026-10-05T10:00:00.000Z'), title: 'Bus', categoryKey: 'transportation' });
 
       // Member views summary
       const sumReq = req(`http://localhost:3000/api/v1/home/summary?month=2026-10&walletId=${walletId}`, 'GET', member);
@@ -511,10 +590,16 @@ describe('Shared Wallet Transactions and Lifecycle Integration (Epic 7)', () => 
       expect(body.status).toBe(true);
       expect(body.data.walletId).toBe(walletId);
       expect(body.data.income).toBe(1000);
-      expect(body.data.expense).toBe(200);
-      expect(body.data.net).toEqual({ net: 800, status: 'surplus' });
+      expect(body.data.expense).toBe(460);
+      expect(body.data.net).toEqual({ net: 540, status: 'surplus' });
       expect(body.data.balance.totalBalance).toBe(800);
-      expect(body.data.topCategories).toEqual([]);
+      // Every author's rows are grouped by preset; rows without a key count as Others
+      expect(body.data.topCategories).toEqual([
+        { rank: 1, categoryId: null, categoryKey: 'food-drinks', name: 'Food & Drinks', icon: 'Utensils', color: '#EA580C', amount: 350 },
+        { rank: 2, categoryId: null, categoryKey: 'others-expense', name: 'Others', icon: 'MoreHorizontal', color: '#4B5563', amount: 80 },
+        { rank: 3, categoryId: null, categoryKey: 'transportation', name: 'Transportation', icon: 'Car', color: '#2563EB', amount: 30 },
+      ]);
+      sharedHomeSummaryResponse.parse(body.data);
     });
 
     it('rejects outsider reading shared home summary with 403', async () => {

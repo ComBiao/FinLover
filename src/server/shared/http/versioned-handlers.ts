@@ -14,6 +14,7 @@ const txInput = (value: Record<string, unknown>) => {
   if ('categoryId' in value && value.categoryId !== undefined) {
     res.category_id = value.categoryId;
   }
+  if ('categoryKey' in value && value.categoryKey !== undefined) res.category_key = value.categoryKey;
   return res;
 };
 const txUpdateInput = (value: Record<string, unknown>) => {
@@ -26,6 +27,7 @@ const txUpdateInput = (value: Record<string, unknown>) => {
   };
   if ('walletId' in value && value.walletId !== undefined) res.wallet_id = value.walletId;
   if ('categoryId' in value && value.categoryId !== undefined) res.category_id = value.categoryId;
+  if ('categoryKey' in value && value.categoryKey !== undefined) res.category_key = value.categoryKey;
   return res;
 };
 const txOutput = (value: Record<string, unknown>) => {
@@ -38,6 +40,7 @@ const txOutput = (value: Record<string, unknown>) => {
       date: value.date,
       title: value.title,
       createdBy: value.createdBy,
+      category: value.category,
     };
     if (value.note !== undefined && value.note !== null) res.note = value.note;
     if (value.editedBy) res.editedBy = value.editedBy;

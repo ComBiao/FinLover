@@ -7,7 +7,6 @@ import { PiggyBank, Tag, Wallet as WalletIcon } from "lucide-react";
 
 import { HomePage } from "../components/HomePage";
 import { useActiveWallet } from "@/features/wallets/store/useActiveWallet";
-import { useBalanceVisibility } from "@/features/wallets/store/useBalanceVisibility";
 import { useTransactionModal } from "@/features/transactions/store/useTransactionModal";
 import * as walletsService from "@/features/wallets/walletsService";
 import * as transactionsService from "@/features/transactions/transactionsService";
@@ -116,7 +115,6 @@ function renderWithClient(ui: React.ReactElement) {
 describe("HomePage — Task 55: Home Transaction Table", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    useBalanceVisibility.setState({ isVisible: true });
     useActiveWallet.setState({ activeWalletId: "all" });
     useTransactionModal.setState({
       isOpen: false,

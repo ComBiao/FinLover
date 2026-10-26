@@ -1,13 +1,11 @@
-import { ArrowDownRight, ArrowUpRight, Eye, EyeOff } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 
 import { CATEGORY_STYLES, resolveChipTone } from "@/components/chipColor";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
 import { cn, formatBaht } from "@/lib/utils";
 import type { HomeSavingGoal, HomeTopCategory } from "@/features/homepage/services/homeService";
-import { useBalanceVisibility } from "@/features/wallets/store/useBalanceVisibility";
 
 type TotalBalanceCardProps = {
   walletLabel: string;
@@ -26,9 +24,6 @@ export function TotalBalanceCard({
   savingGoal,
   isLoading = false,
 }: TotalBalanceCardProps) {
-  const isVisible = useBalanceVisibility((state) => state.isVisible);
-  const toggleVisibility = useBalanceVisibility((state) => state.toggle);
-
   return (
     <Card className="rounded-2xl bg-gradient-pastel-a shadow-sm">
       <CardContent className="flex h-full flex-col gap-3.5 py-1">
@@ -59,23 +54,13 @@ export function TotalBalanceCard({
                 <span className="text-base font-bold tracking-wide text-muted-foreground uppercase">
                   Total balance
                 </span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-xs"
-                  aria-label={isVisible ? "Hide balance" : "Show balance"}
-                  onClick={toggleVisibility}
-                  className="size-6 text-muted-foreground hover:text-foreground"
-                >
-                  {isVisible ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
-                </Button>
               </div>
               <span className="w-fit rounded-full bg-card/70 px-2.5 py-1 text-xs font-semibold text-foreground/70">
                 {walletLabel} · today
               </span>
             </div>
             <div className="text-3xl font-extrabold text-foreground sm:text-4xl">
-              {isVisible ? formatBaht(totalBalance) : "••••••"}
+              {formatBaht(totalBalance)}
             </div>
 
             {savingGoal ? (
@@ -91,10 +76,7 @@ export function TotalBalanceCard({
                 <Progress value={savingGoal.percent} className="[&>div]:bg-card/80" />
                 <span className="text-xs text-foreground/80">
                   {savingGoal.walletName} ·{" "}
-                  {isVisible
-                    ? `${formatBaht(savingGoal.current)} of ${formatBaht(savingGoal.goal)}`
-                    : "••••••"}{" "}
-                  · {savingGoal.percent}%
+                  {formatBaht(savingGoal.current)} of {formatBaht(savingGoal.goal)} · {savingGoal.percent}%
                 </span>
               </div>
             ) : null}
@@ -292,12 +274,13 @@ export function TopCategoriesCard({ monthLabel, topCategories, isLoading = false
               // TODO(backend): once GET /api/categories returns a real `color`
               // per category, this can drop the CATEGORY_STYLES fallback and
               // rely on `category.color` alone.
-              const tone = category.categoryId
-                ? resolveChipTone(category.color, CATEGORY_STYLES, category.categoryId)
+              const categoryRef = category.categoryId ?? category.categoryKey;
+              const tone = categoryRef
+                ? resolveChipTone(category.color, CATEGORY_STYLES, categoryRef)
                 : undefined;
               return (
                 <li
-                  key={category.categoryId ?? "uncategorized"}
+                  key={categoryRef ?? "uncategorized"}
                   className="flex items-center gap-3.5 py-3"
                 >
                   <span className="w-5 shrink-0 text-sm font-bold text-muted-foreground">

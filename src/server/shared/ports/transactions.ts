@@ -1,7 +1,7 @@
 import type { TransactionContext } from './unit-of-work';
 import type { WalletRecord } from './wallets';
 
-export interface TransactionInput { walletId?: string; categoryId?: string | null; type: 'income' | 'expense'; amount: number; date: Date; title: string; note?: string; updatedBy?: string }
+export interface TransactionInput { walletId?: string; categoryId?: string | null; categoryKey?: string | null; type: 'income' | 'expense'; amount: number; date: Date; title: string; note?: string; updatedBy?: string }
 export interface TransactionRecord extends TransactionInput {
   id: string;
   walletId: string;

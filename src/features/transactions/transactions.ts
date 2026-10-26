@@ -1,4 +1,5 @@
 import { isFallbackCategory } from "@/features/categories/categoriesService";
+import { sharedCategoryOf } from "@/shared/contracts";
 import type { Category } from "@/types/category";
 import type { Transaction, TransactionFilters } from "@/types/transaction";
 
@@ -39,6 +40,8 @@ export function filterTransactions(
     .filter((transaction) => {
       if (filters.walletId && transaction.walletId !== filters.walletId) return false;
       if (filters.categoryId && transaction.categoryId !== filters.categoryId) return false;
+      // A shared row saved without a key counts as its type's Others.
+      if (filters.categoryKey && sharedCategoryOf(transaction.categoryKey, transaction.type).key !== filters.categoryKey) return false;
       if (filters.type && transaction.type !== filters.type) return false;
       if (filters.dateRange?.from && transaction.date < filters.dateRange.from) return false;
       if (filters.dateRange?.to && transaction.date > endOfDay(filters.dateRange.to)) return false;
@@ -60,3 +63,17 @@ export type TransactionSummary = {
   totalExpense: number;
   netBalance: number;
 };
+
+/**
+ * Spent / Income / Net totalled from rows already in the browser. Used for a shared wallet, whose
+ * rows are all loaded for the period (no paging) and whose summary the server doesn't compute.
+ */
+export function summarizeTransactions(transactions: Transaction[]): TransactionSummary {
+  let totalIncome = 0;
+  let totalExpense = 0;
+  for (const transaction of transactions) {
+    if (transaction.type === "income") totalIncome += transaction.amount;
+    else totalExpense += transaction.amount;
+  }
+  return { totalIncome, totalExpense, netBalance: totalIncome - totalExpense };
+}

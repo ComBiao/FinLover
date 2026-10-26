@@ -16,7 +16,6 @@ import { WalletManagementPage } from "../components/WalletManagementPage";
 import * as invitationsService from "../shared/invitationsService";
 import * as membersService from "../shared/membersService";
 import { useActiveWallet } from "../store/useActiveWallet";
-import { useBalanceVisibility } from "../store/useBalanceVisibility";
 import * as walletsService from "../walletsService";
 
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
@@ -36,7 +35,6 @@ function renderPage() {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  useBalanceVisibility.setState({ isVisible: true });
   useActiveWallet.setState({ activeWalletId: "all" });
   vi.spyOn(walletsService, "getWallets").mockResolvedValue([
     PERSONAL_WALLET,
@@ -89,21 +87,20 @@ describe("Wallets page — Personal / Shared toggle", () => {
     expect(screen.getByText("Across 1 wallet")).toBeInTheDocument();
     expect(screen.getByText("Total Wallets")).toBeInTheDocument();
     expect(screen.getByText("1 wallet recorded")).toBeInTheDocument();
-    expect(screen.queryByText("Shared wallets", { selector: "[data-slot=badge]" })).not.toBeInTheDocument();
   });
 
-  it("switches the totals to the shared wallets and says so", async () => {
+  it("lists the shared wallets without any totals", async () => {
     renderPage();
 
     const section = await openSharedTab();
 
     expect(screen.getByRole("tab", { name: /Shared/ })).toHaveAttribute("aria-selected", "true");
-    // 9,391 + 5,500; the personal ฿5,000 is gone.
-    expect(screen.getByText("฿14,891")).toBeInTheDocument();
+    // Shared wallets are pooled with other people: no combined balance or wallet-count cards, and the personal ฿5,000 is gone.
+    expect(screen.queryByText("฿14,891")).not.toBeInTheDocument();
     expect(screen.queryByText("฿5,000")).not.toBeInTheDocument();
-    expect(screen.getByText("Shared wallets", { selector: "[data-slot=badge]" })).toBeInTheDocument();
-    expect(screen.getByText("Across 2 shared wallets · pooled with other members")).toBeInTheDocument();
-    expect(screen.getByText("Shared with other people")).toBeInTheDocument();
+    expect(screen.queryByText("Total Balance")).not.toBeInTheDocument();
+    expect(screen.queryByText(/pooled with other members/)).not.toBeInTheDocument();
+    expect(screen.queryByText("Shared with other people")).not.toBeInTheDocument();
     expect(within(section).getByRole("heading", { name: "Shared Wallets" })).toBeInTheDocument();
     expect(within(section).getByText("Housemate Fund")).toBeInTheDocument();
     expect(within(section).getByText("Japan Trip 2027")).toBeInTheDocument();

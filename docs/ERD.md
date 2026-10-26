@@ -68,6 +68,7 @@ erDiagram
     ObjectId walletId
     ObjectId updatedBy
     ObjectId categoryId
+    String categoryKey
     String type
     Number amount
     Date date

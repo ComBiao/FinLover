@@ -3,7 +3,7 @@ import {
   walletResponse, transactionResponse, sharedWalletResponse, walletCreateInput,
   walletMemberResponse, walletInvitationInput, myInvitationsResponse,
   sharedTransactionInput, sharedTransactionUpdate, sharedTransactionResponse,
-  sharedHomeSummaryResponse, invitationEmailError,
+  sharedHomeSummaryResponse, invitationEmailError, SHARED_CATEGORY_PRESETS, sharedCategoryOf,
 } from '../api';
 
 const id = '507f1f77bcf86cd799439011';
@@ -39,8 +39,11 @@ describe('E7 contract-first compatibility and target payloads', () => {
       expect(invitationEmailError.safeParse({ code: 'VALIDATION_ERROR', message: 'Validation failed', fields: { email } }).success).toBe(true);
     }
   });
-  it('rejects explicit category including null and disallows wallet moves on shared updates', () => {
+  it('rejects categoryId including null, takes a preset categoryKey and disallows wallet moves on shared updates', () => {
     expect(sharedTransactionInput.parse(tx)).toEqual(tx);
+    expect(sharedTransactionInput.parse({ ...tx, categoryKey: 'food-drinks' })).toEqual({ ...tx, categoryKey: 'food-drinks' });
+    expect(sharedTransactionInput.parse({ ...tx, categoryKey: null }).categoryKey).toBeNull();
+    expect(sharedTransactionInput.safeParse({ ...tx, categoryKey: 'my-own-category' }).success).toBe(false);
     for (const categoryId of [null, id]) {
       expect(sharedTransactionInput.safeParse({ ...tx, categoryId }).success).toBe(false);
     }
@@ -49,16 +52,24 @@ describe('E7 contract-first compatibility and target payloads', () => {
     expect(sharedTransactionUpdate.parse(update)).toEqual(update);
     expect(sharedTransactionUpdate.safeParse(tx).success).toBe(false);
   });
-  it('requires shared author attribution, accepts deleted users, and omits category', () => {
-    const shared = { ...tx, id, createdBy: person, editedBy: { id, name: 'Deleted user' } };
+  it('requires shared author attribution, accepts deleted users, and returns a preset category', () => {
+    const shared = { ...tx, id, createdBy: person, editedBy: { id, name: 'Deleted user' }, category: { key: 'others-expense', name: 'Others', icon: 'MoreHorizontal', color: '#4B5563' } };
     expect(sharedTransactionResponse.parse(shared)).toEqual(shared);
     expect(sharedTransactionResponse.safeParse({ ...tx, id }).success).toBe(false);
+    expect(sharedTransactionResponse.safeParse({ ...shared, category: undefined }).success).toBe(false);
     expect(sharedTransactionResponse.safeParse({ ...shared, categoryId: null }).success).toBe(false);
   });
-  it('keeps the Home shape but requires a selected wallet and no top categories', () => {
+  it('keeps the Home shape but requires a selected wallet and keyed shared top categories', () => {
     const summary = { month: '2026-10', walletId: id, balance: { hasWallets: true, totalBalance: 0, savingGoal: null }, income: 0, expense: 0, net: { net: 0, status: 'even' }, topCategories: [] };
     expect(sharedHomeSummaryResponse.parse(summary)).toEqual(summary);
     expect(sharedHomeSummaryResponse.safeParse({ ...summary, walletId: 'all' }).success).toBe(false);
     expect(sharedHomeSummaryResponse.safeParse({ ...summary, topCategories: [{}] }).success).toBe(false);
+    const top = { rank: 1, categoryId: null, categoryKey: 'food-drinks', name: 'Food & Drinks', icon: 'Utensils', color: '#EA580C', amount: 10 };
+    expect(sharedHomeSummaryResponse.parse({ ...summary, topCategories: [top] }).topCategories).toEqual([top]);
+  });
+  it('keeps preset keys unique and falls back to the type\'s Others for a missing key', () => {
+    expect(new Set(SHARED_CATEGORY_PRESETS.map(preset => preset.key)).size).toBe(SHARED_CATEGORY_PRESETS.length);
+    expect(sharedCategoryOf(undefined, 'income').key).toBe('others-income');
+    expect(sharedCategoryOf('salary', 'income').name).toBe('Salary');
   });
 });
