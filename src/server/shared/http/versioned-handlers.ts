@@ -1,6 +1,6 @@
 import { categoryInput, categoryUpdate, transactionInput, transactionUpdate, walletSavingUpdate, loginSchema, registerSchema } from '@/shared/contracts';
 import { versioned } from '@/server/shared/http/versioned';
-import { rawAuth as auth, rawCategories as categories, rawTransactions as transactions, rawWallets, rawHome, rawInvitations, rawMembers, rawSchedulers, rawUsers } from '@/server/composition';
+import { rawAuth as auth, rawCategories as categories, rawTransactions as transactions, rawWallets, rawHome, rawReports, rawInvitations, rawMembers, rawSchedulers, rawUsers } from '@/server/composition';
 
 const txInput = (value: Record<string, unknown>) => {
   const res: Record<string, unknown> = {
@@ -96,5 +96,9 @@ export const v1 = {
   setSchedulerStatus: versioned(rawSchedulers.setStatus, { protected: true }),
   deleteScheduler: versioned(rawSchedulers.remove, { protected: true }),
   homeSummary: versioned(rawHome.summary, { protected: true }),
+  reportSummary: versioned(rawReports.summary, { protected: true }),
+  reportCashFlow: versioned(rawReports.cashFlow, { protected: true }),
+  reportCategoryDistribution: versioned(rawReports.categoryDistribution, { protected: true }),
+  reportRunningBalance: versioned(rawReports.runningBalance, { protected: true }),
   lookupUser: versioned(rawUsers.lookup, { protected: true }),
 };
