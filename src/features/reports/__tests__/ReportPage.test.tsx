@@ -63,6 +63,18 @@ describe("ReportPage (US8-1 to US8-3)", () => {
     expect(screen.getByText("Running balance")).toBeInTheDocument();
   });
 
+  it("leaves shared wallets out because the reports API answers 404 for them", async () => {
+    const shared = { ...wallet("w3", "Housemate Fund"), isShared: true } as Wallet;
+    vi.spyOn(walletsService, "getWallets").mockResolvedValue([...WALLETS, shared]);
+    renderPage();
+
+    const month = defaultRange();
+    await waitFor(() =>
+      expect(summary).toHaveBeenCalledWith({ walletIds: ["w1", "w2"], startDate: month.startDate, endDate: month.endDate })
+    );
+    expect(summary).not.toHaveBeenCalledWith(expect.objectContaining({ walletIds: expect.arrayContaining(["w3"]) }));
+  });
+
   it("does not call any report API while the wallets are still loading", () => {
     vi.spyOn(walletsService, "getWallets").mockReturnValue(new Promise(() => {}));
     renderPage();

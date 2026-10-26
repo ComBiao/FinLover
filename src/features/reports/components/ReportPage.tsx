@@ -22,7 +22,8 @@ import { useWallets } from "@/features/wallets/hooks/useWallets";
  */
 export default function ReportPage() {
   const walletsQuery = useWallets();
-  const wallets = useMemo(() => walletsQuery.data ?? [], [walletsQuery.data]);
+  // Reports read personal wallets only: the API answers 404 for a shared wallet id.
+  const wallets = useMemo(() => (walletsQuery.data ?? []).filter((wallet) => !wallet.isShared), [walletsQuery.data]);
   const walletOptions = useMemo(() => wallets.map(({ id, name }) => ({ id, name })), [wallets]);
   const filter = useReportFilter(wallets);
   const { applied } = filter;
