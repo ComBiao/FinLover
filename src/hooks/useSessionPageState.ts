@@ -8,14 +8,23 @@ export function useSessionPageState<T extends string>(key: string, initialValue:
 
   React.useEffect(() => {
     queueMicrotask(() => {
-      const saved = window.sessionStorage.getItem(key);
-      if (saved && valid(saved)) setValue(saved);
-      setRestored(true);
+      try {
+        const saved = window.sessionStorage.getItem(key);
+        if (saved && valid(saved)) setValue(saved);
+      } catch (error) {
+        console.warn(`Could not restore ${key} from session storage`, error);
+      } finally {
+        setRestored(true);
+      }
     });
   }, [key, valid]);
 
   const update = React.useCallback((next: T) => {
-    window.sessionStorage.setItem(key, next);
+    try {
+      window.sessionStorage.setItem(key, next);
+    } catch (error) {
+      console.warn(`Could not save ${key} to session storage`, error);
+    }
     setValue(next);
   }, [key]);
 

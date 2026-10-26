@@ -57,15 +57,20 @@ export function HomePage() {
 
   React.useEffect(() => {
     queueMicrotask(() => {
-      const savedWalletId = window.sessionStorage.getItem("activeWalletId");
-      if (savedWalletId && savedWalletId !== useActiveWallet.getState().activeWalletId) {
-        setWalletId(savedWalletId);
+      try {
+        const savedWalletId = window.sessionStorage.getItem("activeWalletId");
+        if (savedWalletId && savedWalletId !== useActiveWallet.getState().activeWalletId) {
+          setWalletId(savedWalletId);
+        }
+      } catch (error) {
+        console.warn("Could not restore the active wallet", error);
+      } finally {
+        setWalletRestored(true);
       }
-      setWalletRestored(true);
     });
   }, [setWalletId]);
 
-  const { data: wallets = [], isSuccess: isWalletsLoaded } = useWallets();
+  const { data: wallets = [], isPending: isWalletsPending, isSuccess: isWalletsLoaded } = useWallets();
   const { data: currentUser } = useCurrentUser();
 
   // The summary API answers 404 for a wallet that no longer exists (e.g. just
@@ -149,7 +154,7 @@ export function HomePage() {
     });
   }
 
-  if (!walletRestored || !monthRestored || !isWalletsLoaded || (walletId !== "all" && !selectedWallet)) {
+  if (!walletRestored || !monthRestored || isWalletsPending || (isWalletsLoaded && walletId !== "all" && !selectedWallet)) {
     return (
       <main className="min-h-screen bg-background px-6 py-8 sm:px-10 sm:py-10">
         <div className="mx-auto flex max-w-6xl flex-col gap-[22px]">

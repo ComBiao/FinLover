@@ -50,7 +50,13 @@ export const useTransactionFilters = create<TransactionFiltersState>((set, get) 
 }));
 
 export function restoreTransactionFilters() {
-  const saved = window.sessionStorage.getItem("transactionFilters");
+  let saved: string | null;
+  try {
+    saved = window.sessionStorage.getItem("transactionFilters");
+  } catch (error) {
+    console.warn("Could not restore transaction filters", error);
+    return;
+  }
   if (!saved) return;
   try {
     const parsed = JSON.parse(saved);
@@ -63,17 +69,26 @@ export function restoreTransactionFilters() {
       anchor: new Date(parsed.anchor),
       filters: { ...defaultFilters(), ...parsed.filters, dateRange },
     });
-  } catch {
-    window.sessionStorage.removeItem("transactionFilters");
+  } catch (error) {
+    console.warn("Could not restore transaction filters", error);
+    try {
+      window.sessionStorage.removeItem("transactionFilters");
+    } catch (removeError) {
+      console.warn("Could not clear saved transaction filters", removeError);
+    }
   }
 }
 
 if (typeof window !== "undefined") {
   useTransactionFilters.subscribe((state) => {
-    window.sessionStorage.setItem("transactionFilters", JSON.stringify({
-      filters: state.filters,
-      period: state.period,
-      anchor: state.anchor,
-    }));
+    try {
+      window.sessionStorage.setItem("transactionFilters", JSON.stringify({
+        filters: state.filters,
+        period: state.period,
+        anchor: state.anchor,
+      }));
+    } catch (error) {
+      console.warn("Could not save transaction filters", error);
+    }
   });
 }

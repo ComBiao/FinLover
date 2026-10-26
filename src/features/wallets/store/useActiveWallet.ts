@@ -32,7 +32,11 @@ export const useActiveWallet = create<ActiveWalletState>((set) => ({
 // Listen to changes from useTransactionFilters so switching wallet from Transactions filters updates Home
 if (typeof window !== "undefined") {
   useActiveWallet.subscribe((state) => {
-    window.sessionStorage.setItem("activeWalletId", state.activeWalletId);
+    try {
+      window.sessionStorage.setItem("activeWalletId", state.activeWalletId);
+    } catch (error) {
+      console.warn("Could not save the active wallet", error);
+    }
   });
 
   useTransactionFilters.subscribe((state) => {
