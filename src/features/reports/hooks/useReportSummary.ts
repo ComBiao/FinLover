@@ -10,5 +10,7 @@ export function useReportSummary(filter: ReportFilter | null) {
     queryFn: () => getReportSummary(filter as ReportFilter),
     enabled: filter !== null,
     placeholderData: keepPreviousData,
+    // Offline, the default networkMode pauses the request for good: the old data stays dimmed under the new period and no error shows.
+    networkMode: "always",
   });
 }

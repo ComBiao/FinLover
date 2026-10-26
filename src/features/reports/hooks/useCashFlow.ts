@@ -13,5 +13,7 @@ export function useCashFlow(filter: ReportFilter | null, interval?: ReportInterv
     queryFn: () => getCashFlow(filter as ReportFilter, interval),
     enabled: filter !== null,
     placeholderData: keepPreviousData,
+    // Offline, the default networkMode pauses the request for good: the old data stays dimmed under the new period and no error shows.
+    networkMode: "always",
   });
 }
