@@ -1,21 +1,24 @@
-# FinLover — Sprint 2 Demo Data & Feature Demonstration Guide
+# FinLover — Comprehensive Demo Data & Feature Demonstration Guide
 
-This guide details the demo user data created for **FinLover Sprint 2**, perfectly aligned with [`backlog(sprint2).md`](./backlog(sprint2).md).
+This guide details the complete demo data and step-by-step presentation script for **FinLover**, covering **Personal Finance Management**, **Recurring Transactions Automation**, and **Multi-User Shared Wallets**.
 
-> **Excluded Scope**:
-> - **Shared Wallets (EPIC 7)** — Backlogged to future sprints.
+> **Note on Scope**:
+> - **Shared Wallets (EPIC 7)** — **Fully Implemented & Ready for Demo** (Multi-member management, invitation banner, notification bell, attribution, and isolated shared summaries).
 > - **Financial Reports & Analytics (EPIC 8)** — Backlogged to future sprints.
 
 ---
 
 ## 1. Demo User Credentials
 
-| Account Purpose | Email | Password | Name | Initial State |
+| Account Purpose | Email | Password | Name | Initial State & Role in Demo |
 | :--- | :--- | :--- | :--- | :--- |
-| **Primary Demo User** | `demo@finlover.com` | `Password123` | Alex Demo (FinLover) | 5 Wallets, 17 Categories, 28 Transactions, 7 Recurring Rules |
-| **Disposable User (US1-4 Delete Demo)** | `delete-demo@finlover.com` | `Password123` | Disposable Test User | 1 Wallet, 1 Transaction (Safe for deletion demo) |
+| **Primary Demo User** | `demo@finlover.com` | `Password123` | Alex Demo (FinLover) | **5 Personal Wallets** (฿66,380 combined), **17 Categories**, **28 Personal Txns**, **8 Recurring Rules**.<br>**Owner**: *"Family Living & Bills"* (3 members)<br>**Contributor**: *"Japan Vacation Fund"* (Saving goal 40%)<br>**Pending Invites**: 2 invites waiting in banner & bell! |
+| **Partner (Owner & Contributor)** | `partner@finlover.com` | `Password123` | Sarah Partner | **Owner**: *"Japan Vacation Fund"* & *"Weekend Camping Trip"*<br>**Contributor**: *"Family Living & Bills"* (Simulate collaborative logging/editing) |
+| **Roommate (Contributor & Owner)** | `roommate@finlover.com` | `Password123` | Bob Roommate | **Contributor**: *"Family Living & Bills"*<br>**Owner**: *"Office Coffee & Snacks"* (Simulate 2nd pending invitation) |
+| **Colleague (Pending Invitee)** | `dave@finlover.com` | `Password123` | Dave Colleague | **Pending Invitee** in *"Family Living & Bills"* (Demonstrates pending member state in Owner's Members Dialog) |
+| **Disposable User (US1-4 Delete Demo)** | `delete-demo@finlover.com` | `Password123` | Disposable Test User | **1 Personal Wallet**, **1 Transaction** (Safe dedicated account for deletion demo) |
 
-> **Password Note**: `Password123` satisfies all US1-1 complexity constraints (at least 1 uppercase letter, 1 lowercase letter, 1 number, and $\ge 8$ characters).
+> **Password Note**: `Password123` satisfies all US1-1 complexity constraints ($\ge 1$ uppercase, $\ge 1$ lowercase, $\ge 1$ number, $\ge 8$ characters).
 
 ### Quick Seeder Command
 To reset or re-seed the demo database at any time:
@@ -38,14 +41,12 @@ npm run db:seed:demo
 
 ---
 
-### EPIC 2: Home Page Dashboard
-
-All dashboard metrics are populated with the exact figures specified in the Sprint 2 backlog acceptance scenarios:
+### EPIC 2: Home Page Dashboard (Personal & Shared)
 
 | Story ID | Feature & Card | Target State in Demo Data | Backlog AC Reference |
 | :--- | :--- | :--- | :--- |
 | **US2-1** | **Month Navigation (`‹ Month ›`)** | • Current month: **October 2026** (Full surplus dashboard)<br>• Click `‹`: **September 2026** (Overspending deficit dashboard)<br>• Click `›` twice to **November 2026**: Empty state ($฿0$ totals, friendly empty list) | **US2-1 Scenario 1 & 2** (Past/future navigation and clean empty state handling). |
-| **US2-2** | **Total Balance Card** | • When **"All Wallets"** selected: displays combined total balance of **฿66,380.00**.<br>• When a saving wallet is selected: shows embedded saving goal progress. | **US2-2 Scenario 1** (Balance display & embedded goal). |
+| **US2-2** | **Total Balance Card** | • When **"All Wallets"** selected: displays combined total balance of **฿66,380.00** (Personal only).<br>• When a saving wallet is selected: shows embedded saving goal progress. | **US2-2 Scenario 1** (Balance display & embedded goal). |
 | **US2-3** | **Income This Month** | For **October 2026** (on `Main Bank`): displays exactly **฿32,000.00** (Salary ฿30,000 + Bonus ฿2,000). | **US2-3 Scenario 1**: *"recorded income transactions in the selected month totaling ฿32,000"*. |
 | **US2-4** | **Spent This Month** | For **October 2026** (on `Main Bank`): displays exactly **฿9,180.00**. | **US2-4 Scenario 1**: *"recorded expense transactions in the selected month totaling ฿9,180"*. |
 | **US2-5** | **Net Balance (`ยอดคงเหลือ`)** | • **October 2026 (Surplus)**: $32,000 - 9,180 =$ **`+฿22,820.00`** in bold green.<br>• **September 2026 (Deficit)**: $5,000 - 9,180 =$ **`-฿4,180.00`** in bold red with overspending indicator. | **US2-5 Scenario 1 (+฿22,820)** and **Scenario 2 (-฿4,180 overspending)**. |
@@ -74,9 +75,9 @@ All dashboard metrics are populated with the exact figures specified in the Spri
 
 | Story ID | Feature | How to Demo with Seeded Data | Backlog AC Reference |
 | :--- | :--- | :--- | :--- |
-| **US4-1** | **Create Recurring Rule & Cadence Models** | Click **"Create Recurring Transaction"** $\rightarrow$ fill title, amount, interval & unit (`Day(s)`, `Week(s)`, `Month(s)`, `Year(s)`), start date, and end condition (`Never`, `On Date`, `After Count`). Pre-seeded examples demonstrate monthly (`Netflix 4K`, `Condo Rental`), quarterly (`Tech Magazine`), and yearly (`Cloud Storage 2TB`) cadences with month-end anchor day clamping. Immediate posting triggers if `startDate === today`. | **US4-1 Scenario 1 & 2** (Cadence models, anchor-day calculation, immediate execution on today's start date). |
+| **US4-1** | **Create Recurring Rule & Cadence Models** | Click **"Create Recurring Transaction"** $\rightarrow$ fill title, amount, interval & unit (`Day(s)`, `Week(s)`, `Month(s)`, `Year(s)`), start date, and end condition (`Never`, `On Date`, `After Count`). Pre-seeded examples demonstrate weekly (`Weekly Badminton`), monthly (`Netflix 4K`, `Condo Rental`), quarterly (`Tech Magazine`), and yearly (`Cloud Storage 2TB`) cadences with month-end anchor day clamping. Immediate posting triggers if `startDate === today`. | **US4-1 Scenario 1 & 2** (Cadence models, anchor-day calculation, immediate execution on today's start date). |
 | **US4-2** | **Automated Execution & Completion** | Inspect **"Fitness Club 3-Month Trial"**: all 3 occurrences posted (`3 of 3 posted`), status is `Completed`, and `Next Due Date` is `null` / dash (`—`). When the backend cron runs or final occurrence posts, rules cleanly transition to `Completed` without further executions. | **US4-2 Scenario 1 & 2** (Cron execution, count/date completion, overdraft-tolerant execution). |
-| **US4-3** | **View & Manage Unified Recurring Rules List** | Navigate to `/recurring`. View unified schedules list displaying category chip, title, amount, wallet tag, frequency badge (`"Every 1 Month"`, `"Every 3 Months"`, `"Every 1 Year"`), next scheduled due date, progress counter (`"2 of 12 posted"`), and status badge (`Active`, `Paused`, `Completed`). | **US4-3 Scenario 1** (Unified list view, responsive badges, loading & empty states). |
+| **US4-3** | **View & Manage Unified Recurring Rules List** | Navigate to `/recurring`. View unified schedules list displaying category chip, title, amount, wallet tag, frequency badge (`"Every 1 Week"`, `"Every 1 Month"`, `"Every 3 Months"`, `"Every 1 Year"`), next scheduled due date, progress counter (`"2 of 12 posted"`), and status badge (`Active`, `Paused`, `Completed`). | **US4-3 Scenario 1** (Unified list view, responsive badges, loading & empty states). |
 | **US4-4** | **Pause & Resume Recurring Rule** | 1. Click **Pause** on an active rule $\rightarrow$ status badge optimistically changes to `Paused`.<br>2. Inspect seeded **"Spotify Family Plan"** (Paused with past due date `2026-09-20`) $\rightarrow$ click **Resume** $\rightarrow$ status reverts to `Active` and `Next Due Date` advances forward to the upcoming cycle without retroactively posting missed occurrences. | **US4-4 Scenario 1 & 2** (Pause halts scheduler; Resume advances overdue cycle without backfill). |
 | **US4-5** | **Forward-Only Edit & Safe Delete** | 1. **Edit Rule**: Click `⋮` $\rightarrow$ **Edit Rule** on **"Condo Rental Fee"** $\rightarrow$ update amount from `฿12,000` to `฿12,500` $\rightarrow$ save. Future scheduled runs use the new amount while historical ledger entries in `/transactions` remain untouched at `฿12,000`.<br>2. **Delete Rule**: Click `⋮` $\rightarrow$ **Delete Rule** on **"Netflix 4K Premium"** $\rightarrow$ confirms dialog $\rightarrow$ rule is removed, stopping future executions while all past transactions are preserved.<br>3. **Wallet Cascade**: Deleting wallet **"Old Fund"** under `/wallets` automatically cascade-deletes **"Tech Magazine Quarterly"** rule. | **US4-5 Scenario 1 & 2** (Future-only edits preserve past ledger; safe deletion stops future runs without destroying past transaction history). |
 
@@ -107,8 +108,24 @@ All dashboard metrics are populated with the exact figures specified in the Spri
 
 ---
 
+### EPIC 7: Multi-User Shared Wallets (`/wallets` & `/homepage`)
+
+| Story ID | Feature | How to Demo with Seeded Data | Acceptance Criteria Highlight |
+| :--- | :--- | :--- | :--- |
+| **US7-1** | **Create Shared Wallet** | On `/wallets`, click **"Create Wallet"** $\rightarrow$ toggle **"Shared Wallet"** checkbox $\rightarrow$ notice that balance is fixed at ฿0.00 (collaborative wallets start at zero). | Creates shared wallet with `isShared: true`, creator becomes immutable Owner. |
+| **US7-2** | **Top Invitations Banner** | Navigate to `/wallets` or `/homepage`: top banner shows: *"Sarah Partner invited you to join 'Weekend Camping Trip' as a Contributor"*, with *"1 more invitation waiting in notifications"*. Click **Accept** $\rightarrow$ instantly joins the shared wallet! | Pending invitation display in prominent banner, real-time accept/decline action. |
+| **US7-3** | **Notification Bell & Inbox** | Click the **Notification Bell** (with badge `"2"`) in header $\rightarrow$ displays all pending invitations (*Weekend Camping Trip* and *Office Coffee & Snacks*). Shows invitee and wallet details. | Multi-invitation inbox with direct action controls. |
+| **US7-4** | **Owner Role & Member Management** | In `/wallets`, switch to the **"Shared"** tab $\rightarrow$ inspect **"Family Living & Bills"** (Role: `Owner`). Click **Members (3)** button $\rightarrow$ shows modal with Owner (Alex), Accepted Contributors (Sarah Partner, Bob Roommate), and Pending invitee (Dave Colleague). Owner can invite new members by email, remove contributors, or transfer ownership. | Complete Owner permissions, member list with role chips, and pending cancellation. |
+| **US7-5** | **Contributor Role & Leave Wallet** | In `/wallets` Shared tab, inspect **"Japan Vacation Fund"** (Role: `Contributor`, Owner: Sarah Partner). Click `⋮` menu: only **Members** and **Leave Wallet** are visible (no Delete Wallet or metadata editing!). | Role-based permission enforcement: Contributors cannot delete owned wallets or modify metadata. |
+| **US7-6** | **Shared Transactions & Attribution** | Navigate to `/transactions` or `/homepage` $\rightarrow$ switch wallet to **"Family Living & Bills"**: inspect the October 2026 table. See transactions logged by different users: <br>• Alex: *Living Contribution*, *Condo Common Fee*<br>• Sarah: *Costco Bulk Supplies*<br>• Bob: *Organic Market Groceries* (**"Logged by Bob Roommate, edited by Sarah Partner"**)<br>Categories strictly use the 14 shared preset categories. | Attribution shows `createdBy` (with avatar) and `editedBy`, maintaining transparent group ledger. |
+| **US7-7** | **Shared Home Summary & Financial Isolation** | On `/homepage`: <br>1. Select **"All Wallets"**: displays **฿66,380.00** (Personal only; shared wallet balances are strictly excluded).<br>2. Select **"Family Living & Bills"**: dashboard re-scopes to show shared balance (฿14,500.00), Oct shared income (฿35,000.00), Oct shared expense (฿20,500.00), top preset categories, and a **"3 members"** button in header. | Clean financial isolation between individual finances and pooled shared budgets. |
+| **US7-8** | **Lifecycle & Deletion Safeguards** | If an Owner with active Contributors attempts to delete their account or leave the wallet, the system rejects it with an explicit safety error requiring ownership transfer or explicit wallet deletion first. Contributor account deletion preserves past shared transaction history. | Atomic safeguards prevent orphaned collaborative wallets and corrupted ledgers. |
+
+---
+
 ## 3. Seeded Wallets Summary
 
+### Personal Wallets (Owned by Alex Demo)
 | Wallet Name | Type / Tag | Color | Balance | Goal Amount | Progress | Associated Txns | Purpose in Demo |
 | :--- | :--- | :--- | :---: | :---: | :---: | :---: | :--- |
 | **Main Bank** | Standard | `#3B82F6` | **฿33,140.00** | — | — | 14 txns | Main spending & salary account (Oct Surplus + Sep Deficit) |
@@ -116,7 +133,15 @@ All dashboard metrics are populated with the exact figures specified in the Spri
 | **Emergency Fund** | Saving | `#10B981` | **฿12,400.00** | ฿20,000.00 | **62%** | 1 txn | US2-7 & US6-3 embedded saving goal demo (62%) |
 | **Trip to Japan** | Saving | `#EC4899` | **฿15,000.00** | ฿50,000.00 | **30%** | 1 txn | US6-6 & US6-3 travel savings demo |
 | **Old Fund** | Standard | `#8B5CF6` | **฿3,000.00** | — | — | **5 txns** | Dedicated wallet for US6-5 Cascade Deletion demo |
-| **Combined** | — | — | **฿66,380.00** | — | — | **25 txns** | Displayed when "All Wallets" is selected |
+| **Personal Total** | — | — | **฿66,380.00** | — | — | **25 txns** | Displayed when "All Wallets" is selected |
+
+### Shared Wallets (Collaborative Multi-User)
+| Wallet Name | User Role | Color | Balance | Goal Amount | Members Count | Active Members | Purpose in Demo |
+| :--- | :--- | :--- | :---: | :---: | :---: | :--- | :--- |
+| **Family Living & Bills** | `Owner` | `#0284C7` | **฿14,500.00** | — | **3 members** (+1 pending) | Alex (Owner), Sarah, Bob (+ Dave pending) | Owner management, attribution demo ("edited by Sarah"), shared home dashboard |
+| **Japan Vacation Fund** | `Contributor` | `#EC4899` | **฿24,000.00** | ฿60,000.00 | **2 members** (40% saved) | Sarah (Owner), Alex (Contributor) | Contributor role, shared saving goal progress, "Leave wallet" action |
+| **Weekend Camping Trip** | `Invitee` | `#10B981` | **฿3,500.00** | — | 1 accepted | Sarah (Owner), Alex (Pending) | Demonstrates Top Invitations Banner with Accept / Decline |
+| **Office Coffee & Snacks** | `Invitee` | `#F59E0B` | **฿1,200.00** | — | 1 accepted | Bob (Owner), Alex (Pending) | Demonstrates Notification Bell with multiple invitations badge ("2") |
 
 ---
 
@@ -151,11 +176,69 @@ All dashboard metrics are populated with the exact figures specified in the Spri
 
 | Rule Name | Type | Category | Wallet | Cadence | Next Due Date | End Condition / Progress | Status | Purpose in Demo |
 | :--- | :---: | :--- | :--- | :--- | :---: | :---: | :---: | :--- |
-| **Netflix 4K Premium** | Expense | Entertainment | Main Bank | Every 1 Month (Day 15) | 2026-11-15 | Never / 2 posted | `Active` | Indefinite active monthly entertainment expense (US4-1, US4-3) |
-| **Condo Rental Fee** | Expense | Essentials | Main Bank | Every 1 Month (Day 1) | 2026-11-01 | After 12 / 2 of 12 posted | `Active` | Count-based end condition & future-only edit demo (US4-1, US4-5) |
-| **Tech Corp Monthly Salary** | Income | Salary | Main Bank | Every 1 Month (Day 1) | 2026-11-01 | Never / 2 posted | `Active` | Regular recurring income automation rule (US4-1, US4-3) |
-| **Spotify Family Plan** | Expense | Entertainment | Main Bank | Every 1 Month (Day 20) | 2026-09-20 (Overdue) | Never / 1 posted | `Paused` | Paused rule with overdue date for cycle advancement demo (US4-4) |
-| **Cloud Storage 2TB** | Expense | Utilities | Main Bank | Every 1 Year (Oct 10) | 2027-10-10 | Until 2029-10-10 / 1 posted | `Active` | Yearly interval with date-based end condition (US4-1, US4-3) |
-| **Fitness Club 3-Month Trial** | Expense | Health | Main Bank | Every 1 Month (Day 5) | — (`null`) | After 3 / 3 of 3 posted | `Completed` | Completed rule with null next due date & stopped scheduler (US4-2) |
-| **Tech Magazine Quarterly** | Expense | Shopping | Old Fund | Every 3 Months (Day 1) | 2026-12-01 | Never / 1 posted | `Active` | Quarterly interval (3 months); cascade deletion target with `Old Fund` (US6-5) |
+| **Weekly Badminton Court** | Expense | Health | Main Bank | **Every 1 Week** (Tue) | 2026-11-03 | Never / 4 posted | `Active` | Weekly cadence model & active sports subscription |
+| **Netflix 4K Premium** | Expense | Entertainment | Main Bank | **Every 1 Month** (Day 15) | 2026-11-15 | Never / 3 posted | `Active` | Indefinite active monthly entertainment expense (US4-1, US4-3) |
+| **Condo Rental Fee** | Expense | Essentials | Main Bank | **Every 1 Month** (Day 1) | 2026-11-01 | After 12 / 2 of 12 posted | `Active` | Count-based end condition & future-only edit demo (US4-1, US4-5) |
+| **Tech Corp Monthly Salary** | Income | Salary | Main Bank | **Every 1 Month** (Day 1) | 2026-11-01 | Never / 3 posted | `Active` | Regular recurring income automation rule (US4-1, US4-3) |
+| **Spotify Family Plan** | Expense | Entertainment | Main Bank | **Every 1 Month** (Day 20) | 2026-09-20 (Overdue) | Never / 2 posted | `Paused` | Paused rule with overdue date for cycle advancement demo (US4-4) |
+| **Cloud Storage 2TB** | Expense | Utilities | Main Bank | **Every 1 Year** (Oct 10) | 2027-10-10 | Until 2029-10-10 / 1 posted | `Active` | Yearly interval with date-based end condition (US4-1, US4-3) |
+| **Fitness Club 3-Month Trial** | Expense | Health | Main Bank | **Every 1 Month** (Day 1) | — (`null`) | After 3 / 3 of 3 posted | `Completed` | Completed rule with null next due date & stopped scheduler (US4-2) |
+| **Tech Magazine Quarterly** | Expense | Shopping | Old Fund | **Every 3 Months** (Day 1) | 2026-12-01 | Never / 1 posted | `Active` | Quarterly interval (3 months); cascade deletion target with `Old Fund` (US6-5) |
 
+---
+
+## 6. Recommended Step-by-Step Presentation Script for Instructor
+
+When presenting to the instructor, follow this narrative order for the smoothest flow:
+
+### Phase 1: Authentication & Overview
+1. Open `/login` $\rightarrow$ Log in as `demo@finlover.com` with password `Password123`.
+2. Point out the **Home Page Dashboard**:
+   - Total Balance: **฿66,380.00** across personal wallets.
+   - October 2026 Surplus: **+฿22,820.00** (Green).
+   - Click `‹` to September 2026: Deficit **-฿4,180.00** (Red Overspending indicator).
+   - Click `›` to November 2026: Clean empty state.
+
+### Phase 2: Personal Wallets & Embedded Savings Goal
+3. On `/homepage`, switch the wallet dropdown to **"Emergency Fund"**:
+   - Total Balance card dynamically embeds the savings goal: **฿12,400.00 of ฿20,000.00 · 62%**.
+4. Navigate to `/wallets`:
+   - Point out the **Personal** tab with 5 wallets.
+   - Edit metadata on **"Trip to Japan"** (rename or change color tag).
+   - Show cascade deletion on **"Old Fund"** (deleting it confirms deleting 5 transactions and the linked quarterly subscription).
+
+### Phase 3: Multi-User Shared Wallets (The "Wow" Feature)
+5. Still on `/wallets`, highlight the **Invitations Banner** at the top:
+   - *"Sarah Partner invited you to join 'Weekend Camping Trip' as a Contributor"*.
+   - Point to the **Notification Bell** showing badge `"2"` (2 pending invitations).
+   - Click **Accept** on the banner $\rightarrow$ the banner disappears and the wallet joins the account!
+6. Click the **"Shared"** tab on `/wallets`:
+   - Inspect **"Family Living & Bills"**: role is `Owner`, avatar stack shows 3 members.
+   - Click **"Members (3)"**: show the dialog listing Alex (Owner), Sarah (Contributor), Bob (Contributor), and Dave (Pending with cancel button).
+   - Show the email input field to invite a new member.
+   - Inspect **"Japan Vacation Fund"**: role is `Contributor`, showing saving goal progress (**40%**), and the action menu shows **"Leave wallet"** instead of Delete.
+7. Switch to `/transactions` or `/homepage`:
+   - Select **"Family Living & Bills"** from the wallet dropdown.
+   - Point out the transactions logged by different members.
+   - Highlight the **Attribution**: *"Logged by Bob Roommate, edited by Sarah Partner"*.
+   - Point out that categories use the standardized 14 shared preset categories.
+
+### Phase 4: Recurring Transactions Automation
+8. Navigate to `/recurring`:
+   - Highlight the unified schedule list:
+     - **Weekly**: *Weekly Badminton Court* (`Every 1 Week`)
+     - **Monthly**: *Netflix 4K Premium* (`Every 1 Month`)
+     - **Quarterly**: *Tech Magazine Quarterly* (`Every 3 Months`)
+     - **Yearly**: *Cloud Storage 2TB* (`Every 1 Year`)
+   - **Pause / Resume Demo**:
+     - Find **"Spotify Family Plan"** (Paused, past due date `2026-09-20`).
+     - Click **Resume** $\rightarrow$ status changes to `Active` and the next due date jumps forward to the upcoming cycle without backfilling past missed cycles!
+   - **Completed State Demo**:
+     - Point out **"Fitness Club 3-Month Trial"** (`3 of 3 posted`, status `Completed`, next due date `—`).
+   - **Future-Only Edit**:
+     - Edit amount on **"Condo Rental Fee"** from `12,000` to `12,500` $\rightarrow$ future runs use the new amount, historical transactions are untouched.
+
+### Phase 5: Account Deletion Safeguard
+9. Log out $\rightarrow$ Log in as `delete-demo@finlover.com` / `Password123`.
+10. Navigate to `/profile` $\rightarrow$ delete the account with password confirmation.
+11. Show that the deletion succeeds, cookies clear, and logging in again rejects the deleted account, while keeping `demo@finlover.com` completely untouched.
