@@ -22,6 +22,10 @@ import {
   walletSavingUpdate,
   homeSummaryResponse,
   transactionSummaryResponse,
+  reportSummaryResponse,
+  cashFlowResponse,
+  categoryDistributionResponse,
+  runningBalanceResponse,
   loginSchema,
   registerSchema,
   apiError,
@@ -57,6 +61,7 @@ const schedulerExample = { walletId: '507f1f77bcf86cd799439011', categoryId: '50
 const schedulerResponseExample = { id: '507f1f77bcf86cd799439013', walletId: '507f1f77bcf86cd799439011', categoryId: '507f1f77bcf86cd799439012', type: 'expense', amount: 179, title: 'YouTube Premium', note: 'Family plan', startDate: '2026-11-05', frequency: 'monthly', interval: 1, end: { type: 'endDate', endDate: '2027-11-05' }, status: 'active', createdCount: 0, nextDueDate: '2026-11-05', canManage: true };
 const schedulerRules = ' Due dates are calendar dates in Asia/Bangkok, posted by a daily job at 00:00 Bangkok time (17:00 UTC). Only the Creator can read or change a scheduler.';
 
+const reportRules = ' Query: walletIds is a comma-separated list of wallet ids (omitted = every personal wallet the caller owns, the same set Home totals for walletId=all, saving wallets included; empty = 400 fields.walletIds); startDate and endDate are inclusive YYYY-MM-DD calendar days matched against the stored UTC-midnight transaction dates with no timezone conversion (endDate before startDate = 400 fields.endDate). A wallet the caller does not own, a missing wallet or (until Epic 7 wires reports) a shared wallet returns 404. Money is rounded to at most 2 decimal places by the server; a period without transactions returns 200 with zeros or empty lists.';
 export const operations = [
   { action: 'listWalletMembers', method: 'get', path: '/wallets/{id}/members', status: 200, errors: [400, 401, 403, 404, 409, 500], versions: ['v1'], description: 'Owner and accepted Contributors can read Owner, accepted members and pending invitations (userId/name/email/role/status). Pending invitees cannot access members. Read-only snapshot.' },
   { action: 'removeWalletMember', method: 'delete', path: '/wallets/{id}/members/{userId}', status: 200, errors: [400, 401, 403, 404, 409, 500], versions: ['v1'], description: 'Owner removes an accepted Contributor or cancels a pending invitation. Removing Owner gives 409; missing member gives 404. Access is revoked, transactions and balance stay unchanged.' },
@@ -88,6 +93,10 @@ export const operations = [
   { action: 'updateTransaction', method: 'put', path: '/transaction/{id}', status: 200, errors: [400, 401, 403, 404, 409, 422, 500], description: 'Replace editable fields of a transaction; reverse old and apply new balance atomically. For personal wallets, only the owner can update. For shared wallets, any accepted member can modify any transaction; moving wallets and specifying a categoryId are not allowed. The preset `categoryKey` of a shared transaction can be changed by any member; omitting it keeps the current one (reset to Others of that type if the type changed), null resets it.' },
   { action: 'deleteTransaction', method: 'delete', path: '/transaction/{id}', status: 204, errors: [400, 401, 403, 404, 409, 422, 500], description: 'Delete a transaction and reverse its balance atomically. Legacy success has no body. For personal wallets, only the owner can delete. For shared wallets, any accepted member can delete any transaction.' },
   { action: 'deleteWallet', method: 'delete', path: '/wallets/{id}', status: 204, errors: [400, 401, 404, 500], versions: ['v1'], description: 'Delete an owned wallet and all of its transactions atomically in one UnitOfWork; nothing is deleted if any step fails. For shared wallets, only the owner can delete (contributors receive 403) and all transactions across all authors are removed. Other wallets and their transactions are untouched. Any owned wallet may be deleted, including the default or last wallet. Data cannot be recovered.' },
+  { action: 'getReportSummary', method: 'get', path: '/reports/summary', status: 200, errors: [400, 401, 404, 500], versions: ['v1'], description: 'Report summary cards (US8-2): total income, total expense, net cash flow (income minus expense) and the number of transactions in the selected wallets and period.' + reportRules },
+  { action: 'getReportCashFlow', method: 'get', path: '/reports/cash-flow', status: 200, errors: [400, 401, 404, 500], versions: ['v1'], description: 'Income and expense per bucket for the cash flow chart (US8-3). Without interval the server uses suggestedInterval: up to 31 days daily, up to 120 days weekly, otherwise monthly; suggestedInterval is always returned. Weeks start on Monday and months on the 1st; the first and last buckets are clipped to the range. Every bucket is returned, empty ones with income 0 and expense 0. Labels: daily YYYY-MM-DD, weekly the bucket start date, monthly YYYY-MM. More than 400 buckets returns 400 fields.interval.' + reportRules },
+  { action: 'getReportCategoryDistribution', method: 'get', path: '/reports/category-distribution', status: 200, errors: [400, 401, 404, 500], versions: ['v1'], description: "Income and expense split by category (US8-4), each with its total and items sorted by amount descending. Transactions without a category count toward the caller's seeded Others of the same type, as on Home; without one, they appear as categoryId null named Other (No Category) with null icon and color. Percentages have one decimal place and add up to exactly 100.0 per type (largest remainder, taken after rows are merged). A type without transactions is { total: 0, items: [] }." + reportRules },
+  { action: 'getReportRunningBalance', method: 'get', path: '/reports/running-balance', status: 200, errors: [400, 401, 404, 500], versions: ['v1'], description: 'Combined balance of the selected wallets at the end of each day (interval=daily, the default) or week (interval=weekly, Monday start, last point clipped to endDate; each point is dated at its bucket end) for the running balance chart (US8-5). Wallets have no stored opening balance and only transactions change a balance, so openingBalance (the balance before startDate) is the current balance minus the net of every transaction dated on or after startDate, including transactions after endDate. Every point is returned; days without transactions carry the previous balance, which may be negative. closingBalance equals the last point. More than 400 points returns 400 fields.interval.' + reportRules },
   { action: 'listSchedulers', method: 'get', path: '/schedulers', status: 200, errors: [400, 401, 500], versions: ['v1'], description: "List the caller's schedulers, upcoming first (completed and cancelled last), optionally filtered by wallet or status. Each item has canManage, true for the Creator." + schedulerRules },
   { action: 'createScheduler', method: 'post', path: '/schedulers', status: 201, errors: [400, 401, 404, 409, 415, 500], versions: ['v1'], description: 'Create a scheduler that posts a transaction every N days, weeks, months or years (interval up to 365 days, 52 weeks, 60 months or 5 years). End: never, after N transactions (1-1000), on an inclusive endDate, or a span in weeks/months/years that the server converts to endDate (the start period counts as the first, so 5 months is 5 monthly runs). categoryId defaults to the Others category of the type. A start date of today posts the first transaction immediately; a past start date is not back-filled and waits for the next cycle; month-end days clamp (31 Jan, 28 Feb, 31 Mar). Balances may go negative. At most 50 active or paused schedulers per user (409).' + schedulerRules },
   { action: 'getScheduler', method: 'get', path: '/schedulers/{id}', status: 200, errors: [400, 401, 404, 500], versions: ['v1'], description: "Get a scheduler by ID. A missing scheduler, or another user's, returns 404." + schedulerRules },
@@ -149,6 +158,10 @@ export function buildSpec(version: 'legacy' | 'v1') {
                   : action === 'listTransactions' ? { type: 'array', items: schema(transactionResponse) }
                     : action === 'getHomeSummary' ? schema(homeSummaryResponse)
                       : action === 'getTransactionSummary' ? schema(transactionSummaryResponse)
+                      : action === 'getReportSummary' ? schema(reportSummaryResponse)
+                      : action === 'getReportCashFlow' ? schema(cashFlowResponse)
+                      : action === 'getReportCategoryDistribution' ? schema(categoryDistributionResponse)
+                      : action === 'getReportRunningBalance' ? schema(runningBalanceResponse)
                     : (v1 ? schema(transactionResponse) : legacyTxResponse));
     const success = v1 ? obj({ status: { const: true }, data }) : action.includes('Category') || action.includes('Transaction') ? obj({ data }) : data;
     const error = v1 ? obj({ status: { const: false }, error: schema(apiError), timestamp: { type: 'string', format: 'date-time' }, path: { type: 'string' } }) : obj({ error: schema(apiError) });
@@ -158,6 +171,10 @@ export function buildSpec(version: 'legacy' | 'v1') {
       : action === 'getWallet' || action === 'updateWallet' || action === 'updateWalletSaving' ? { status: true, data: walletExample }
       : action === 'lookupUser' ? { status: true, data: { id: '507f1f77bcf86cd799439012', email: 'friend@example.com', name: 'Friend User' } }
         : action === 'getTransactionSummary' ? { status: true, data: { totalIncome: 60300, totalExpense: 7495, netBalance: 52805 } }
+        : action === 'getReportSummary' ? { status: true, data: { totalIncome: 45000, totalExpense: 30000, netCashFlow: 15000, transactionCount: 12 } }
+        : action === 'getReportCashFlow' ? { status: true, data: { interval: 'monthly', suggestedInterval: 'monthly', buckets: [{ label: '2026-07', start: '2026-07-01', end: '2026-07-31', income: 45000, expense: 30000 }, { label: '2026-08', start: '2026-08-01', end: '2026-08-31', income: 0, expense: 1250.5 }] } }
+        : action === 'getReportCategoryDistribution' ? { status: true, data: { income: { total: 45000, items: [{ categoryId: '507f1f77bcf86cd799439012', name: 'Salary', icon: 'Briefcase', color: '#16A34A', amount: 40000, percentage: 88.9 }, { categoryId: '507f1f77bcf86cd799439013', name: 'Others', icon: 'MoreHorizontal', color: '#9CA3AF', amount: 5000, percentage: 11.1 }] }, expense: { total: 0, items: [] } } }
+        : action === 'getReportRunningBalance' ? { status: true, data: { interval: 'daily', openingBalance: 12400, closingBalance: 12900, points: [{ date: '2026-10-01', balance: 12900 }, { date: '2026-10-02', balance: 12900 }] } }
         : action === 'listSchedulers' ? { status: true, data: [schedulerResponseExample] }
         : action === 'createScheduler' || action === 'getScheduler' || action === 'updateScheduler' || action === 'setSchedulerStatus' ? { status: true, data: schedulerResponseExample }
         : action === 'getHomeSummary' ? { status: true, data: { month: '2026-10', walletId: 'all', balance: { hasWallets: true, totalBalance: 1250.5, savingGoal: null }, income: 30000, expense: 7495, net: { net: 22505, status: 'surplus' }, topCategories: [{ rank: 1, categoryId: '507f1f77bcf86cd799439012', name: 'Food & Drinks', icon: 'Utensils', color: '#F97316', amount: 4200 }] } }
@@ -201,6 +218,13 @@ export function buildSpec(version: 'legacy' | 'v1') {
         { name: 'status', in: 'query', required: false, schema: { type: 'string', enum: ['active', 'paused', 'completed', 'cancelled'] } },
       ] : []),
       ...(action === 'getHomeSummary' ? [{ name: 'month', in: 'query', required: false, schema: { type: 'string', pattern: '^\\d{4}-(0[1-9]|1[0-2])$' }, example: '2026-10' }, { name: 'walletId', in: 'query', required: false, description: 'all (default) or the id of an owned wallet.', schema: { type: 'string', pattern: '^(all|[a-fA-F0-9]{24})$' }, example: 'all' }] : []),
+      ...(action.startsWith('getReport') ? [
+        { name: 'walletIds', in: 'query', required: false, description: 'Comma-separated wallet ids; omitted means every personal wallet. An empty value is rejected.', schema: { type: 'string', pattern: '^[a-fA-F0-9]{24}(,[a-fA-F0-9]{24})*$' }, example: '507f1f77bcf86cd799439011,507f1f77bcf86cd799439012' },
+        { name: 'startDate', in: 'query', required: true, description: 'First day of the range (inclusive).', schema: { type: 'string', format: 'date' }, example: '2026-10-01' },
+        { name: 'endDate', in: 'query', required: true, description: 'Last day of the range (inclusive); must not be before startDate.', schema: { type: 'string', format: 'date' }, example: '2026-10-31' },
+      ] : []),
+      ...(action === 'getReportCashFlow' ? [{ name: 'interval', in: 'query', required: false, description: 'Bucket size; omitted means suggestedInterval.', schema: { type: 'string', enum: ['daily', 'weekly', 'monthly'] }, example: 'weekly' }] : []),
+      ...(action === 'getReportRunningBalance' ? [{ name: 'interval', in: 'query', required: false, description: 'Point spacing (default daily).', schema: { type: 'string', enum: ['daily', 'weekly'], default: 'daily' }, example: 'daily' }] : []),
       ...(action === 'lookupUser' ? [{ name: 'email', in: 'query', required: true, schema: { type: 'string', format: 'email' }, example: 'friend@example.com' }] : []),
     ];
     paths[path] ??= {};
@@ -217,7 +241,7 @@ export function buildSpec(version: 'legacy' | 'v1') {
   }
 
   const walletStatus = v1 ? 'Wallet create, list, detail, update, saving-status and delete operations and scheduler (repeating transaction) operations are available on v1.' : 'The legacy API has no wallet operations.';
-  const unimplemented = v1 ? 'Monthly transaction reads, the transaction and home summaries, category lists and the current-user endpoint are available; reports are not implemented.' : 'Wallet endpoints, remaining GET lists, reports and the current-user endpoint are not implemented.';
+  const unimplemented = v1 ? 'Monthly transaction reads, the transaction and home summaries, category lists, the reports (summary, cash flow, category distribution and running balance) and the current-user endpoint are available.' : 'Wallet endpoints, remaining GET lists, reports and the current-user endpoint are not implemented.';
   return {
     openapi: '3.1.0',
     info: { title: `FinLover ${version} API`, version: '1.0.0', description: `Implemented operations only. ${walletStatus} ${unimplemented} UI mock screens are not API integration.` },
