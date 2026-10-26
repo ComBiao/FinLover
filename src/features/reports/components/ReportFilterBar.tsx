@@ -14,6 +14,7 @@ import {
   type WalletOption,
 } from "@/features/reports/components/WalletMultiSelect";
 import type { ReportFilterState } from "@/features/reports/hooks/useReportFilter";
+import { segmentedGroupClass, segmentedItemClass } from "@/features/reports/components/segmented";
 import { rangeLabel, type ReportPreset } from "@/features/reports/period";
 
 const PRESETS: { value: ReportPreset; label: string }[] = [
@@ -34,9 +35,9 @@ type ReportFilterBarProps = {
 function FilterBarSkeleton() {
   return (
     <div role="status" aria-label="Loading filters" aria-busy="true" className="flex flex-wrap items-center gap-3">
-      <Skeleton className="h-8 w-48" />
-      <Skeleton className="h-8 w-72" />
-      <Skeleton className="h-8 w-44" />
+      <Skeleton className="h-9 w-48" />
+      <Skeleton className="h-9 w-72" />
+      <Skeleton className="h-9 w-44" />
     </div>
   );
 }
@@ -73,9 +74,9 @@ export function ReportFilterBar({ wallets, filter, isLoading = false }: ReportFi
 
               <ToggleGroup
                 aria-label="Period"
-                variant="outline"
                 size="default"
-                spacing={0}
+                spacing={1}
+                className={segmentedGroupClass}
                 value={[preset]}
                 onValueChange={(next) => {
                   // clicking the pressed segment would deselect it; keep exactly one selected
@@ -84,7 +85,7 @@ export function ReportFilterBar({ wallets, filter, isLoading = false }: ReportFi
                 }}
               >
                 {PRESETS.map(({ value, label }) => (
-                  <ToggleGroupItem key={value} value={value} className="px-3">
+                  <ToggleGroupItem key={value} value={value} className={segmentedItemClass}>
                     {label}
                   </ToggleGroupItem>
                 ))}
@@ -103,7 +104,7 @@ export function ReportFilterBar({ wallets, filter, isLoading = false }: ReportFi
                       aria-invalid={errors.startDate ? true : undefined}
                       value={range.startDate}
                       onChange={(event) => filter.setStartDate(event.target.value)}
-                      className="w-40"
+                      className="h-9 w-40 rounded-xl"
                     />
                     {errors.startDate ? (
                       <p role="alert" className="text-xs text-destructive">
@@ -111,7 +112,7 @@ export function ReportFilterBar({ wallets, filter, isLoading = false }: ReportFi
                       </p>
                     ) : null}
                   </div>
-                  <span className="pt-1.5 text-sm text-muted-foreground" aria-hidden="true">
+                  <span className="pt-2 text-sm text-muted-foreground" aria-hidden="true">
                     to
                   </span>
                   <div className="flex flex-col gap-1">
@@ -125,7 +126,7 @@ export function ReportFilterBar({ wallets, filter, isLoading = false }: ReportFi
                       aria-invalid={errors.endDate ? true : undefined}
                       value={range.endDate}
                       onChange={(event) => filter.setEndDate(event.target.value)}
-                      className="w-40"
+                      className="h-9 w-40 rounded-xl"
                     />
                     {errors.endDate ? (
                       <p role="alert" className="text-xs text-destructive">
@@ -135,13 +136,14 @@ export function ReportFilterBar({ wallets, filter, isLoading = false }: ReportFi
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center gap-0.5 rounded-xl border border-border bg-card p-1">
+                <div className="flex h-9 items-center gap-0.5 rounded-xl border border-border bg-card p-[3px]">
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon-sm"
                     aria-label="Previous period"
                     onClick={() => filter.shift(-1)}
+                    className="text-primary hover:bg-primary/10 hover:text-primary"
                   >
                     <ChevronLeft className="size-4" />
                   </Button>
@@ -154,6 +156,7 @@ export function ReportFilterBar({ wallets, filter, isLoading = false }: ReportFi
                     size="icon-sm"
                     aria-label="Next period"
                     onClick={() => filter.shift(1)}
+                    className="text-primary hover:bg-primary/10 hover:text-primary"
                   >
                     <ChevronRight className="size-4" />
                   </Button>
@@ -166,11 +169,11 @@ export function ReportFilterBar({ wallets, filter, isLoading = false }: ReportFi
               <Badge variant="secondary">Period: {rangeLabel(preset, range)}</Badge>
               <Button
                 type="button"
-                variant="ghost"
+                variant="outline"
                 size="xs"
                 onClick={filter.reset}
                 disabled={!filter.isModified}
-                className="gap-1"
+                className="gap-1 border-primary/40 bg-card font-semibold text-primary hover:bg-primary/10 hover:text-primary"
               >
                 <RotateCcw className="size-3" aria-hidden="true" />
                 Reset

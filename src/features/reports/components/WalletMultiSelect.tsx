@@ -56,7 +56,7 @@ export function WalletMultiSelect({
               aria-label="Wallets"
               aria-invalid={error ? true : undefined}
               disabled={wallets.length === 0}
-              className={cn("min-w-48 justify-between gap-2", error && "border-destructive")}
+              className={cn("h-9 min-w-48 justify-between gap-2 rounded-xl", error && "border-destructive")}
             />
           }
         >
