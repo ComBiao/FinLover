@@ -1,9 +1,6 @@
 /**
- * Client-side DRAFT of the Epic 7 (shared wallet) API shapes.
- *
- * TODO(backend E7-01a): these mirror what the UI needs. The backend owns the
- * real contract in `src/shared/contracts`; when it lands, replace/align these
- * types with it (the `TODO(backend` comments in the services list the endpoints).
+ * Client-side shapes for the Epic 7 (shared wallet) API responses. The backend
+ * owns the HTTP contract in `src/shared/contracts`; keep these aligned with it.
  */
 
 export type WalletRole = "owner" | "contributor";

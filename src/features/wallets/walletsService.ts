@@ -1,13 +1,5 @@
 import { ApiClientError, deleteApi } from "@/lib/api/client";
 import type { Wallet } from "@/types/wallet";
-import { isMockTarget, sharedWalletMocksEnabled } from "@/features/wallets/shared/mockFlag";
-import {
-  mockCreateWallet,
-  mockDeleteWallet,
-  mockListWallets,
-  mockSetSaving,
-  mockUpdateWallet,
-} from "@/features/wallets/shared/mock/sharedWalletMockStore";
 import type { SharedWalletFields } from "@/features/wallets/shared/types";
 import { resolveWalletIcon } from "./walletIcons";
 
@@ -31,10 +23,7 @@ export type CreateWalletInput = {
   icon?: string;
   isSaving?: boolean;
   goalAmount?: number;
-  /**
-   * Creates a shared wallet (the caller becomes its Owner, balance starts at ฿0).
-   * TODO(backend E7-02): `POST /api/v1/wallets` accepts `isShared`.
-   */
+  /** Creates a shared wallet (the caller becomes its Owner, balance starts at ฿0). */
   isShared?: boolean;
 };
 
@@ -89,33 +78,13 @@ export async function getWallets(): Promise<Wallet[]> {
   }
 
   const list = Array.isArray(payload.data) ? payload.data : [];
-  const wallets: Wallet[] = list.map(mapWalletRecord);
-
-  // TODO(backend E7-01b): remove. `GET /api/v1/wallets` will itself include the
-  // shared wallets the caller belongs to (isShared, role, memberCount, members, ownerName).
-  if (sharedWalletMocksEnabled()) {
-    wallets.push(...(await mockListWallets()).map(mapWalletRecord));
-  }
-  return wallets;
+  return list.map(mapWalletRecord);
 }
 
 /**
  * Creates a new wallet via POST /api/v1/wallets.
  */
 export async function createWallet(input: CreateWalletInput): Promise<Wallet> {
-  // TODO(backend E7-02): remove; the real POST /api/v1/wallets handles `isShared`.
-  if (input.isShared && sharedWalletMocksEnabled()) {
-    return mapWalletRecord(
-      await mockCreateWallet({
-        name: input.name,
-        color: input.color,
-        icon: input.icon,
-        isSaving: input.isSaving,
-        goalAmount: input.goalAmount,
-      })
-    );
-  }
-
   const response = await fetch("/api/v1/wallets", {
     method: "POST",
     credentials: "same-origin",
@@ -135,9 +104,6 @@ export async function createWallet(input: CreateWalletInput): Promise<Wallet> {
  * Updates a wallet's name and/or color via PUT /api/v1/wallets/:id.
  */
 export async function updateWallet(id: string, input: UpdateWalletInput): Promise<Wallet> {
-  // TODO(backend E7-01b): remove; PUT /api/v1/wallets/{id} will serve shared wallets (owner only).
-  if (isMockTarget(id)) return mapWalletRecord(await mockUpdateWallet(id, input));
-
   const response = await fetch(`/api/v1/wallets/${id}`, {
     method: "PUT",
     credentials: "same-origin",
@@ -160,9 +126,6 @@ export async function updateWalletSaving(
   id: string,
   input: UpdateWalletSavingInput
 ): Promise<Wallet> {
-  // TODO(backend E7-01b): remove; PATCH /api/v1/wallets/{id}/saving will serve shared wallets (owner only).
-  if (isMockTarget(id)) return mapWalletRecord(await mockSetSaving(id, input));
-
   const response = await fetch(`/api/v1/wallets/${id}/saving`, {
     method: "PATCH",
     credentials: "same-origin",
@@ -182,9 +145,6 @@ export async function updateWalletSaving(
  * Deletes a wallet and all its transactions via DELETE /api/v1/wallets/:id.
  */
 export async function deleteWallet(id: string): Promise<void> {
-  // TODO(backend E7-09-API): remove; DELETE /api/v1/wallets/{id} will handle shared wallets (owner only, 403 for a contributor).
-  if (isMockTarget(id)) return mockDeleteWallet(id);
-
   return deleteApi(`/api/v1/wallets/${id}`);
 }
 

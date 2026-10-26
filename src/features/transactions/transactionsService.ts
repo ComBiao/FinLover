@@ -4,13 +4,6 @@ import { toLocalISODate } from "@/lib/utils";
 import type { TransactionType } from "@/types/category";
 import type { Transaction } from "@/types/transaction";
 import type { TransactionSummary } from "@/features/transactions/transactions";
-import { isMockTarget } from "@/features/wallets/shared/mockFlag";
-import {
-  mockCreateTransaction,
-  mockDeleteTransaction,
-  mockListTransactions,
-  mockUpdateTransaction,
-} from "@/features/wallets/shared/mock/sharedWalletMockStore";
 import type { TransactionAuthor } from "@/features/wallets/shared/types";
 
 /** One row of `GET/POST /api/v1/transactions` (see `transactionResponse` in `@/shared/contracts`). */
@@ -26,7 +19,7 @@ type TransactionDto = {
   note?: string;
   /** Shared wallets only: the fixed preset this row belongs to (shared rows have no `categoryId`). */
   category?: { key: string };
-  /** Shared wallets only (TODO(backend E7-06): added to the transaction response). */
+  /** Shared wallets only. */
   createdBy?: TransactionAuthor;
   editedBy?: TransactionAuthor | null;
 };
@@ -70,21 +63,6 @@ function categoryFields(input: Pick<Transaction, "categoryId" | "categoryKey">) 
 }
 
 export async function createTransaction(input: Omit<Transaction, "id">): Promise<Transaction> {
-  // TODO(backend E7-11): remove; POST /api/v1/transactions will accept a shared wallet (members only, 403 otherwise, no categoryId).
-  if (isMockTarget(input.walletId)) {
-    return toTransaction(
-      await mockCreateTransaction({
-        walletId: input.walletId,
-        type: input.type,
-        amount: input.amount,
-        date: toLocalISODate(input.date),
-        title: input.title,
-        note: input.note,
-        categoryId: input.categoryId ?? null,
-      })
-    );
-  }
-
   const created = await postApi<TransactionDto>("/api/v1/transactions", {
     walletId: input.walletId,
     ...categoryFields(input),
@@ -102,20 +80,6 @@ export async function updateTransaction(
   id: string,
   input: Omit<Transaction, "id">
 ): Promise<Transaction> {
-  // TODO(backend E7-13): remove; PUT /api/v1/transactions/{id} will let any member of a shared wallet edit any row.
-  if (isMockTarget(id)) {
-    return toTransaction(
-      await mockUpdateTransaction(id, {
-        type: input.type,
-        amount: input.amount,
-        date: toLocalISODate(input.date),
-        title: input.title,
-        note: input.note,
-        categoryId: input.categoryId ?? null,
-      })
-    );
-  }
-
   const updated = await putApi<TransactionDto>(`/api/v1/transactions/${id}`, {
     walletId: input.walletId,
     ...categoryFields(input),
@@ -129,22 +93,15 @@ export async function updateTransaction(
 }
 
 export function deleteTransaction(id: string): Promise<void> {
-  // TODO(backend E7-13): remove; DELETE /api/v1/transactions/{id} will let any member of a shared wallet delete any row.
-  if (isMockTarget(id)) return mockDeleteTransaction(id);
-
   return deleteApi(`/api/v1/transactions/${id}`);
 }
 
 /**
  * One shared wallet's transactions for a month, newest first, from every member
  * (`createdBy` / `editedBy` set on each row). Members only.
- *
- * TODO(backend E7-11): `GET /api/v1/wallets/{id}/transactions?month=YYYY-MM`.
  */
 export async function getSharedWalletTransactions(walletId: string, month: MonthKey): Promise<Transaction[]> {
-  const rows = isMockTarget(walletId)
-    ? await mockListTransactions(walletId, month)
-    : await getApi<TransactionDto[]>(`/api/v1/wallets/${walletId}/transactions?month=${month}`);
+  const rows = await getApi<TransactionDto[]>(`/api/v1/wallets/${walletId}/transactions?month=${month}`);
   return rows.map(toTransaction).sort((a, b) => b.date.getTime() - a.date.getTime());
 }
 
