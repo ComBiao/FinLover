@@ -12,7 +12,7 @@ This guide details the complete demo data and step-by-step presentation script f
 
 | Account Purpose | Email | Password | Name | Initial State & Role in Demo |
 | :--- | :--- | :--- | :--- | :--- |
-| **Primary Demo User** | `demo@finlover.com` | `Password123` | Alex Demo (FinLover) | **5 Personal Wallets** (฿66,380 combined), **17 Categories**, **31 Personal Txns**, **8 Recurring Rules**.<br>**Owner**: *"Family Living & Bills"* (3 members)<br>**Contributor**: *"Japan Vacation Fund"* (Saving goal 40%)<br>**Pending Invites**: 2 invites waiting in banner & bell! |
+| **Primary Demo User** | `demo@finlover.com` | `Password123` | Alex Demo (FinLover) | **5 Personal Wallets** (฿65,180 combined), **17 Categories**, **31 Personal Txns**, **8 Recurring Rules**.<br>**Owner**: *"Family Living & Bills"* (3 members)<br>**Contributor**: *"Japan Vacation Fund"* (Saving goal 40%)<br>**Pending Invites**: 2 invites waiting in banner & bell! |
 | **Partner (Owner & Contributor)** | `partner@finlover.com` | `Password123` | Sarah Partner | **Owner**: *"Japan Vacation Fund"* & *"Weekend Camping Trip"*<br>**Contributor**: *"Family Living & Bills"* (Simulate collaborative logging/editing) |
 | **Roommate (Contributor & Owner)** | `roommate@finlover.com` | `Password123` | Bob Roommate | **Contributor**: *"Family Living & Bills"*<br>**Owner**: *"Office Coffee & Snacks"* (Simulate 2nd pending invitation) |
 | **Colleague (Pending Invitee)** | `dave@finlover.com` | `Password123` | Dave Colleague | **Pending Invitee** in *"Family Living & Bills"* (Demonstrates pending member state in Owner's Members Dialog) |
@@ -46,7 +46,7 @@ npm run db:seed:demo
 | Story ID | Feature & Card | Target State in Demo Data | Backlog AC Reference |
 | :--- | :--- | :--- | :--- |
 | **US2-1** | **Month Navigation (`‹ Month ›`)** | • Current month: **October 2026** (Full surplus dashboard)<br>• Click `‹`: **September 2026** (Overspending deficit dashboard)<br>• Click `›` twice to **November 2026**: Empty state ($฿0$ totals, friendly empty list) | **US2-1 Scenario 1 & 2** (Past/future navigation and clean empty state handling). |
-| **US2-2** | **Total Balance Card** | • When **"All Wallets"** selected: displays combined total balance of **฿66,380.00** (Personal only).<br>• When a saving wallet is selected: shows embedded saving goal progress. | **US2-2 Scenario 1** (Balance display & embedded goal). |
+| **US2-2** | **Total Balance Card** | • When **"All Wallets"** selected: displays combined total balance of **฿65,180.00** (Personal only).<br>• When a saving wallet is selected: shows embedded saving goal progress. | **US2-2 Scenario 1** (Balance display & embedded goal). |
 | **US2-3** | **Income This Month** | For **October 2026** (on `Main Bank`): displays exactly **฿32,000.00** (Salary ฿30,000 + Bonus ฿2,000). | **US2-3 Scenario 1**: *"recorded income transactions in the selected month totaling ฿32,000"*. |
 | **US2-4** | **Spent This Month** | For **October 2026** (on `Main Bank`): displays exactly **฿9,180.00**. | **US2-4 Scenario 1**: *"recorded expense transactions in the selected month totaling ฿9,180"*. |
 | **US2-5** | **Net Balance (`ยอดคงเหลือ`)** | • **October 2026 (Surplus)**: $32,000 - 9,180 =$ **`+฿22,820.00`** in bold green.<br>• **September 2026 (Deficit)**: $5,000 - 9,180 =$ **`-฿4,180.00`** in bold red with overspending indicator. | **US2-5 Scenario 1 (+฿22,820)** and **Scenario 2 (-฿4,180 overspending)**. |
@@ -118,7 +118,7 @@ npm run db:seed:demo
 | **US7-4** | **Owner Role & Member Management** | In `/wallets`, switch to the **"Shared"** tab $\rightarrow$ inspect **"Family Living & Bills"** (Role: `Owner`). Click **Members (3)** button $\rightarrow$ shows modal with Owner (Alex), Accepted Contributors (Sarah Partner, Bob Roommate), and Pending invitee (Dave Colleague). Owner can invite new members by email, remove contributors, or transfer ownership. | Complete Owner permissions, member list with role chips, and pending cancellation. |
 | **US7-5** | **Contributor Role & Leave Wallet** | In `/wallets` Shared tab, inspect **"Japan Vacation Fund"** (Role: `Contributor`, Owner: Sarah Partner). Click `⋮` menu: only **Members** and **Leave Wallet** are visible (no Delete Wallet or metadata editing!). | Role-based permission enforcement: Contributors cannot delete owned wallets or modify metadata. |
 | **US7-6** | **Shared Transactions & Attribution** | Navigate to `/transactions` or `/homepage` $\rightarrow$ switch wallet to **"Family Living & Bills"**: inspect the October 2026 table. See transactions logged by different users: <br>• Alex: *Living Contribution*, *Condo Common Fee*<br>• Sarah: *Costco Bulk Supplies*<br>• Bob: *Organic Market Groceries* (**"Logged by Bob Roommate, edited by Sarah Partner"**)<br>Categories strictly use the 14 shared preset categories. | Attribution shows `createdBy` (with avatar) and `editedBy`, maintaining transparent group ledger. |
-| **US7-7** | **Shared Home Summary & Financial Isolation** | On `/homepage`: <br>1. Select **"All Wallets"**: displays **฿66,380.00** (Personal only; shared wallet balances are strictly excluded).<br>2. Select **"Family Living & Bills"**: dashboard re-scopes to show shared balance (฿14,500.00), Oct shared income (฿35,000.00), Oct shared expense (฿20,500.00), top preset categories, and a **"3 members"** button in header. | Clean financial isolation between individual finances and pooled shared budgets. |
+| **US7-7** | **Shared Home Summary & Financial Isolation** | On `/homepage`: <br>1. Select **"All Wallets"**: displays **฿65,180.00** (Personal only; shared wallet balances are strictly excluded).<br>2. Select **"Family Living & Bills"**: dashboard re-scopes to show shared balance (฿14,500.00), Oct shared income (฿35,000.00), Oct shared expense (฿20,500.00), top preset categories, and a **"3 members"** button in header. | Clean financial isolation between individual finances and pooled shared budgets. |
 | **US7-8** | **Lifecycle & Deletion Safeguards** | If an Owner with active Contributors attempts to delete their account or leave the wallet, the system rejects it with an explicit safety error requiring ownership transfer or explicit wallet deletion first. Contributor account deletion preserves past shared transaction history. | Atomic safeguards prevent orphaned collaborative wallets and corrupted ledgers. |
 
 ---
@@ -129,19 +129,19 @@ npm run db:seed:demo
 | Wallet Name | Type / Tag | Color | Balance | Goal Amount | Progress | Associated Txns | Purpose in Demo |
 | :--- | :--- | :--- | :---: | :---: | :---: | :---: | :--- |
 | **Main Bank** | Standard | `#3B82F6` | **฿33,140.00** | — | — | 17 txns | Main spending & salary account (Oct Surplus + Sep Deficit) |
-| **Cash** | Default | `#4A4757` | **฿2,840.00** | — | — | 7 txns | Everyday cash + Badminton weekly sessions (3 posted) + "Not Chosen" demo |
+| **Cash** | Default | `#4A4757` | **฿1,640.00** | — | — | 7 txns | Everyday cash + Badminton weekly sessions (3 posted) + "Not Chosen" demo |
 | **Emergency Fund** | Saving | `#10B981` | **฿12,400.00** | ฿20,000.00 | **62%** | 1 txn | US2-7 & US6-3 embedded saving goal demo (62%) |
 | **Trip to Japan** | Saving | `#EC4899` | **฿15,000.00** | ฿50,000.00 | **30%** | 1 txn | US6-6 & US6-3 travel savings demo |
 | **Old Fund** | Standard | `#8B5CF6` | **฿3,000.00** | — | — | **5 txns** | Dedicated wallet for US6-5 Cascade Deletion demo |
-| **Personal Total** | — | — | **฿66,380.00** | — | — | **31 txns** | Displayed when "All Wallets" is selected |
+| **Personal Total** | — | — | **฿65,180.00** | — | — | **31 txns** | Displayed when "All Wallets" is selected |
 
 ### Shared Wallets (Collaborative Multi-User)
 | Wallet Name | User Role | Color | Balance | Goal Amount | Members Count | Active Members | Purpose in Demo |
 | :--- | :--- | :--- | :---: | :---: | :---: | :--- | :--- |
 | **Family Living & Bills** | `Owner` | `#0284C7` | **฿14,500.00** | — | **3 members** (+1 pending) | Alex (Owner), Sarah, Bob (+ Dave pending) | Owner management, attribution demo ("edited by Sarah"), shared home dashboard |
 | **Japan Vacation Fund** | `Contributor` | `#EC4899` | **฿24,000.00** | ฿60,000.00 | **2 members** (40% saved) | Sarah (Owner), Alex (Contributor) | Contributor role, shared saving goal progress, "Leave wallet" action |
-| **Weekend Camping Trip** | `Invitee` | `#10B981` | **฿3,500.00** | — | 1 accepted | Sarah (Owner), Alex (Pending) | Demonstrates Top Invitations Banner with Accept / Decline |
-| **Office Coffee & Snacks** | `Invitee` | `#F59E0B` | **฿1,200.00** | — | 1 accepted | Bob (Owner), Alex (Pending) | Demonstrates Notification Bell with multiple invitations badge ("2") |
+| **Weekend Camping Trip** | `Invitee` | `#10B981` | **฿0.00** | — | **1 member** (Owner) | Sarah (Owner), Alex (Pending) | Demonstrates Top Invitations Banner with Accept / Decline |
+| **Office Coffee & Snacks** | `Invitee` | `#F59E0B` | **฿0.00** | — | **1 member** (Owner) | Bob (Owner), Alex (Pending) | Demonstrates Notification Bell with multiple invitations badge ("2") |
 
 ---
 
@@ -194,10 +194,11 @@ When presenting to the instructor, follow this narrative order for the smoothest
 ### Phase 1: Authentication & Overview
 1. Open `/login` $\rightarrow$ Log in as `demo@finlover.com` with password `Password123`.
 2. Point out the **Home Page Dashboard**:
-   - Total Balance: **฿66,380.00** across personal wallets.
-   - October 2026 Surplus: **+฿22,820.00** (Green).
-   - Click `‹` to September 2026: Deficit **-฿4,180.00** (Red Overspending indicator).
-   - Click `›` to November 2026: Clean empty state.
+   - Total Balance: **฿65,180.00** across personal wallets (under default "All wallets" personal view).
+   - Switch wallet dropdown to **"Main Bank"** to view monthly cash flow breakdown:
+     - October 2026 Surplus: **+฿22,820.00** (Green Surplus badge; Income ฿32,000, Expense ฿9,180).
+     - Click `‹` to September 2026: Deficit **-฿4,180.00** (Red Overspending indicator; Income ฿5,000, Expense ฿9,180).
+     - Click `›` twice to November 2026: Clean empty state (`0 Transactions`, `฿0.00`).
 
 ### Phase 2: Personal Wallets & Embedded Savings Goal
 3. On `/homepage`, switch the wallet dropdown to **"Emergency Fund"**:

@@ -192,7 +192,7 @@ export async function seedDemoData() {
     userId: demoUser._id,
     name: "Cash",
     color: "#4A4757", // Charcoal
-    balance: 2840.0,
+    balance: 1640.0,
     isDefault: true,
     isSaving: false,
     createdAt: new Date("2026-08-01T00:00:00.000Z"),
@@ -292,7 +292,7 @@ export async function seedDemoData() {
     userId: partnerUser._id,
     name: "Weekend Camping Trip",
     color: "#10B981", // Emerald
-    balance: 3500.0,
+    balance: 0.0,
     isDefault: false,
     isShared: true,
     membershipVersion: 0,
@@ -306,7 +306,7 @@ export async function seedDemoData() {
     userId: roommateUser._id,
     name: "Office Coffee & Snacks",
     color: "#F59E0B", // Amber
-    balance: 1200.0,
+    balance: 0.0,
     isDefault: false,
     isShared: true,
     membershipVersion: 0,
@@ -348,22 +348,22 @@ export async function seedDemoData() {
       createdAt: new Date("2026-09-12T10:00:00.000Z"),
     },
 
-    // Pending Invitation 1 for Alex Demo (Shows in InvitationsBanner)
+    // Pending Invitation 1 for Alex Demo (Shows in InvitationsBanner - newest invitation)
     {
       walletId: campingSharedWallet._id,
       userId: demoUser._id,
       status: "pending" as const,
       invitedBy: partnerUser._id,
-      createdAt: new Date("2026-10-24T09:00:00.000Z"),
+      createdAt: new Date("2026-10-25T14:00:00.000Z"),
     },
 
-    // Pending Invitation 2 for Alex Demo (Shows in NotificationBell)
+    // Pending Invitation 2 for Alex Demo (Shows in NotificationBell inbox)
     {
       walletId: snackSharedWallet._id,
       userId: demoUser._id,
       status: "pending" as const,
       invitedBy: roommateUser._id,
-      createdAt: new Date("2026-10-25T14:00:00.000Z"),
+      createdAt: new Date("2026-10-24T09:00:00.000Z"),
     },
   ];
 
@@ -1173,7 +1173,7 @@ export async function seedDemoData() {
   console.log("👤 Primary Demo Account (Alex Demo):");
   console.log(`   Email:        ${DEMO_EMAIL}`);
   console.log(`   Password:     ${PASSWORD_PLAIN}`);
-  console.log(`   Personal:     5 Wallets (฿66,380 combined), 17 Categories, 31 Transactions, 8 Recurring Rules`);
+  console.log(`   Personal:     5 Wallets (฿65,180 combined), 17 Categories, 31 Transactions, 8 Recurring Rules`);
   console.log(`   Shared:       Owner: "Family Living & Bills" (3 members)`);
   console.log(`                 Contributor: "Japan Vacation Fund" (Saving Goal ฿60k, 40%)`);
   console.log(`                 Pending Invites: 2 ("Weekend Camping Trip", "Office Coffee & Snacks")`);
