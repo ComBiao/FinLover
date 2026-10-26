@@ -3,7 +3,6 @@
 import * as React from "react";
 import Link from "next/link";
 import {
-  Check,
   Edit2,
   LogOut,
   MoreVertical,
@@ -26,7 +25,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Progress } from "@/components/ui/progress";
 import { hexToRgba, shadeHex } from "@/components/chipColor";
-import { cn, formatBaht } from "@/lib/utils";
+import { formatBaht } from "@/lib/utils";
 import type { Wallet } from "@/types/wallet";
 import { MemberAvatar } from "@/features/wallets/shared/MemberAvatar";
 import { useActiveWallet } from "@/features/wallets/store/useActiveWallet";
@@ -50,12 +49,10 @@ export function WalletCard({
   onOpenMembers,
   onLeave,
 }: WalletCardProps) {
-  const activeWalletId = useActiveWallet((state) => state.activeWalletId);
   const setActiveWalletId = useActiveWallet((state) => state.setActiveWalletId);
 
   const isShared = Boolean(wallet.isShared);
   const isOwner = wallet.role === "owner";
-  const isActive = activeWalletId === wallet.id;
   const color = wallet.color ?? "#4A4757";
   const Icon = wallet.icon ?? (wallet.isSaving ? PiggyBank : WalletIcon);
 
@@ -76,12 +73,9 @@ export function WalletCard({
 
   return (
     <Card
-      className={cn(
-        "relative overflow-hidden rounded-2xl border-2 transition-all hover:shadow-md",
-        isActive ? "ring-2 ring-primary ring-offset-2" : ""
-      )}
+      className="relative overflow-hidden rounded-2xl border-2 transition-all hover:shadow-md"
       style={{
-        borderColor: isActive ? color : hexToRgba(color, 0.3),
+        borderColor: hexToRgba(color, 0.3),
         backgroundColor: hexToRgba(color, 0.04),
       }}
     >
@@ -191,10 +185,6 @@ export function WalletCard({
                   )
                 ) : (
                   <>
-                    <DropdownMenuItem onClick={() => setActiveWalletId(wallet.id)}>
-                      <Check className="mr-2 size-4" />
-                      Select as Active
-                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => onEdit(wallet)}>
                       <Edit2 className="mr-2 size-4" />
                       Edit
