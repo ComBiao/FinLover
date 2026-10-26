@@ -41,6 +41,8 @@ export type TransactionFilters = {
   type?: TransactionType;
   walletId?: string;
   categoryId?: string;
+  /** Shared wallets only: one of the fixed presets, used instead of `categoryId` while a shared wallet is filtered. */
+  categoryKey?: string;
   dateRange?: DateRange;
 };
 
@@ -49,5 +51,6 @@ export const DEFAULT_TRANSACTION_FILTERS: TransactionFilters = {
   type: undefined,
   walletId: undefined,
   categoryId: undefined,
+  categoryKey: undefined,
   dateRange: undefined,
 };

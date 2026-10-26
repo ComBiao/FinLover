@@ -191,14 +191,37 @@ describe("AddTransactionModal — shared wallet", () => {
   });
 });
 
-describe("Transactions page — shared wallets stay on Home", () => {
+describe("AddTransactionModal — wallet when editing", () => {
+  it("locks the wallet of a shared row but still shows it", async () => {
+    useTransactionModal.setState({ isOpen: true, defaultType: "expense", editingTransaction: SHARED_ROWS[0] });
+    renderWithClient(<AddTransactionModal onEdit={vi.fn()} />);
+
+    const trigger = await screen.findByLabelText("Pay from wallet");
+    expect(trigger).toBeDisabled();
+    expect(trigger).toHaveTextContent("Housemate Fund");
+  });
+
+  it("offers only personal wallets when editing a personal row", async () => {
+    useTransactionModal.setState({ isOpen: true, defaultType: "expense", editingTransaction: PERSONAL_ROW });
+    renderWithClient(<AddTransactionModal onEdit={vi.fn()} />);
+
+    const trigger = await screen.findByLabelText("Pay from wallet");
+    expect(trigger).toBeEnabled();
+    await userEvent.click(trigger);
+    expect(await screen.findByRole("option", { name: /Main Cash/ })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Housemate Fund/ })).not.toBeInTheDocument();
+  });
+});
+
+describe("Transactions page — wallet filter", () => {
   beforeEach(() => {
     useTransactionFilters.getState().resetFilters();
     vi.spyOn(transactionsService, "getTransactions").mockResolvedValue([
       PERSONAL_ROW,
-      // A row logged by the user into a shared wallet must not show up here either.
+      // A row logged by the user into a shared wallet must not show up under "All wallets" either.
       { ...SHARED_ROWS[1], date: new Date(now.getFullYear(), now.getMonth(), 4, 12) },
     ]);
+    vi.spyOn(transactionsService, "getSharedWalletTransactions").mockResolvedValue(SHARED_ROWS);
     vi.spyOn(transactionsService, "getTransactionSummary").mockResolvedValue({
       totalIncome: 0,
       totalExpense: 120,
@@ -206,21 +229,100 @@ describe("Transactions page — shared wallets stay on Home", () => {
     });
   });
 
-  it("lists personal rows only", async () => {
+  function filterWallet(walletId: string | undefined) {
+    const { filters, setFilters } = useTransactionFilters.getState();
+    setFilters({ ...filters, walletId });
+  }
+
+  it("lists personal rows only under All wallets", async () => {
     renderWithClient(<TransactionsPage />);
 
     expect((await screen.findAllByText("Lunch Noodles")).length).toBeGreaterThan(0);
     expect(screen.queryByText("Rent share")).not.toBeInTheDocument();
     expect(screen.getByText("1 transaction")).toBeInTheDocument();
+    expect(transactionsService.getSharedWalletTransactions).not.toHaveBeenCalled();
   });
 
-  it("ignores a shared wallet left in the wallet filter by Home", async () => {
-    const { filters, setFilters } = useTransactionFilters.getState();
-    setFilters({ ...filters, walletId: OWNED_SHARED_WALLET.id });
+  it("opens on the shared wallet picked on Home, with its rows from every member", async () => {
+    filterWallet(OWNED_SHARED_WALLET.id);
+    renderWithClient(<TransactionsPage />);
 
+    expect((await screen.findAllByText("Internet")).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Rent share").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Lunch Noodles")).not.toBeInTheDocument();
+    expect(screen.getByText("2 transactions")).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Logged by" })).toBeInTheDocument();
+    expect(transactionsService.getSharedWalletTransactions).toHaveBeenCalledWith(
+      OWNED_SHARED_WALLET.id,
+      expect.stringMatching(/^\d{4}-\d{2}$/)
+    );
+  });
+
+  it("totals the shared wallet's rows in the summary cards instead of asking the server", async () => {
+    filterWallet(OWNED_SHARED_WALLET.id);
+    renderWithClient(<TransactionsPage />);
+
+    await screen.findAllByText("Internet");
+    // Internet -599 (expense), Rent share +6,000 (income).
+    expect(await screen.findByText("฿599")).toBeInTheDocument();
+    expect(screen.getAllByText("฿6,000").length).toBeGreaterThan(0);
+    expect(screen.getByText("+฿5,401")).toBeInTheDocument();
+    expect(transactionsService.getTransactionSummary).not.toHaveBeenCalledWith(
+      expect.objectContaining({ walletId: OWNED_SHARED_WALLET.id })
+    );
+  });
+
+  it("filters a shared wallet by preset category", async () => {
+    filterWallet(OWNED_SHARED_WALLET.id);
+    const { filters, setFilters } = useTransactionFilters.getState();
+    setFilters({ ...filters, walletId: OWNED_SHARED_WALLET.id, categoryKey: "utilities" });
+    renderWithClient(<TransactionsPage />);
+
+    expect((await screen.findAllByText("Internet")).length).toBeGreaterThan(0);
+    // "Rent share" has no stored category, so it counts as Others and drops out.
+    expect(screen.queryByText("Rent share")).not.toBeInTheDocument();
+    expect(screen.getByText("1 transaction")).toBeInTheDocument();
+  });
+
+  it("ignores a personal category left over while a shared wallet is filtered", async () => {
+    const { filters, setFilters } = useTransactionFilters.getState();
+    setFilters({ ...filters, walletId: OWNED_SHARED_WALLET.id, categoryId: "c-personal" });
+    renderWithClient(<TransactionsPage />);
+
+    expect(await screen.findByText("2 transactions")).toBeInTheDocument();
+  });
+
+  it("drops the category when switching from a personal to a shared wallet", async () => {
+    const { filters, setFilters } = useTransactionFilters.getState();
+    setFilters({ ...filters, walletId: PERSONAL_WALLET.id, categoryId: "c-personal" });
+    renderWithClient(<TransactionsPage />);
+
+    await screen.findByRole("heading", { name: "Transactions" });
+    const walletTrigger = (await screen.findAllByRole("combobox")).find((element) => element.textContent?.includes(PERSONAL_WALLET.name));
+    await userEvent.click(walletTrigger!);
+    await userEvent.click(await screen.findByRole("option", { name: /Housemate Fund/ }));
+
+    await waitFor(() => expect(useTransactionFilters.getState().filters.walletId).toBe(OWNED_SHARED_WALLET.id));
+    expect(useTransactionFilters.getState().filters.categoryId).toBeUndefined();
+    expect(useTransactionFilters.getState().filters.categoryKey).toBeUndefined();
+  });
+
+  it("falls back to All wallets when the filtered wallet no longer exists", async () => {
+    filterWallet("wallet-that-was-deleted");
     renderWithClient(<TransactionsPage />);
 
     expect((await screen.findAllByText("Lunch Noodles")).length).toBeGreaterThan(0);
     expect(screen.getByText("1 transaction")).toBeInTheDocument();
+    expect(transactionsService.getSharedWalletTransactions).not.toHaveBeenCalled();
+  });
+
+  it("starts a new transaction in the shared wallet being viewed", async () => {
+    filterWallet(OWNED_SHARED_WALLET.id);
+    renderWithClient(<TransactionsPage />);
+
+    await screen.findAllByText("Internet");
+    fireEvent.click(screen.getByRole("button", { name: "Add Transaction" }));
+
+    expect(useTransactionModal.getState().defaultWalletId).toBe(OWNED_SHARED_WALLET.id);
   });
 });

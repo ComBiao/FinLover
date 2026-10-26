@@ -527,7 +527,10 @@ export function AddTransactionModal({
                       id="transaction-wallet"
                       value={field.value}
                       onValueChange={(nextWalletId) => field.onChange(nextWalletId ?? "")}
-                      disabled={isSubmitting}
+                      // Editing never moves a row into or out of a shared wallet: a shared row's wallet is
+                      // locked (still shown), and a personal row can only go to another personal wallet.
+                      includeShared={!isEditMode || isSharedWallet}
+                      disabled={isSubmitting || (isEditMode && isSharedWallet)}
                     />
                   )}
                 />
