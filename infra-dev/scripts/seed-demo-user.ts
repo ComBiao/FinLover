@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 
 import User from "../../src/server/db/models/User";
 import Wallet from "../../src/server/db/models/Wallet";
+import WalletMember from "../../src/server/db/models/WalletMember";
 import Category from "../../src/server/db/models/Category";
 import Transaction from "../../src/server/db/models/Transaction";
 import Scheduler from "../../src/server/db/models/Scheduler";
@@ -16,37 +17,84 @@ const MONGODB_URI = process.env.MONGODB_URI ?? "mongodb://localhost:27017/finlov
 
 export async function seedDemoData() {
   console.log("------------------------------------------------------------");
-  console.log("🌱 FinLover Sprint 2 Comprehensive Demo Data Seeder");
+  console.log("🌱 FinLover Comprehensive Demo Data Seeder (Personal & Shared)");
   console.log("------------------------------------------------------------");
   console.log("Connecting to MongoDB...");
   await mongoose.connect(MONGODB_URI);
   console.log("✅ Connected to database.");
 
   const DEMO_EMAIL = "demo@finlover.com";
+  const PARTNER_EMAIL = "partner@finlover.com";
+  const ROOMMATE_EMAIL = "roommate@finlover.com";
+  const DAVE_EMAIL = "dave@finlover.com";
   const DELETE_DEMO_EMAIL = "delete-demo@finlover.com";
+  const ALL_DEMO_EMAILS = [
+    DEMO_EMAIL,
+    PARTNER_EMAIL,
+    ROOMMATE_EMAIL,
+    DAVE_EMAIL,
+    DELETE_DEMO_EMAIL,
+  ];
   const PASSWORD_PLAIN = "Password123";
   const passwordHash = await bcrypt.hash(PASSWORD_PLAIN, 10);
 
   // -------------------------------------------------------------------------
-  // 1. Clean up existing demo accounts
+  // 1. Clean up existing demo accounts & related data
   // -------------------------------------------------------------------------
-  const existingUsers = await User.find({ email: { $in: [DEMO_EMAIL, DELETE_DEMO_EMAIL] } });
-  for (const existingUser of existingUsers) {
-    console.log(`Cleaning up existing records for ${existingUser.email}...`);
-    await Transaction.collection.deleteMany({ userId: existingUser._id });
-    await Scheduler.collection.deleteMany({ userId: existingUser._id });
-    await Wallet.deleteMany({ userId: existingUser._id });
-    await Category.deleteMany({ userId: existingUser._id });
-    await User.deleteOne({ _id: existingUser._id });
-  }
+  const existingUsers = await User.find({ email: { $in: ALL_DEMO_EMAILS } });
+  const userIds = existingUsers.map((u) => u._id);
+  const existingWallets = await Wallet.find({ userId: { $in: userIds } });
+  const walletIds = existingWallets.map((w) => w._id);
+
+  console.log(`Cleaning up existing records for demo accounts (${ALL_DEMO_EMAILS.join(", ")})...`);
+  // Strictly delete transactions belonging to demo wallets being reset.
+  // Preserves author history and ledger balances for any surviving external shared wallets (P1).
+  await Transaction.collection.deleteMany({ walletId: { $in: walletIds } });
+  await Scheduler.collection.deleteMany({ walletId: { $in: walletIds } });
+  await WalletMember.collection.deleteMany({
+    $or: [
+      { userId: { $in: userIds } },
+      { invitedBy: { $in: userIds } },
+      { walletId: { $in: walletIds } },
+    ],
+  });
+  await Wallet.deleteMany({ _id: { $in: walletIds } });
+  await Category.deleteMany({ userId: { $in: userIds } });
+  await User.deleteMany({ _id: { $in: userIds } });
 
   // -------------------------------------------------------------------------
-  // 2. Create Primary Demo User (US1-1, US1-2)
+  // 2. Create Demo Users (US1-1, US1-2, EPIC 7 Multi-User Shared Wallets)
   // -------------------------------------------------------------------------
-  console.log(`Creating primary demo user: ${DEMO_EMAIL}`);
+  console.log(`Creating demo users:`);
+  console.log(` • Primary Demo User:    ${DEMO_EMAIL} (Alex Demo)`);
+  console.log(` • Partner / Contributor: ${PARTNER_EMAIL} (Sarah Partner)`);
+  console.log(` • Roommate / Contributor:${ROOMMATE_EMAIL} (Bob Roommate)`);
+  console.log(` • Colleague (Pending):   ${DAVE_EMAIL} (Dave Colleague)`);
+
   const demoUser = await User.create({
     email: DEMO_EMAIL,
     name: "Alex Demo (FinLover)",
+    passwordHash,
+    dataPrivacyConsent: true,
+  });
+
+  const partnerUser = await User.create({
+    email: PARTNER_EMAIL,
+    name: "Sarah Partner",
+    passwordHash,
+    dataPrivacyConsent: true,
+  });
+
+  const roommateUser = await User.create({
+    email: ROOMMATE_EMAIL,
+    name: "Bob Roommate",
+    passwordHash,
+    dataPrivacyConsent: true,
+  });
+
+  const daveUser = await User.create({
+    email: DAVE_EMAIL,
+    name: "Dave Colleague",
     passwordHash,
     dataPrivacyConsent: true,
   });
@@ -56,7 +104,7 @@ export async function seedDemoData() {
   // -------------------------------------------------------------------------
   console.log("Seeding system default categories and custom categories...");
   
-  // System Default Categories (US5-6: Immutable system defaults)
+  // System Default Categories for Alex Demo (US5-6: Immutable system defaults)
   const defaultCategoryDocs = DEFAULT_CATEGORIES.map((cat) => ({
     userId: demoUser._id,
     name: cat.name,
@@ -69,7 +117,22 @@ export async function seedDemoData() {
   }));
   const seededDefaults = await Category.insertMany(defaultCategoryDocs);
 
-  // Custom Categories (US5-1, US5-3, US5-4, US5-5)
+  // Seed default categories for companion demo users as well
+  for (const companion of [partnerUser, roommateUser, daveUser]) {
+    const companionDefaults = DEFAULT_CATEGORIES.map((cat) => ({
+      userId: companion._id,
+      name: cat.name,
+      type: cat.type,
+      color: cat.color,
+      icon: cat.icon,
+      isSystem: true,
+      createdAt: new Date("2026-08-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-08-01T00:00:00.000Z"),
+    }));
+    await Category.insertMany(companionDefaults);
+  }
+
+  // Custom Categories for Alex Demo (US5-1, US5-3, US5-4, US5-5)
   const customCategories = await Category.insertMany([
     {
       userId: demoUser._id,
@@ -109,9 +172,9 @@ export async function seedDemoData() {
   }
 
   // -------------------------------------------------------------------------
-  // 4. Seed Multiple Wallets (EPIC 6: US6-1 to US6-6)
+  // 4. Seed Personal Wallets (EPIC 6: US6-1 to US6-6)
   // -------------------------------------------------------------------------
-  console.log("Seeding multiple wallets with saving goals and balances...");
+  console.log("Seeding personal wallets with saving goals and balances...");
 
   // Wallet 1: Main Bank (Standard active wallet)
   const mainBank = await Wallet.create({
@@ -129,7 +192,7 @@ export async function seedDemoData() {
     userId: demoUser._id,
     name: "Cash",
     color: "#4A4757", // Charcoal
-    balance: 2840.0,
+    balance: 1640.0,
     isDefault: true,
     isSaving: false,
     createdAt: new Date("2026-08-01T00:00:00.000Z"),
@@ -169,6 +232,143 @@ export async function seedDemoData() {
     isSaving: false,
     createdAt: new Date("2026-09-01T00:00:00.000Z"),
   });
+
+  // Seed companion accounts' personal wallets
+  await Wallet.create({
+    userId: partnerUser._id,
+    name: "Sarah Main Wallet",
+    color: "#EC4899",
+    balance: 45000.0,
+    isDefault: true,
+    isSaving: false,
+  });
+
+  await Wallet.create({
+    userId: roommateUser._id,
+    name: "Bob Cash",
+    color: "#4A4757",
+    balance: 8500.0,
+    isDefault: true,
+    isSaving: false,
+  });
+
+  // -------------------------------------------------------------------------
+  // 4b. Seed Shared Wallets (EPIC 7: Shared Wallets & Invitations)
+  // -------------------------------------------------------------------------
+  console.log("Seeding shared wallets, contributor memberships, and pending invitations...");
+
+  // Shared Wallet 1: "Family Living & Bills" (Alex Demo is OWNER)
+  // Members: Alex Demo (Owner), Sarah Partner (Contributor), Bob Roommate (Contributor), Dave Colleague (Pending)
+  const familySharedWallet = await Wallet.create({
+    userId: demoUser._id,
+    name: "Family Living & Bills",
+    color: "#0284C7", // Sky Blue
+    balance: 14500.0,
+    isDefault: false,
+    isShared: true,
+    membershipVersion: 1,
+    isSaving: false,
+    createdAt: new Date("2026-09-01T00:00:00.000Z"),
+  });
+
+  // Shared Wallet 2: "Japan Vacation Fund" (Sarah Partner is OWNER, Alex Demo is CONTRIBUTOR)
+  // Demonstrates Contributor role view, shared saving goal progress (40%), and collaborative budgeting
+  const vacationSharedWallet = await Wallet.create({
+    userId: partnerUser._id,
+    name: "Japan Vacation Fund",
+    color: "#EC4899", // Pink
+    balance: 24000.0,
+    isDefault: false,
+    isShared: true,
+    membershipVersion: 1,
+    isSaving: true,
+    goalAmount: 60000.0,
+    createdAt: new Date("2026-09-10T00:00:00.000Z"),
+  });
+
+  // Shared Wallet 3: "Weekend Camping Trip" (Sarah Partner invited Alex Demo -> Pending Invitation 1)
+  // Demonstrates InvitationsBanner on Wallets and Home pages with Accept / Decline actions!
+  const campingSharedWallet = await Wallet.create({
+    userId: partnerUser._id,
+    name: "Weekend Camping Trip",
+    color: "#10B981", // Emerald
+    balance: 0.0,
+    isDefault: false,
+    isShared: true,
+    membershipVersion: 0,
+    isSaving: false,
+    createdAt: new Date("2026-10-20T00:00:00.000Z"),
+  });
+
+  // Shared Wallet 4: "Office Coffee & Snacks" (Bob Roommate invited Alex Demo -> Pending Invitation 2)
+  // Demonstrates NotificationBell multiple invitations badge ("2") and inbox dropdown list!
+  const snackSharedWallet = await Wallet.create({
+    userId: roommateUser._id,
+    name: "Office Coffee & Snacks",
+    color: "#F59E0B", // Amber
+    balance: 0.0,
+    isDefault: false,
+    isShared: true,
+    membershipVersion: 0,
+    isSaving: false,
+    createdAt: new Date("2026-10-22T00:00:00.000Z"),
+  });
+
+  // Seed WalletMember rows
+  const walletMembersData = [
+    // Members of "Family Living & Bills" (Owner: Alex Demo)
+    {
+      walletId: familySharedWallet._id,
+      userId: partnerUser._id,
+      status: "accepted" as const,
+      invitedBy: demoUser._id,
+      createdAt: new Date("2026-09-02T10:00:00.000Z"),
+    },
+    {
+      walletId: familySharedWallet._id,
+      userId: roommateUser._id,
+      status: "accepted" as const,
+      invitedBy: demoUser._id,
+      createdAt: new Date("2026-09-05T10:00:00.000Z"),
+    },
+    {
+      walletId: familySharedWallet._id,
+      userId: daveUser._id,
+      status: "pending" as const, // Pending invite in Members Dialog
+      invitedBy: demoUser._id,
+      createdAt: new Date("2026-10-15T10:00:00.000Z"),
+    },
+
+    // Member of "Japan Vacation Fund" (Owner: Sarah Partner, Alex is Contributor)
+    {
+      walletId: vacationSharedWallet._id,
+      userId: demoUser._id,
+      status: "accepted" as const, // Alex accepted Contributor
+      invitedBy: partnerUser._id,
+      createdAt: new Date("2026-09-12T10:00:00.000Z"),
+    },
+
+    // Pending Invitation 1 for Alex Demo (Shows in InvitationsBanner - newest invitation)
+    {
+      walletId: campingSharedWallet._id,
+      userId: demoUser._id,
+      status: "pending" as const,
+      invitedBy: partnerUser._id,
+      createdAt: new Date("2026-10-25T14:00:00.000Z"),
+    },
+
+    // Pending Invitation 2 for Alex Demo (Shows in NotificationBell inbox)
+    {
+      walletId: snackSharedWallet._id,
+      userId: demoUser._id,
+      status: "pending" as const,
+      invitedBy: roommateUser._id,
+      createdAt: new Date("2026-10-24T09:00:00.000Z"),
+    },
+  ];
+
+  await WalletMember.collection.insertMany(walletMembersData);
+  console.log(`✅ Seeded ${walletMembersData.length} shared wallet memberships and invitations.`);
 
   // -------------------------------------------------------------------------
   // 5. Seed Transactions (EPIC 2 & EPIC 3)
@@ -360,6 +560,43 @@ export async function seedDemoData() {
       createdAt: new Date("2026-10-05T18:00:00.000Z"),
       updatedAt: new Date("2026-10-05T18:00:00.000Z"),
     },
+    // Weekly Badminton Court Bookings (Occurrences 1, 2, and 3 supporting US4-1/US4-3 weekly rule)
+    {
+      userId: demoUser._id,
+      walletId: cashWallet._id,
+      categoryId: categoryMap.get("expense:Health")!,
+      type: "expense",
+      amount: 400.0,
+      date: new Date("2026-10-06T18:00:00.000Z"),
+      title: "Weekly Badminton Court Booking",
+      notes: "Tuesday evening court session (occurrence 1)",
+      createdAt: new Date("2026-10-06T18:00:00.000Z"),
+      updatedAt: new Date("2026-10-06T18:00:00.000Z"),
+    },
+    {
+      userId: demoUser._id,
+      walletId: cashWallet._id,
+      categoryId: categoryMap.get("expense:Health")!,
+      type: "expense",
+      amount: 400.0,
+      date: new Date("2026-10-13T18:00:00.000Z"),
+      title: "Weekly Badminton Court Booking",
+      notes: "Tuesday evening court session (occurrence 2)",
+      createdAt: new Date("2026-10-13T18:00:00.000Z"),
+      updatedAt: new Date("2026-10-13T18:00:00.000Z"),
+    },
+    {
+      userId: demoUser._id,
+      walletId: cashWallet._id,
+      categoryId: categoryMap.get("expense:Health")!,
+      type: "expense",
+      amount: 400.0,
+      date: new Date("2026-10-20T18:00:00.000Z"),
+      title: "Weekly Badminton Court Booking",
+      notes: "Tuesday evening court session (occurrence 3)",
+      createdAt: new Date("2026-10-20T18:00:00.000Z"),
+      updatedAt: new Date("2026-10-20T18:00:00.000Z"),
+    },
 
     // =========================================================================
     // SEPTEMBER 2026 (Previous Month - Deficit / Overspending: US2-5 Scenario 2)
@@ -541,10 +778,177 @@ export async function seedDemoData() {
       createdAt: new Date("2026-08-25T12:00:00.000Z"),
       updatedAt: new Date("2026-08-25T12:00:00.000Z"),
     },
+
+    // =========================================================================
+    // SHARED WALLET TRANSACTIONS (EPIC 7: Multi-User Collaboration & Attribution)
+    // =========================================================================
+    // 1. "Family Living & Bills" (October 2026)
+    // Income: ฿35,000 | Expense: ฿20,500 | Net: +฿14,500
+    // Demonstrates: Multi-member entries, preset categories, and attribution
+    {
+      userId: demoUser._id,
+      walletId: familySharedWallet._id,
+      categoryId: null,
+      categoryKey: "others-income",
+      type: "income",
+      amount: 15000.0,
+      date: new Date("2026-10-01T10:00:00.000Z"),
+      title: "Alex Living Contribution",
+      notes: "Monthly room & food contribution from Alex",
+      createdAt: new Date("2026-10-01T10:00:00.000Z"),
+      updatedAt: new Date("2026-10-01T10:00:00.000Z"),
+    },
+    {
+      userId: partnerUser._id,
+      walletId: familySharedWallet._id,
+      categoryId: null,
+      categoryKey: "others-income",
+      type: "income",
+      amount: 15000.0,
+      date: new Date("2026-10-01T10:30:00.000Z"),
+      title: "Sarah Living Contribution",
+      notes: "Monthly contribution from Sarah",
+      createdAt: new Date("2026-10-01T10:30:00.000Z"),
+      updatedAt: new Date("2026-10-01T10:30:00.000Z"),
+    },
+    {
+      userId: roommateUser._id,
+      walletId: familySharedWallet._id,
+      categoryId: null,
+      categoryKey: "others-income",
+      type: "income",
+      amount: 5000.0,
+      date: new Date("2026-10-02T11:00:00.000Z"),
+      title: "Bob Utilities Share",
+      notes: "Bob contribution for electric and water bills",
+      createdAt: new Date("2026-10-02T11:00:00.000Z"),
+      updatedAt: new Date("2026-10-02T11:00:00.000Z"),
+    },
+    {
+      userId: demoUser._id,
+      walletId: familySharedWallet._id,
+      categoryId: null,
+      categoryKey: "essentials",
+      type: "expense",
+      amount: 12000.0,
+      date: new Date("2026-10-03T14:00:00.000Z"),
+      title: "Condo Common Fee & Maintenance",
+      notes: "Quarterly management and security fee",
+      createdAt: new Date("2026-10-03T14:00:00.000Z"),
+      updatedAt: new Date("2026-10-03T14:00:00.000Z"),
+    },
+    {
+      userId: partnerUser._id,
+      walletId: familySharedWallet._id,
+      categoryId: null,
+      categoryKey: "shopping",
+      type: "expense",
+      amount: 3800.0,
+      date: new Date("2026-10-05T16:00:00.000Z"),
+      title: "Costco Bulk Household Supplies",
+      notes: "Detergent, paper towels, and pantry staples",
+      createdAt: new Date("2026-10-05T16:00:00.000Z"),
+      updatedAt: new Date("2026-10-05T16:00:00.000Z"),
+    },
+    {
+      userId: demoUser._id,
+      walletId: familySharedWallet._id,
+      categoryId: null,
+      categoryKey: "utilities",
+      type: "expense",
+      amount: 2500.0,
+      date: new Date("2026-10-08T15:00:00.000Z"),
+      title: "Shared Fiber Internet & TV Package",
+      notes: "Gigabit internet and cable connection",
+      createdAt: new Date("2026-10-08T15:00:00.000Z"),
+      updatedAt: new Date("2026-10-08T15:00:00.000Z"),
+    },
+    {
+      userId: roommateUser._id,
+      walletId: familySharedWallet._id,
+      categoryId: null,
+      categoryKey: "food-drinks",
+      type: "expense",
+      amount: 1400.0,
+      date: new Date("2026-10-12T12:00:00.000Z"),
+      title: "Weekly Organic Market Groceries",
+      notes: "Fresh produce for shared dinners",
+      updatedBy: partnerUser._id, // <<-- Attribution demo: logged by Bob, edited by Sarah!
+      createdAt: new Date("2026-10-12T12:00:00.000Z"),
+      updatedAt: new Date("2026-10-12T13:30:00.000Z"),
+    },
+    {
+      userId: roommateUser._id,
+      walletId: familySharedWallet._id,
+      categoryId: null,
+      categoryKey: "utilities",
+      type: "expense",
+      amount: 800.0,
+      date: new Date("2026-10-15T09:00:00.000Z"),
+      title: "Water Filter Replacement",
+      notes: "Clean drinking water cartridge replacement",
+      createdAt: new Date("2026-10-15T09:00:00.000Z"),
+      updatedAt: new Date("2026-10-15T09:00:00.000Z"),
+    },
+
+    // 2. "Japan Vacation Fund" (Shared Saving Wallet: Goal ฿60,000 | Balance ฿24,000 · 40%)
+    // Demonstrates: Contributor view, shared saving progress bar, and multi-member travel savings
+    {
+      userId: partnerUser._id,
+      walletId: vacationSharedWallet._id,
+      categoryId: null,
+      categoryKey: "allowance-gift",
+      type: "income",
+      amount: 12000.0,
+      date: new Date("2026-09-20T10:00:00.000Z"),
+      title: "Sarah Initial Flight Deposit",
+      notes: "50% flight reservation advance from Sarah",
+      createdAt: new Date("2026-09-20T10:00:00.000Z"),
+      updatedAt: new Date("2026-09-20T10:00:00.000Z"),
+    },
+    {
+      userId: demoUser._id,
+      walletId: vacationSharedWallet._id,
+      categoryId: null,
+      categoryKey: "allowance-gift",
+      type: "income",
+      amount: 12000.0,
+      date: new Date("2026-09-22T10:00:00.000Z"),
+      title: "Alex Initial Flight Deposit",
+      notes: "50% flight reservation advance from Alex",
+      createdAt: new Date("2026-09-22T10:00:00.000Z"),
+      updatedAt: new Date("2026-09-22T10:00:00.000Z"),
+    },
+    {
+      userId: demoUser._id,
+      walletId: vacationSharedWallet._id,
+      categoryId: null,
+      categoryKey: "allowance-gift",
+      type: "income",
+      amount: 10000.0,
+      date: new Date("2026-10-10T10:00:00.000Z"),
+      title: "October Travel Savings Injection",
+      notes: "Additional accommodation fund",
+      createdAt: new Date("2026-10-10T10:00:00.000Z"),
+      updatedAt: new Date("2026-10-10T10:00:00.000Z"),
+    },
+    {
+      userId: partnerUser._id,
+      walletId: vacationSharedWallet._id,
+      categoryId: null,
+      categoryKey: "others-expense",
+      type: "expense",
+      amount: 10000.0,
+      date: new Date("2026-10-14T14:00:00.000Z"),
+      title: "Tokyo Hotel Early Bird Reservation",
+      notes: "3 nights booking in Shinjuku",
+      createdAt: new Date("2026-10-14T14:00:00.000Z"),
+      updatedAt: new Date("2026-10-14T14:00:00.000Z"),
+    },
   ];
 
   await Transaction.collection.insertMany(transactionsData);
-  console.log(`✅ Seeded ${transactionsData.length} transactions.`);
+  console.log(`✅ Seeded ${transactionsData.length} transactions (personal and shared).`);
 
   // -------------------------------------------------------------------------
   // 6. Seed Recurring Transactions (EPIC 4: US4-1 to US4-5)
@@ -611,7 +1015,7 @@ export async function seedDemoData() {
       createdCount: 3,
       nextDueDate: new Date("2026-11-01T00:00:00.000Z"),
       createdAt: new Date("2026-08-01T00:00:00.000Z"),
-      updatedAt: new Date("2026-10-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-10-01T10:00:00.000Z"),
     },
     // 4. Spotify Family Plan (US4-4: Paused Rule with overdue cycle for Resume demo)
     {
@@ -695,6 +1099,26 @@ export async function seedDemoData() {
       createdAt: new Date("2026-09-01T00:00:00.000Z"),
       updatedAt: new Date("2026-09-01T00:00:00.000Z"),
     },
+    // 8. Badminton Court Weekly Session (US4-1 / US4-3: Weekly Cadence demonstration)
+    {
+      userId: demoUser._id,
+      walletId: cashWallet._id,
+      categoryId: categoryMap.get("expense:Health")!,
+      type: "expense" as const,
+      amount: 400.0,
+      title: "Weekly Badminton Court Booking",
+      notes: "Tuesday evening court reservation with friends",
+      startDate: new Date("2026-10-06T00:00:00.000Z"),
+      anchorDay: 6,
+      frequency: "weekly" as const,
+      interval: 1,
+      endType: "never" as const,
+      status: "active" as const,
+      createdCount: 3,
+      nextDueDate: new Date("2026-10-27T00:00:00.000Z"),
+      createdAt: new Date("2026-10-06T00:00:00.000Z"),
+      updatedAt: new Date("2026-10-20T00:00:00.000Z"),
+    },
   ];
 
   await Scheduler.collection.insertMany(schedulersData);
@@ -746,15 +1170,22 @@ export async function seedDemoData() {
   console.log("------------------------------------------------------------");
   console.log("🎉 Seed Completed Successfully!");
   console.log("------------------------------------------------------------");
-  console.log("👤 Primary Demo Credentials:");
-  console.log(`   Email:    ${DEMO_EMAIL}`);
-  console.log(`   Password: ${PASSWORD_PLAIN}`);
-  console.log(`   Name:     Alex Demo (FinLover)`);
-  console.log(`   Data:     5 Wallets, 17 Categories, 28 Transactions, 7 Recurring Rules`);
+  console.log("👤 Primary Demo Account (Alex Demo):");
+  console.log(`   Email:        ${DEMO_EMAIL}`);
+  console.log(`   Password:     ${PASSWORD_PLAIN}`);
+  console.log(`   Personal:     5 Wallets (฿65,180 combined), 17 Categories, 31 Transactions, 8 Recurring Rules`);
+  console.log(`   Shared:       Owner: "Family Living & Bills" (3 members)`);
+  console.log(`                 Contributor: "Japan Vacation Fund" (Saving Goal ฿60k, 40%)`);
+  console.log(`                 Pending Invites: 2 ("Weekend Camping Trip", "Office Coffee & Snacks")`);
+  console.log("");
+  console.log("👥 Companion Shared Accounts (for multi-user demonstration):");
+  console.log(`   • Partner:    ${PARTNER_EMAIL} / ${PASSWORD_PLAIN} (Sarah Partner — Owner of Japan Vacation Fund & Camping invite)`);
+  console.log(`   • Roommate:   ${ROOMMATE_EMAIL} / ${PASSWORD_PLAIN} (Bob Roommate — Contributor & Owner of Snack invite)`);
+  console.log(`   • Colleague:  ${DAVE_EMAIL} / ${PASSWORD_PLAIN} (Dave Colleague — Pending invitee in Family Living & Bills)`);
   console.log("");
   console.log("👤 Disposable User (for US1-4 Account Deletion Demo):");
-  console.log(`   Email:    ${DELETE_DEMO_EMAIL}`);
-  console.log(`   Password: ${PASSWORD_PLAIN}`);
+  console.log(`   Email:        ${DELETE_DEMO_EMAIL}`);
+  console.log(`   Password:     ${PASSWORD_PLAIN}`);
   console.log("------------------------------------------------------------");
 
   await mongoose.disconnect();
