@@ -1,21 +1,13 @@
 "use client";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { cn } from "@/lib/utils";
 import { displayName, useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
-
-type UserMenuProps = {
-  /** Forces the name label visible even without hover — the sidebar's hover-to-expand only applies on desktop, so mobile needs this to show the label when the rail is toggled open. */
-  mobileOpen?: boolean;
-  /** Optional callback for backward compatibility. */
-  onNavigate?: () => void;
-};
 
 /**
  * Sidebar user badge: displays the current user's avatar and name
  * as a non-interactive user profile display.
  */
-export function UserMenu({ mobileOpen = false }: UserMenuProps) {
+export function UserMenu() {
   const { data: currentUser } = useCurrentUser();
   const userName = displayName(currentUser);
 
@@ -29,12 +21,7 @@ export function UserMenu({ mobileOpen = false }: UserMenuProps) {
           {userName.charAt(0).toUpperCase() || "?"}
         </AvatarFallback>
       </Avatar>
-      <span
-        className={cn(
-          "whitespace-nowrap opacity-0 transition-opacity duration-200 md:group-hover:opacity-100",
-          mobileOpen && "max-md:opacity-100"
-        )}
-      >
+      <span className="whitespace-nowrap opacity-0 transition-opacity duration-200 md:group-hover:opacity-100">
         {userName}
       </span>
     </div>
