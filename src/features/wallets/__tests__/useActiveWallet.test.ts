@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useTransactionFilters } from "@/features/transactions/store/useTransactionFilters";
+import { restoreTransactionFilters, useTransactionFilters } from "@/features/transactions/store/useTransactionFilters";
 import { useActiveWallet } from "../store/useActiveWallet";
 
 describe("useActiveWallet (#77)", () => {
@@ -44,6 +44,22 @@ describe("useActiveWallet (#77)", () => {
 
     expect(freshFilters.getState().period).toEqual({ mode: "month", monthKey: "2025-09" });
     expect(JSON.parse(window.sessionStorage.getItem("transactionFilters")!).filters.search).toBe("groceries");
+  });
+
+  it("saves day selections as calendar dates and restores existing ISO snapshots", () => {
+    useTransactionFilters.getState().setPeriod({
+      mode: "day", from: new Date(2026, 0, 3), to: new Date(2026, 0, 5),
+    });
+    const saved = JSON.parse(window.sessionStorage.getItem("transactionFilters")!);
+    expect(saved.period).toEqual({ mode: "day", from: "2026-01-03", to: "2026-01-05" });
+    expect(saved.anchor).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+
+    saved.period.from = new Date(2026, 0, 3).toISOString();
+    window.sessionStorage.setItem("transactionFilters", JSON.stringify(saved));
+    restoreTransactionFilters();
+    expect(useTransactionFilters.getState().period).toEqual({
+      mode: "day", from: new Date(2026, 0, 3), to: new Date(2026, 0, 5),
+    });
   });
 });
 

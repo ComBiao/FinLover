@@ -15,6 +15,18 @@ function defaultFilters(): TransactionFilters {
   return { ...DEFAULT_TRANSACTION_FILTERS, dateRange: periodToDateRange(currentPeriod()) };
 }
 
+function localDateKey(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function restoreDate(value: string): Date {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return new Date(value); // Existing ISO snapshots contain instants.
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  if (localDateKey(date) !== value) throw new Error("Invalid saved calendar date");
+  return date;
+}
+
 type TransactionFiltersState = {
   filters: TransactionFilters;
   period: TransactionPeriod;
@@ -61,12 +73,12 @@ export function restoreTransactionFilters() {
   try {
     const parsed = JSON.parse(saved);
     const period: TransactionPeriod = parsed.period.mode === "day"
-      ? { mode: "day", from: new Date(parsed.period.from), to: new Date(parsed.period.to) }
+      ? { mode: "day", from: restoreDate(parsed.period.from), to: restoreDate(parsed.period.to) }
       : parsed.period;
     const dateRange = periodToDateRange(period);
     useTransactionFilters.setState({
       period,
-      anchor: new Date(parsed.anchor),
+      anchor: restoreDate(parsed.anchor),
       filters: { ...defaultFilters(), ...parsed.filters, dateRange },
     });
   } catch (error) {
@@ -85,8 +97,10 @@ if (typeof window !== "undefined") {
     try {
       window.sessionStorage.setItem("transactionFilters", JSON.stringify({
         filters: state.filters,
-        period: state.period,
-        anchor: state.anchor,
+        period: state.period.mode === "day"
+          ? { mode: "day", from: localDateKey(state.period.from), to: localDateKey(state.period.to) }
+          : state.period,
+        anchor: localDateKey(state.anchor),
       }));
     } catch (error) {
       console.warn("Could not save transaction filters", error);

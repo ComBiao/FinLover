@@ -135,6 +135,7 @@ describe("RulesTable (US4-3, US4-4, US4-5)", () => {
     );
 
     // Titles
+    expect(await screen.findByRole("table")).toBeInTheDocument();
     expect(inTable().getByText("Netflix 4K")).toBeInTheDocument();
     expect(inTable().getByText("Gym Membership")).toBeInTheDocument();
     expect(inTable().getByText("Loan Installment")).toBeInTheDocument();
@@ -180,7 +181,7 @@ describe("RulesTable (US4-3, US4-4, US4-5)", () => {
       />
     );
 
-    const pauseBtn = inTable().getByRole("button", { name: /pause rule/i });
+    const pauseBtn = within(await screen.findByRole("table")).getByRole("button", { name: /pause rule/i });
     await user.click(pauseBtn);
     expect(onPause).toHaveBeenCalledWith("r1");
   });
@@ -203,7 +204,7 @@ describe("RulesTable (US4-3, US4-4, US4-5)", () => {
       />
     );
 
-    const resumeBtn = inTable().getByRole("button", { name: /resume rule/i });
+    const resumeBtn = within(await screen.findByRole("table")).getByRole("button", { name: /resume rule/i });
     await user.click(resumeBtn);
     expect(onResume).toHaveBeenCalledWith("r2");
   });
@@ -226,7 +227,7 @@ describe("RulesTable (US4-3, US4-4, US4-5)", () => {
     );
 
     // Open dropdown menu
-    const moreBtn = inTable().getByRole("button", { name: /more actions/i });
+    const moreBtn = within(await screen.findByRole("table")).getByRole("button", { name: /more actions/i });
     fireEvent.click(moreBtn);
 
     // Find delete menu item
@@ -264,7 +265,7 @@ describe("RulesTable (US4-3, US4-4, US4-5)", () => {
     );
 
     // Open dropdown menu
-    const moreBtn = inTable().getByRole("button", { name: /more actions/i });
+    const moreBtn = within(await screen.findByRole("table")).getByRole("button", { name: /more actions/i });
     fireEvent.click(moreBtn);
 
     // Edit Rule should NOT be in the document
@@ -274,7 +275,7 @@ describe("RulesTable (US4-3, US4-4, US4-5)", () => {
     expect(await screen.findByRole("menuitem", { name: /delete rule/i })).toBeInTheDocument();
   });
 
-  it("lists every rule as a card for phones, with the same actions as the table", () => {
+  it("lists every rule as a card for phones, with the same actions as the table", async () => {
     render(
       <RulesTable
         rules={mockRules}
@@ -289,7 +290,7 @@ describe("RulesTable (US4-3, US4-4, US4-5)", () => {
       />
     );
 
-    const cards = within(screen.getByRole("list", { name: "Recurring rules" })).getAllByRole("listitem");
+    const cards = within(await screen.findByRole("list", { name: "Recurring rules" })).getAllByRole("listitem");
     expect(cards).toHaveLength(mockRules.length);
     expect(within(cards[0]).getByText("Netflix 4K")).toBeInTheDocument();
     expect(within(cards[0]).getByText("-฿419")).toBeInTheDocument();
