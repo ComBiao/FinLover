@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useSessionPageState } from "@/hooks/useSessionPageState";
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -59,6 +61,9 @@ import {
   formatShortDateWithAbbrMonth,
 } from "../dateCadence";
 import type { RecurringRule, RecurringRuleStatus } from "../types";
+const isStatus = (value: string): value is "all" | RecurringRuleStatus =>
+  value === "all" || value === "active" || value === "paused" || value === "completed";
+const isSearch = (value: string): value is string => typeof value === "string";
 
 type RulesTableProps = {
   rules: RecurringRule[];
@@ -85,9 +90,13 @@ export function RulesTable({
   onOpenCreateModal,
   pendingStatusId,
 }: RulesTableProps) {
-  const [filterStatus, setFilterStatus] = useState<"all" | RecurringRuleStatus>("all");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [filterStatus, setFilterStatus, statusRestored] = useSessionPageState("recurringStatus", "all" as "all" | RecurringRuleStatus, isStatus);
+  const [searchQuery, setSearchQuery, searchRestored] = useSessionPageState("recurringSearch", "", isSearch);
   const [deleteCandidate, setDeleteCandidate] = useState<RecurringRule | null>(null);
+
+  if (!statusRestored || !searchRestored) {
+    return <div className="flex flex-col gap-3"><Skeleton className="h-10 w-full" /><Skeleton className="h-16 w-full" /><Skeleton className="h-16 w-full" /></div>;
+  }
 
   // If there are zero rules in total, render the required empty state (US4-3)
   if (rules.length === 0) {

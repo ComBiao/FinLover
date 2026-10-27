@@ -172,6 +172,7 @@ describe("Task 59 — Month Navigation on HomePage", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    window.sessionStorage.removeItem("homeMonth");
     useActiveWallet.setState({ activeWalletId: "all" });
     useTransactionModal.setState({
       isOpen: false,

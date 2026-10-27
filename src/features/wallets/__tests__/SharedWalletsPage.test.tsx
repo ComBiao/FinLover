@@ -35,6 +35,7 @@ function renderPage() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  window.sessionStorage.removeItem("walletView");
   useActiveWallet.setState({ activeWalletId: "all" });
   vi.spyOn(walletsService, "getWallets").mockResolvedValue([
     PERSONAL_WALLET,

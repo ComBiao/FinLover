@@ -9,6 +9,7 @@ import { AddTransactionModal } from "@/features/transactions/components/AddTrans
 import { DeleteTransactionDialog } from "@/features/transactions/components/DeleteTransactionDialog";
 import { TransactionTable } from "@/features/transactions/components/TransactionTable";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useTransactions } from "@/features/transactions/hooks/useTransactions";
 import {
   useCreateTransaction,
@@ -42,26 +43,44 @@ import {
 import { displayName, useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
 
 import { useActiveWallet } from "@/features/wallets/store/useActiveWallet";
+import { useSessionPageState } from "@/hooks/useSessionPageState";
 
 function monthKeyOfDate(date: Date): MonthKey {
   return formatMonthKey(date.getFullYear(), date.getMonth() + 1);
 }
+const isMonthKey = (value: string): value is MonthKey => /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
 
 export function HomePage() {
-  const [month, setMonth] = React.useState<MonthKey>(() => currentMonthKey());
+  const [month, setMonth, monthRestored] = useSessionPageState("homeMonth", currentMonthKey(), isMonthKey);
   const walletId = useActiveWallet((state) => state.activeWalletId);
   const setWalletId = useActiveWallet((state) => state.setActiveWalletId);
+  const [walletRestored, setWalletRestored] = React.useState(false);
 
-  const { data: wallets = [], isSuccess: isWalletsLoaded } = useWallets();
+  React.useEffect(() => {
+    queueMicrotask(() => {
+      try {
+        const savedWalletId = window.sessionStorage.getItem("activeWalletId");
+        if (savedWalletId && savedWalletId !== useActiveWallet.getState().activeWalletId) {
+          setWalletId(savedWalletId);
+        }
+      } catch (error) {
+        console.warn("Could not restore the active wallet", error);
+      } finally {
+        setWalletRestored(true);
+      }
+    });
+  }, [setWalletId]);
+
+  const { data: wallets = [], isPending: isWalletsPending, isSuccess: isWalletsLoaded } = useWallets();
   const { data: currentUser } = useCurrentUser();
 
   // The summary API answers 404 for a wallet that no longer exists (e.g. just
   // deleted), so fall back to the combined view instead of an error state.
   React.useEffect(() => {
-    if (isWalletsLoaded && walletId !== "all" && !wallets.some((wallet) => wallet.id === walletId)) {
+    if (walletRestored && isWalletsLoaded && walletId !== "all" && !wallets.some((wallet) => wallet.id === walletId)) {
       setWalletId("all");
     }
-  }, [isWalletsLoaded, wallets, walletId, setWalletId]);
+  }, [walletRestored, isWalletsLoaded, wallets, walletId, setWalletId]);
   // Memoized so the query key stays stable between renders (avoids refetch loops)
   const months = React.useMemo(() => [month], [month]);
   const { data: personalRows = [], isPending: isPersonalPending } = useTransactions(months);
@@ -134,6 +153,26 @@ export function HomePage() {
       onSuccess: () => toast.success("Transaction deleted"),
       onError: () => toast.error("Couldn't delete this transaction"),
     });
+  }
+
+  if (!walletRestored || !monthRestored || isWalletsPending || (isWalletsLoaded && walletId !== "all" && !selectedWallet)) {
+    return (
+      <main className="min-h-screen bg-background px-6 py-8 sm:px-10 sm:py-10">
+        <div className="mx-auto flex max-w-6xl flex-col gap-[22px]">
+          <Skeleton className="h-9 w-64" />
+          <div className="flex gap-3">
+            <Skeleton className="h-[54px] w-44" />
+            <Skeleton className="h-[54px] w-44" />
+          </div>
+          <div className="grid grid-cols-1 gap-[18px] md:grid-cols-3">
+            {Array.from({ length: 5 }, (_, index) => (
+              <Skeleton key={index} className="h-40 rounded-xl" />
+            ))}
+          </div>
+          <Skeleton className="h-52 rounded-xl" />
+        </div>
+      </main>
+    );
   }
 
   return (
