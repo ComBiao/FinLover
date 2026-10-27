@@ -4,7 +4,7 @@ This guide details the complete demo data and step-by-step presentation script f
 
 > **Note on Scope**:
 > - **Shared Wallets (EPIC 7)** — **Fully Implemented & Ready for Demo** (Multi-member management, invitation banner, notification bell, attribution, and isolated shared summaries).
-> - **Financial Reports & Analytics (EPIC 8)** — Backlogged to future sprints.
+> - **Financial Reports & Analytics (EPIC 8)** — Not part of the primary demo user. It has its own demo user, see [section 7](#7-epic-8--reports-demo-user).
 
 ---
 
@@ -243,3 +243,35 @@ When presenting to the instructor, follow this narrative order for the smoothest
 9. Log out $\rightarrow$ Log in as `delete-demo@finlover.com` / `Password123`.
 10. Navigate to `/profile` $\rightarrow$ delete the account with password confirmation.
 11. Show that the deletion succeeds, cookies clear, and logging in again rejects the deleted account, while keeping `demo@finlover.com` completely untouched.
+
+---
+
+## 7. EPIC 8 — Reports Demo User
+
+The Reports page (`/reports`) has its own account so the figures above stay unchanged.
+
+| Account Purpose | Email | Password | Name | Initial State |
+| :--- | :--- | :--- | :--- | :--- |
+| **Reports Demo User** | `reports-demo@finlover.com` | `Password123` | Riley Reports (FinLover) | 3 Wallets (Cash, Bank, Credit Card), 14 default categories, 38 Transactions from July to October 2026 |
+
+```bash
+npm run db:seed:reports
+```
+
+It only rewrites this one user, so it is safe to run again and does not depend on `npm run db:seed:demo`. Wallet balances are derived from the transactions (wallets store no opening balance), so Cash and Credit Card end up negative; that is intended and is what the negative running-balance case uses. No shared wallet is seeded: create one on `/wallets` to see that the wallet filter leaves it out.
+
+| Story | Filter to set | What you should see |
+| :--- | :--- | :--- |
+| **US8-1** Filter | Wallets: Cash + Bank only (untick Credit Card), Custom 2026-09-01 to 2026-09-30 | Every section shows only those two wallets: income ฿45,000.00, expenses ฿21,000.00, net +฿24,000.00 (8 transactions) |
+| **US8-1** Validation | Custom with the end date before the start date, or untick every wallet | An error ("End date must be on or after the start date" / "Select at least 1 wallet") and the sections keep their previous data |
+| **US8-2** Summary cards | All wallets, Custom 2026-09-01 to 2026-09-30 | Total Income ฿45,000.00, Total Expenses ฿30,000.00, Net Cash Flow +฿15,000.00 |
+| **US8-2** Empty period | All wallets, February 2027 | All three cards ฿0.00 with "No transactions recorded in this period" |
+| **US8-3** Cash flow | All wallets, Custom 2026-07-01 to 2026-09-30 | Weekly is preselected (92 days); Monthly shows Jul ฿28,000 in / ฿33,000 out, Aug ฿33,000 / ฿30,600, Sep ฿45,000 / ฿30,000 |
+| **US8-3** Expense-only bucket | All wallets, Custom 2026-09-01 to 2026-09-30, Weekly | The week of 2026-09-07 has expenses ฿8,500 and income ฿0 (no income bar, no error); 2026-09-21 is the same |
+| **US8-3** Range too wide | All wallets, Custom 2025-01-01 to 2026-12-31 | Daily is disabled; Weekly or Monthly stays available |
+| **US8-4** Category distribution | All wallets, Custom 2026-09-01 to 2026-09-30 | Income: Salary 88.9% / Investment 11.1%. Expenses: Food & Drinks 35.0%, Shopping 23.3%, Utilities 20.0%, Transportation 16.7%, Others 5.0% (the ฿1,500 with no category) |
+| **US8-4** No income | All wallets, Custom 2026-08-10 to 2026-08-20 | Expenses ฿7,400.00 as normal; the income side is empty (total ฿0.00, no items), so it shows the empty state "No income transactions for this period" |
+| **US8-5** Running balance | All wallets, Custom 2026-10-01 to 2026-10-15, Daily | The line starts at ฿12,400.00 and ends at ฿36,400.00; it stays flat on days without transactions (for example 4 to 5 Oct); the ฿2,000 income on 20 Oct and the ฿700 expense on 22 Oct fall after the range but are part of the current balance it is worked back from |
+| **US8-5** Negative balance | Credit Card only, Custom 2026-10-01 to 2026-10-15 | The line stays below zero: opening -฿32,500.00, closing -฿43,400.00 |
+
+There are no transactions before July 2026 or after 22 October 2026, so any range outside that window is an empty period.
