@@ -1,10 +1,6 @@
 import { getApi } from "@/lib/api/client";
-import { mockCategoryDistribution } from "@/features/reports/reportsCharts.mock";
-import type { CategoryDistribution } from "@/features/reports/distribution.types";
+import type { CategoryDistributionResponse } from "@/shared/contracts";
 import type { ReportFilter } from "@/features/reports/types";
-
-// DEV ONLY — removed before PR (Phase 2 cleanup)
-const USE_MOCK = process.env.NEXT_PUBLIC_REPORTS_MOCK === "1";
 
 /** `walletIds` is comma-separated; dates are inclusive `YYYY-MM-DD`. */
 export function reportQueryString(filter: ReportFilter, extra?: Record<string, string>) {
@@ -18,7 +14,6 @@ export function reportQueryString(filter: ReportFilter, extra?: Record<string, s
 }
 
 /** `GET /api/v1/reports/category-distribution` (US8-4). */
-export function getCategoryDistribution(filter: ReportFilter): Promise<CategoryDistribution> {
-  if (USE_MOCK) return mockCategoryDistribution(filter);
-  return getApi<CategoryDistribution>(`/api/v1/reports/category-distribution?${reportQueryString(filter)}`);
+export function getCategoryDistribution(filter: ReportFilter): Promise<CategoryDistributionResponse> {
+  return getApi<CategoryDistributionResponse>(`/api/v1/reports/category-distribution?${reportQueryString(filter)}`);
 }

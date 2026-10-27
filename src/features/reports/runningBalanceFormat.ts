@@ -1,5 +1,5 @@
 import { errorMessageOf } from "@/features/reports/components/ReportStates";
-import type { RunningBalance, RunningBalanceInterval } from "@/features/reports/distribution.types";
+import type { RunningBalanceInterval, RunningBalanceResponse } from "@/shared/contracts";
 import { daysInRange, isIntervalAllowed, isoToLocalDate } from "@/features/reports/period";
 import { ApiClientError } from "@/lib/api/client";
 import { formatEnglishDate, formatEnglishDayMonth } from "@/lib/utils";
@@ -41,7 +41,7 @@ export function defaultRunningBalanceInterval(startDate: string, endDate: string
  * A2: the API's points are end-of-day balances, so the line starts from an
  * extra "Opening" point carrying `openingBalance`. Values are placed as sent.
  */
-export function toRunningBalanceChartData(data: RunningBalance): RunningBalanceChartPoint[] {
+export function toRunningBalanceChartData(data: RunningBalanceResponse): RunningBalanceChartPoint[] {
   return [
     { label: OPENING_LABEL, balance: data.openingBalance, isOpening: true },
     ...data.points.map(({ date, balance }) => ({ label: date, balance, isOpening: false })),
@@ -60,7 +60,7 @@ export function tickLabel(label: string) {
 }
 
 /** Y axis range around the data and the opening balance, including 0 when the balance goes negative. */
-export function balanceDomain(data: RunningBalance): [number, number] {
+export function balanceDomain(data: RunningBalanceResponse): [number, number] {
   const values = [data.openingBalance, ...data.points.map((point) => point.balance)];
   const low = Math.min(...values);
   let high = Math.max(...values);
@@ -69,7 +69,7 @@ export function balanceDomain(data: RunningBalance): [number, number] {
   return [low - pad, high + pad];
 }
 
-export function hasNegativeBalance(data: RunningBalance) {
+export function hasNegativeBalance(data: RunningBalanceResponse) {
   return data.openingBalance < 0 || data.points.some((point) => point.balance < 0);
 }
 

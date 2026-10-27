@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { RunningBalance } from "@/features/reports/distribution.types";
+import type { RunningBalanceResponse } from "@/shared/contracts";
 import {
   RUNNING_BALANCE_RANGE_TOO_LARGE,
   balanceDomain,
@@ -27,7 +27,7 @@ describe("defaultRunningBalanceInterval (A3)", () => {
   });
 });
 
-const data: RunningBalance = {
+const data: RunningBalanceResponse = {
   interval: "daily",
   openingBalance: 12_400,
   closingBalance: 12_100,

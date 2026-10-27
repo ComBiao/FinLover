@@ -3,22 +3,24 @@
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
 import { resolveCategoryIcon } from "@/features/categories/categoryIcons";
-import type { DistributionItem, DistributionSide } from "@/features/reports/distribution.types";
+import type { CategoryDistributionItem, CategoryDistributionResponse } from "@/shared/contracts";
 import { ReportEmpty } from "@/features/reports/components/ReportStates";
 import { formatBahtFixed } from "@/features/reports/format";
+
+type DistributionSide = CategoryDistributionResponse["income"];
 
 /** Slice colour for a category without one ("Other (No Category)"). */
 export const NO_COLOR = "var(--muted-foreground)";
 
-export const sliceColor = (item: DistributionItem) => item.color ?? NO_COLOR;
+export const sliceColor = (item: CategoryDistributionItem) => item.color ?? NO_COLOR;
 
 /** `categoryId` is null for the synthetic "no category" row, so fall back to a fixed key. */
-export const itemKey = (item: DistributionItem) => item.categoryId ?? "no-category";
+export const itemKey = (item: CategoryDistributionItem) => item.categoryId ?? "no-category";
 
 const percentLabel = (percentage: number) => `${percentage.toFixed(1)}%`;
 
 function DonutTooltip({ active, payload }: { active?: boolean; payload?: readonly { payload?: unknown }[] }) {
-  const item = payload?.[0]?.payload as DistributionItem | undefined;
+  const item = payload?.[0]?.payload as CategoryDistributionItem | undefined;
   if (!active || !item) return null;
 
   return (

@@ -3,7 +3,7 @@
 import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import { formatBahtCompact, formatBahtFixed } from "@/features/reports/format";
-import type { RunningBalance } from "@/features/reports/distribution.types";
+import type { RunningBalanceResponse } from "@/shared/contracts";
 import {
   balanceDomain,
   hasNegativeBalance,
@@ -25,7 +25,7 @@ function BalanceTooltip({
 }: {
   active?: boolean;
   payload?: readonly { payload?: unknown }[];
-  interval: RunningBalance["interval"];
+  interval: RunningBalanceResponse["interval"];
 }) {
   const point = payload?.[0]?.payload as RunningBalanceChartPoint | undefined;
   if (!active || !point) return null;
@@ -43,7 +43,7 @@ function BalanceTooltip({
  * also marked with a dashed reference line; a line at 0 appears once the
  * balance goes negative. The Y axis does not have to start at 0.
  */
-export function RunningBalanceChart({ data }: { data: RunningBalance }) {
+export function RunningBalanceChart({ data }: { data: RunningBalanceResponse }) {
   const points = toRunningBalanceChartData(data);
   const unit = data.interval === "weekly" ? "week" : "day";
 

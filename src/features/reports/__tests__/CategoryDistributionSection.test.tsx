@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CategoryDistributionSection } from "@/features/reports/components/CategoryDistributionSection";
 import { NO_COLOR, itemKey, sliceColor } from "@/features/reports/components/DonutCard";
 import * as distributionService from "@/features/reports/distributionService";
-import type { CategoryDistribution, DistributionItem } from "@/features/reports/distribution.types";
+import type { CategoryDistributionItem, CategoryDistributionResponse } from "@/shared/contracts";
 import type { ReportFilter } from "@/features/reports/types";
 
 // Recharts has no layout in jsdom; the section and legend are what these tests cover.
@@ -17,7 +17,7 @@ vi.mock("recharts", async (importOriginal) => {
 
 const FILTER: ReportFilter = { walletIds: ["w1"], startDate: "2026-09-01", endDate: "2026-09-30" };
 
-const food: DistributionItem = {
+const food: CategoryDistributionItem = {
   categoryId: "c1",
   name: "Food & Drinks",
   icon: "Utensils",
@@ -25,7 +25,7 @@ const food: DistributionItem = {
   amount: 600,
   percentage: 60.0,
 };
-const noCategory: DistributionItem = {
+const noCategory: CategoryDistributionItem = {
   categoryId: null,
   name: "Other (No Category)",
   icon: null,
@@ -34,7 +34,7 @@ const noCategory: DistributionItem = {
   percentage: 40.0,
 };
 
-const expenseOnly: CategoryDistribution = {
+const expenseOnly: CategoryDistributionResponse = {
   income: { total: 0, items: [] },
   expense: { total: 1000, items: [food, noCategory] },
 };

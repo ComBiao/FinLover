@@ -5,7 +5,7 @@ import { useState } from "react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ReportSection } from "@/features/reports/components/ReportSection";
 import { RunningBalanceChart } from "@/features/reports/components/RunningBalanceChart";
-import type { RunningBalanceInterval } from "@/features/reports/distribution.types";
+import type { RunningBalanceInterval } from "@/shared/contracts";
 import { useRunningBalance } from "@/features/reports/hooks/useRunningBalance";
 import { MAX_BUCKETS, isIntervalAllowed } from "@/features/reports/period";
 import { defaultRunningBalanceInterval, runningBalanceErrorMessage } from "@/features/reports/runningBalanceFormat";
