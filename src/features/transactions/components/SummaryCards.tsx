@@ -21,7 +21,7 @@ export function SummaryCards({ summary = EMPTY_SUMMARY, period, isLoading = fals
   const status = netBalance > 0 ? "surplus" : netBalance < 0 ? "overspending" : "even";
 
   return (
-    <div className="grid grid-cols-1 gap-[18px] md:grid-cols-3">
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-[18px]">
       <SpentCard
         monthLabel={label}
         amount={totalExpense}
@@ -35,6 +35,7 @@ export function SummaryCards({ summary = EMPTY_SUMMARY, period, isLoading = fals
         isLoading={isLoading}
       />
       <NetCard
+        className="col-span-2 md:col-span-1"
         monthLabel={label}
         net={netBalance}
         status={status}

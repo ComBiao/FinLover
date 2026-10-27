@@ -4,6 +4,7 @@ import * as React from "react";
 import { Plus, Users } from "lucide-react";
 import { toast } from "sonner";
 
+import { AddTransactionFab } from "@/features/transactions/components/AddTransactionFab";
 import { AddTransactionModal } from "@/features/transactions/components/AddTransactionModal";
 import { DeleteTransactionDialog } from "@/features/transactions/components/DeleteTransactionDialog";
 import { TransactionTable } from "@/features/transactions/components/TransactionTable";
@@ -136,12 +137,12 @@ export function HomePage() {
   }
 
   return (
-    <main className="min-h-screen bg-background px-6 py-8 sm:px-10 sm:py-10">
-      <div className="mx-auto flex max-w-6xl flex-col gap-[22px] pb-28">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="flex flex-col gap-3.5">
+    <main className="min-h-screen bg-background px-4 py-5 sm:px-10 sm:py-10">
+      <div className="mx-auto flex max-w-6xl flex-col gap-4 pb-6 md:gap-[22px] md:pb-28">
+        <div className="relative flex flex-wrap items-start justify-between gap-4">
+          <div className="flex w-full flex-col gap-3.5 sm:w-auto">
             <div>
-              <div suppressHydrationWarning className="text-2xl font-extrabold text-foreground sm:text-3xl">
+              <div suppressHydrationWarning className="text-xl font-extrabold text-foreground max-md:pr-14 sm:text-3xl">
                 {new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening'}{currentUser ? `, ${displayName(currentUser)}` : ''}
               </div>
               <div className="mt-1 text-sm text-muted-foreground">
@@ -149,28 +150,32 @@ export function HomePage() {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2.5">
+            <div className="flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center">
               <MonthPicker value={month} onValueChange={setMonth} />
-              <WalletDropdown wallets={wallets} value={walletId} onValueChange={setWalletId} />
-              {isSharedSelected ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-[54px] gap-2 px-3.5 font-bold"
-                  onClick={() => setMembersOpen(true)}
-                >
-                  <Users className="size-4" />
-                  {selectedWallet?.memberCount ?? 0}{" "}
-                  {selectedWallet?.memberCount === 1 ? "member" : "members"}
-                </Button>
-              ) : null}
+              <div className="flex gap-2.5 sm:contents">
+                <WalletDropdown wallets={wallets} value={walletId} onValueChange={setWalletId} />
+                {isSharedSelected ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-[54px] shrink-0 gap-2 px-3.5 font-bold"
+                    onClick={() => setMembersOpen(true)}
+                  >
+                    <Users className="size-4" />
+                    {selectedWallet?.memberCount ?? 0}{" "}
+                    {selectedWallet?.memberCount === 1 ? "member" : "members"}
+                  </Button>
+                ) : null}
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 max-md:absolute max-md:top-0 max-md:right-0">
             <NotificationBell />
+            {/* Phones get the floating button below instead. */}
             <Button
               type="button"
+              className="max-md:hidden"
               onClick={() => openModal(undefined, walletId === "all" ? undefined : walletId)}
             >
               <Plus className="size-4" />
@@ -179,8 +184,9 @@ export function HomePage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-[18px] md:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-[18px]">
           <TotalBalanceCard
+            className="col-span-2 md:col-span-1"
             walletLabel={selectedWalletName}
             hasWallets={summary?.balance.hasWallets ?? wallets.length > 0}
             totalBalance={summary?.balance.totalBalance ?? 0}
@@ -190,6 +196,7 @@ export function HomePage() {
           <SpentCard monthLabel={monthLabel} amount={summary?.expense ?? 0} isLoading={isSummaryPending} />
           <IncomeCard monthLabel={monthLabel} amount={summary?.income ?? 0} isLoading={isSummaryPending} />
           <NetCard
+            className="col-span-2 md:col-span-1"
             monthLabel={monthLabel}
             net={summary?.net.net ?? 0}
             status={summary?.net.status ?? "even"}
@@ -237,6 +244,8 @@ export function HomePage() {
           />
         )}
       </div>
+
+      <AddTransactionFab onClick={() => openModal(undefined, walletId === "all" ? undefined : walletId)} />
 
       <MembersDialog
         wallet={isSharedSelected ? (selectedWallet ?? null) : null}

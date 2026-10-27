@@ -100,7 +100,7 @@ export function WalletDropdown({ wallets, value, onValueChange, className }: Wal
             type="button"
             variant="outline"
             aria-haspopup="listbox"
-            className={cn("h-[54px] min-w-[240px] justify-between gap-2.5 border-2 px-2 pr-3.5", className)}
+            className={cn("h-[54px] min-w-0 flex-1 shrink justify-between gap-2.5 border-2 px-2 pr-3.5 sm:flex-none sm:shrink-0 sm:min-w-[240px]", className)}
             style={{
               borderColor: hexToRgba(selectedColor, 0.55),
               backgroundColor: hexToRgba(selectedColor, 0.12),
@@ -126,7 +126,7 @@ export function WalletDropdown({ wallets, value, onValueChange, className }: Wal
         </span>
         <ChevronDown className="size-4.5 shrink-0 text-foreground/70" />
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-[320px] p-2">
+      <PopoverContent align="start" className="w-[min(320px,calc(100vw-2rem))] p-2">
         <button
           type="button"
           role="option"

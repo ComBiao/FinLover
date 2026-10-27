@@ -44,7 +44,7 @@ export function MonthPicker({ value, onValueChange, className }: MonthPickerProp
   }
 
   return (
-    <div className={cn("flex items-center gap-0.5 rounded-xl border border-border bg-card p-1", className)}>
+    <div className={cn("flex items-center gap-0.5 rounded-xl border border-border bg-card p-1 max-sm:w-full", className)}>
       <Button
         type="button"
         variant="ghost"
@@ -63,14 +63,14 @@ export function MonthPicker({ value, onValueChange, className }: MonthPickerProp
               variant="ghost"
               size="sm"
               aria-haspopup="dialog"
-              className="min-w-40 gap-1.5 font-semibold"
+              className="min-w-40 gap-1.5 font-semibold max-sm:flex-1"
             />
           }
         >
           <CalendarDays className="size-4 text-muted-foreground" />
           {monthKeyLabel(value)}
         </PopoverTrigger>
-        <PopoverContent align="start" className="w-[300px] p-3">
+        <PopoverContent align="start" className="w-[min(300px,calc(100vw-2rem))] p-3">
           <div className="flex items-center justify-between">
             <Button
               type="button"

@@ -31,14 +31,14 @@ export default function LoginPage({
   const { errors, isSubmitting, submitNotice, handleFieldChange, handleSubmit } = useLoginForm();
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background px-4 py-10 sm:px-6">
+    <main className="flex min-h-screen items-center justify-center bg-background px-4 py-6 sm:px-6 sm:py-10">
       <AuthCard
         gradient="a"
         illustration={
           <>
             <Logo />
 
-            <div aria-hidden="true" className="self-start">
+            <div aria-hidden="true" className="self-start max-md:hidden">
               <div className="w-[250px] rounded-2xl bg-card p-5 shadow-lg">
                 <div className="flex items-start justify-between">
                   <div className="h-6 w-[34px] rounded-md bg-chart-1" />
@@ -92,7 +92,7 @@ export default function LoginPage({
         <div className="text-xs font-bold tracking-wider text-accent uppercase">
           Welcome back
         </div>
-        <h1 className="mt-2 text-3xl font-extrabold text-foreground">
+        <h1 className="mt-2 text-2xl font-extrabold text-foreground sm:text-3xl">
           Log in to Finlover
         </h1>
         <p className="mt-1.5 text-sm text-muted-foreground">

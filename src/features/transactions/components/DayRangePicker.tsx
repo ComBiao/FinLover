@@ -60,7 +60,7 @@ export function DayRangePicker({ value, onValueChange, className }: DayRangePick
     : null;
 
   return (
-    <div className={cn("flex items-center gap-0.5 rounded-xl border border-border bg-card p-1", className)}>
+    <div className={cn("flex items-center gap-0.5 rounded-xl border border-border bg-card p-1 max-sm:w-full", className)}>
       <Button
         type="button"
         variant="ghost"
@@ -79,14 +79,14 @@ export function DayRangePicker({ value, onValueChange, className }: DayRangePick
               variant="ghost"
               size="sm"
               aria-haspopup="dialog"
-              className="min-w-40 gap-1.5 font-semibold"
+              className="min-w-40 gap-1.5 font-semibold max-sm:flex-1"
             />
           }
         >
           <CalendarDays className="size-4 text-muted-foreground" />
           {label}
         </PopoverTrigger>
-        <PopoverContent align="start" className="w-auto p-3">
+        <PopoverContent align="start" className="max-h-[80dvh] w-auto max-w-[calc(100vw-2rem)] overflow-y-auto p-3">
           <Calendar mode="range" selected={pending} onSelect={setPending} defaultMonth={value.from} numberOfMonths={2} />
 
           <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-2.5">

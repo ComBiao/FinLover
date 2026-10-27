@@ -186,8 +186,9 @@ export function TransactionTable({
   }
 
   return (
-    <div className={cn("overflow-hidden rounded-xl border border-border bg-card", className)}>
-      <div className="divide-y divide-border md:hidden">
+    <>
+      {/* Phones: one card per transaction (the table returns from `md`). */}
+      <ul className={cn("flex flex-col gap-3 md:hidden", className)} aria-label="Transactions">
         {transactions.map((transaction) => {
           const category = categoryOf(transaction);
           const wallet = wallets.find(({ id }) => id === transaction.walletId);
@@ -197,35 +198,32 @@ export function TransactionTable({
             : undefined;
 
           return (
-            <div key={transaction.id} className="flex flex-col gap-2 p-3.5">
+            <li
+              key={transaction.id}
+              className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-sm"
+            >
               <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="truncate font-medium text-foreground">{transaction.title}</p>
-                  <p className="text-xs text-muted-foreground">{formatEnglishDate(transaction.date)}</p>
-                </div>
+                <p className="min-w-0 flex-1 text-[15px] font-semibold break-words text-foreground">
+                  {transaction.title}
+                </p>
                 <span
                   className={cn(
-                    "inline-flex shrink-0 items-center gap-1 font-semibold",
+                    "inline-flex shrink-0 items-center gap-1 text-base font-bold",
                     transaction.type === "income" ? "text-success" : "text-destructive"
                   )}
                 >
                   {transaction.type === "income" ? (
-                    <ArrowUpRight className="size-3.5" />
+                    <ArrowUpRight className="size-4" />
                   ) : (
-                    <ArrowDownRight className="size-3.5" />
+                    <ArrowDownRight className="size-4" />
                   )}
                   {formatAmount(transaction.amount, transaction.type)}
                 </span>
               </div>
 
-              {isSharedView ? (
-                <div className="flex flex-col items-start gap-2">
-                  <CategoryBadge category={category} />
-                  <LoggedBy transaction={transaction} />
-                </div>
-              ) : (
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <CategoryBadge category={category} />
+              <div className="flex flex-wrap items-center gap-1.5">
+                <CategoryBadge category={category} />
+                {isSharedView ? null : (
                   <Badge
                     variant="secondary"
                     className={cn("border-transparent", walletTone?.className)}
@@ -234,14 +232,25 @@ export function TransactionTable({
                     {WalletIcon ? <WalletIcon className="size-3" /> : null}
                     {wallet?.name ?? "Unknown wallet"}
                   </Badge>
-                </div>
-              )}
+                )}
+              </div>
 
-              {transaction.note ? (
-                <p className="text-sm break-words text-muted-foreground">{transaction.note}</p>
+              {isSharedView && transaction.createdBy ? (
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Logged by</span>
+                  <LoggedBy transaction={transaction} withLabel={false} />
+                </div>
               ) : null}
 
-              <div className="flex justify-end pt-1">
+              {transaction.note ? (
+                <div className="flex flex-col gap-0.5 rounded-lg bg-muted/60 px-3 py-2">
+                  <span className="text-xs text-muted-foreground">Note</span>
+                  <p className="text-sm break-words text-foreground">{transaction.note}</p>
+                </div>
+              ) : null}
+
+              <div className="-mb-1 flex items-center justify-between gap-3 border-t border-border pt-2">
+                <span className="text-xs text-muted-foreground">{formatEnglishDate(transaction.date)}</span>
                 <DropdownMenu>
                   <DropdownMenuTrigger
                     render={
@@ -250,7 +259,7 @@ export function TransactionTable({
                         variant="ghost"
                         size="icon-sm"
                         aria-label="Transaction actions"
-                        className="text-muted-foreground hover:text-foreground"
+                        className="-mr-2 text-muted-foreground hover:text-foreground max-md:size-10"
                       />
                     }
                   >
@@ -271,158 +280,160 @@ export function TransactionTable({
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-            </div>
+            </li>
           );
         })}
-      </div>
+      </ul>
 
-      <Table className="hidden table-fixed md:table">
-        <TableHeader>
-          <TableRow>
-            <TableHead className={cn("py-3.5", isSharedView ? "w-[12%]" : "w-[10%]")}>Date</TableHead>
-            <TableHead className={cn("py-3.5", isSharedView ? "w-[20%]" : "w-[24%]")}>Title</TableHead>
-            <TableHead className={cn("py-3.5", isSharedView ? "w-[16%]" : "w-[15%]")}>Category</TableHead>
-            {isSharedView ? (
-              <TableHead className="w-[22%] py-3.5">Logged by</TableHead>
-            ) : (
-              <TableHead className="w-[15%] py-3.5">Wallet</TableHead>
-            )}
-            <TableHead className={cn("py-3.5", isSharedView ? "w-[16%]" : "w-[22%]")}>Note</TableHead>
-            <TableHead className="w-[10%] py-3.5 text-right">Amount</TableHead>
-            <TableHead className="w-[4%] py-3.5 text-right">
-              <span className="sr-only">Actions</span>
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {transactions.map((transaction) => {
-            const category = categoryOf(transaction);
-            const wallet = wallets.find(({ id }) => id === transaction.walletId);
-            const WalletIcon = wallet?.icon;
-            const isExpanded = expandedRowId === transaction.id;
-            const walletTone = wallet
-              ? resolveChipTone(wallet.color, WALLET_TYPE_STYLES, wallet.type ?? wallet.id)
-              : undefined;
+      <div className={cn("overflow-hidden rounded-xl border border-border bg-card max-md:hidden", className)}>
+        <Table className="hidden table-fixed md:table">
+          <TableHeader>
+            <TableRow>
+              <TableHead className={cn("py-3.5", isSharedView ? "w-[12%]" : "w-[10%]")}>Date</TableHead>
+              <TableHead className={cn("py-3.5", isSharedView ? "w-[20%]" : "w-[24%]")}>Title</TableHead>
+              <TableHead className={cn("py-3.5", isSharedView ? "w-[16%]" : "w-[15%]")}>Category</TableHead>
+              {isSharedView ? (
+                <TableHead className="w-[22%] py-3.5">Logged by</TableHead>
+              ) : (
+                <TableHead className="w-[15%] py-3.5">Wallet</TableHead>
+              )}
+              <TableHead className={cn("py-3.5", isSharedView ? "w-[16%]" : "w-[22%]")}>Note</TableHead>
+              <TableHead className="w-[10%] py-3.5 text-right">Amount</TableHead>
+              <TableHead className="w-[4%] py-3.5 text-right">
+                <span className="sr-only">Actions</span>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {transactions.map((transaction) => {
+              const category = categoryOf(transaction);
+              const wallet = wallets.find(({ id }) => id === transaction.walletId);
+              const WalletIcon = wallet?.icon;
+              const isExpanded = expandedRowId === transaction.id;
+              const walletTone = wallet
+                ? resolveChipTone(wallet.color, WALLET_TYPE_STYLES, wallet.type ?? wallet.id)
+                : undefined;
 
-            return (
-              <TableRow
-                key={transaction.id}
-                className={cn(
-                  "transition-colors",
-                  isExpanded && "bg-primary/5 hover:bg-primary/5"
-                )}
-              >
-                <TableCell className="py-3.5 text-muted-foreground">
-                  {formatEnglishDate(transaction.date)}
-                </TableCell>
-                <TableCell className="truncate py-3.5 font-medium text-foreground">
-                  {transaction.title}
-                </TableCell>
-                <TableCell className="py-3.5">
-                  <CategoryBadge category={category} />
-                </TableCell>
-                {isSharedView ? (
-                  <TableCell className="py-3.5">
-                    <LoggedBy
-                      transaction={transaction}
-                      withLabel={false}
-                      expanded={isExpanded}
-                      onToggle={() => setExpandedRowId((current) => (current === transaction.id ? null : transaction.id))}
-                    />
-                  </TableCell>
-                ) : (
-                  <TableCell className="py-3.5">
-                    <Badge
-                      variant="secondary"
-                      className={cn("border-transparent", walletTone?.className)}
-                      style={walletTone?.style}
-                    >
-                      {WalletIcon ? <WalletIcon className="size-3" /> : null}
-                      {wallet?.name ?? "Unknown wallet"}
-                    </Badge>
-                  </TableCell>
-                )}
-                <TableCell className="py-3.5 text-muted-foreground">
-                  {transaction.note ? (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setExpandedRowId((current) =>
-                          current === transaction.id ? null : transaction.id
-                        )
-                      }
-                      className="group/note flex w-full items-start gap-1 text-left transition-colors hover:text-foreground"
-                    >
-                      <span
-                        className={cn(
-                          "min-w-0 flex-1",
-                          isExpanded ? "whitespace-pre-wrap break-words" : "truncate"
-                        )}
-                      >
-                        {transaction.note}
-                      </span>
-                      {isExpanded ? (
-                        <ChevronUp className="mt-0.5 size-3.5 shrink-0 text-primary" />
-                      ) : (
-                        <ChevronDown className="mt-0.5 size-3.5 shrink-0 text-muted-foreground/70 transition-colors group-hover/note:text-foreground" />
-                      )}
-                    </button>
-                  ) : (
-                    "—"
-                  )}
-                </TableCell>
-                <TableCell
+              return (
+                <TableRow
+                  key={transaction.id}
                   className={cn(
-                    "py-3.5 text-right font-semibold",
-                    transaction.type === "income" ? "text-success" : "text-destructive"
+                    "transition-colors",
+                    isExpanded && "bg-primary/5 hover:bg-primary/5"
                   )}
                 >
-                  <span className="inline-flex items-center justify-end gap-1">
-                    {transaction.type === "income" ? (
-                      <ArrowUpRight className="size-3.5" />
-                    ) : (
-                      <ArrowDownRight className="size-3.5" />
-                    )}
-                    {formatAmount(transaction.amount, transaction.type)}
-                  </span>
-                </TableCell>
-                <TableCell className="py-3.5">
-                  <div className="flex justify-end">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger
-                        render={
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label="Transaction actions"
-                            className="text-muted-foreground hover:text-foreground"
-                          />
-                        }
+                  <TableCell className="py-3.5 text-muted-foreground">
+                    {formatEnglishDate(transaction.date)}
+                  </TableCell>
+                  <TableCell className="truncate py-3.5 font-medium text-foreground">
+                    {transaction.title}
+                  </TableCell>
+                  <TableCell className="py-3.5">
+                    <CategoryBadge category={category} />
+                  </TableCell>
+                  {isSharedView ? (
+                    <TableCell className="py-3.5">
+                      <LoggedBy
+                        transaction={transaction}
+                        withLabel={false}
+                        expanded={isExpanded}
+                        onToggle={() => setExpandedRowId((current) => (current === transaction.id ? null : transaction.id))}
+                      />
+                    </TableCell>
+                  ) : (
+                    <TableCell className="py-3.5">
+                      <Badge
+                        variant="secondary"
+                        className={cn("border-transparent", walletTone?.className)}
+                        style={walletTone?.style}
                       >
-                        <MoreVertical className="size-4" />
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => onEdit?.(transaction)}>
-                          <Pencil className="size-4" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          variant="destructive"
-                          onClick={() => onDeleteRequest(transaction)}
+                        {WalletIcon ? <WalletIcon className="size-3" /> : null}
+                        {wallet?.name ?? "Unknown wallet"}
+                      </Badge>
+                    </TableCell>
+                  )}
+                  <TableCell className="py-3.5 text-muted-foreground">
+                    {transaction.note ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExpandedRowId((current) =>
+                            current === transaction.id ? null : transaction.id
+                          )
+                        }
+                        className="group/note flex w-full items-start gap-1 text-left transition-colors hover:text-foreground"
+                      >
+                        <span
+                          className={cn(
+                            "min-w-0 flex-1",
+                            isExpanded ? "whitespace-pre-wrap break-words" : "truncate"
+                          )}
                         >
-                          <Trash2 className="size-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
-    </div>
+                          {transaction.note}
+                        </span>
+                        {isExpanded ? (
+                          <ChevronUp className="mt-0.5 size-3.5 shrink-0 text-primary" />
+                        ) : (
+                          <ChevronDown className="mt-0.5 size-3.5 shrink-0 text-muted-foreground/70 transition-colors group-hover/note:text-foreground" />
+                        )}
+                      </button>
+                    ) : (
+                      "—"
+                    )}
+                  </TableCell>
+                  <TableCell
+                    className={cn(
+                      "py-3.5 text-right font-semibold",
+                      transaction.type === "income" ? "text-success" : "text-destructive"
+                    )}
+                  >
+                    <span className="inline-flex items-center justify-end gap-1">
+                      {transaction.type === "income" ? (
+                        <ArrowUpRight className="size-3.5" />
+                      ) : (
+                        <ArrowDownRight className="size-3.5" />
+                      )}
+                      {formatAmount(transaction.amount, transaction.type)}
+                    </span>
+                  </TableCell>
+                  <TableCell className="py-3.5">
+                    <div className="flex justify-end">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger
+                          render={
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label="Transaction actions"
+                              className="text-muted-foreground hover:text-foreground"
+                            />
+                          }
+                        >
+                          <MoreVertical className="size-4" />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => onEdit?.(transaction)}>
+                            <Pencil className="size-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            variant="destructive"
+                            onClick={() => onDeleteRequest(transaction)}
+                          >
+                            <Trash2 className="size-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
+    </>
   );
 }

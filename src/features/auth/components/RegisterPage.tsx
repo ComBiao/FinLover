@@ -40,7 +40,7 @@ export default function RegisterPage() {
   } = useRegisterForm();
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background px-4 py-10 sm:px-6">
+    <main className="flex min-h-screen items-center justify-center bg-background px-4 py-6 sm:px-6 sm:py-10">
       <AuthCard
         gradient="b"
         illustration={
@@ -49,7 +49,7 @@ export default function RegisterPage() {
 
             <div
               aria-hidden="true"
-              className="w-[250px] rounded-2xl bg-card p-5 shadow-lg"
+              className="w-[250px] rounded-2xl bg-card p-5 shadow-lg max-md:hidden"
             >
               <div className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
                 Emergency fund
@@ -77,7 +77,7 @@ export default function RegisterPage() {
         <div className="text-xs font-bold tracking-wider text-accent uppercase">
           Get started
         </div>
-        <h1 className="mt-2 text-3xl font-extrabold text-foreground">
+        <h1 className="mt-2 text-2xl font-extrabold text-foreground sm:text-3xl">
           Create your account
         </h1>
         <p className="mt-1.5 text-sm text-muted-foreground">

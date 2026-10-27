@@ -136,7 +136,7 @@ export function WalletCard({
             <DropdownMenu>
               <DropdownMenuTrigger
                 render={
-                  <Button type="button" variant="ghost" size="icon-sm" className="size-8">
+                  <Button type="button" variant="ghost" size="icon-sm" className="size-8 max-sm:size-10">
                     <MoreVertical className="size-4" />
                     <span className="sr-only">Wallet actions</span>
                   </Button>
