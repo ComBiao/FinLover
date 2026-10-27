@@ -7,6 +7,7 @@ One modular Next.js application, one root package.json/lockfile, npm only, Node.
 - Icons MUST use lucide-react unless explicitly requested otherwise.
 - External input uses Zod. Shared HTTP contracts: `src/shared/contracts`; client-only form schemas stay in features/types.
 - Zustand holds UI state; TanStack Query holds real server data/mutations. Every screen (auth, wallets, transactions, categories, dashboard, profile) uses the real `/api/v1` APIs; no mock data remains. Reports and Settings (sidebar links) have no pages yet.
+- Phones (below `md`): `BottomNav` replaces the Sidebar, dialogs become bottom sheets, and page layouts must not scroll sideways; use `max-md:`/`md:` classes and keep desktop (`md`+) unchanged. Check with `npx playwright test --project=mobile`.
 
 ## Architecture
 - `src/app` composes pages/layouts and thin HTTP entries. Feature UI/hooks/stores live in `src/features`.
