@@ -80,11 +80,11 @@ export function ProfilePage() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-3xl p-6 sm:p-8">
+    <main className="mx-auto w-full max-w-3xl p-4 sm:p-8">
       <h1 className="text-2xl font-bold text-foreground">Profile</h1>
       <p className="mt-1 text-sm text-muted-foreground">Your account details.</p>
 
-      <Card className="mt-8 gap-6 p-6">
+      <Card className="mt-6 gap-6 p-5 sm:mt-8 sm:p-6">
         {isPending ? (
           <div aria-busy="true" aria-label="Loading profile" className="flex flex-col gap-4">
             <Skeleton className="size-16 rounded-full" />
@@ -109,14 +109,14 @@ export function ProfilePage() {
               <div className="flex items-center gap-3">
                 <User className="size-4 text-muted-foreground" aria-hidden />
                 <dt className="sr-only">Name</dt>
-                <dd data-testid="profile-name" className="text-base font-semibold text-foreground">
+                <dd data-testid="profile-name" className="min-w-0 text-base font-semibold break-words text-foreground">
                   {displayName(user)}
                 </dd>
               </div>
               <div className="flex items-center gap-3">
                 <Mail className="size-4 text-muted-foreground" aria-hidden />
                 <dt className="sr-only">Email</dt>
-                <dd data-testid="profile-email" className="text-sm text-muted-foreground">
+                <dd data-testid="profile-email" className="min-w-0 text-sm break-all text-muted-foreground">
                   {user?.email}
                 </dd>
               </div>
@@ -125,7 +125,7 @@ export function ProfilePage() {
         )}
       </Card>
 
-      <Card className="mt-6 gap-3 p-6">
+      <Card className="mt-4 gap-3 p-5 sm:mt-6 sm:p-6">
         <h2 className="text-base font-semibold text-foreground">Log out</h2>
         <p className="text-sm text-muted-foreground">
           Log out of your account on this device.
@@ -134,7 +134,7 @@ export function ProfilePage() {
           <Button
             variant="outline"
             onClick={() => setLogoutOpen(true)}
-            className="gap-2"
+            className="gap-2 max-sm:w-full"
           >
             <LogOut className="size-4" />
             Log out
@@ -142,7 +142,7 @@ export function ProfilePage() {
         </div>
       </Card>
 
-      <Card className="mt-6 gap-3 border-destructive/30 p-6">
+      <Card className="mt-4 gap-3 border-destructive/30 p-5 sm:mt-6 sm:p-6">
         <h2 className="text-base font-semibold text-foreground">Delete account</h2>
         <p className="text-sm text-muted-foreground">
           Permanently deletes your account together with all of your wallets, categories and
@@ -155,7 +155,7 @@ export function ProfilePage() {
               setDeleteError(null);
               setDeleteOpen(true);
             }}
-            className="gap-2"
+            className="gap-2 max-sm:w-full"
           >
             <Trash2 className="size-4" />
             Delete account

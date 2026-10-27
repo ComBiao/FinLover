@@ -21,7 +21,7 @@ export function PeriodModeToggle({ value, onValueChange, className }: PeriodMode
     <div
       role="radiogroup"
       aria-label="View by"
-      className={cn("flex items-center gap-1 rounded-xl bg-muted p-1", className)}
+      className={cn("flex items-center gap-1 rounded-xl bg-muted p-1 max-sm:w-full", className)}
     >
       {MODES.map(({ mode, label }) => {
         const active = mode === value;
@@ -33,7 +33,7 @@ export function PeriodModeToggle({ value, onValueChange, className }: PeriodMode
             aria-checked={active}
             onClick={() => onValueChange(mode)}
             className={cn(
-              "h-8 min-w-16 rounded-lg px-3.5 text-sm font-medium transition-colors",
+              "h-8 min-w-16 rounded-lg px-3.5 text-sm font-medium transition-colors max-sm:h-10 max-sm:flex-1",
               active
                 ? "bg-primary font-bold text-primary-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"

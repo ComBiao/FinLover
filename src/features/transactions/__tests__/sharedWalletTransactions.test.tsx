@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import React from "react";
@@ -75,11 +75,14 @@ describe("TransactionTable — shared wallet rows", () => {
   it("shows who logged each row and who edited it when that is someone else", () => {
     renderWithClient(<TransactionTable transactions={SHARED_ROWS} onDeleteRequest={vi.fn()} />);
 
-    // Each row renders twice: the mobile card says "Logged by …"; the desktop table's column header already says it, so the cell is just the name.
-    expect(screen.getAllByText("Logged by Guy")).toHaveLength(1);
-    expect(screen.getAllByText("Guy")).toHaveLength(1);
-    expect(screen.getAllByText("Logged by Tul (you)")).toHaveLength(1);
-    expect(screen.getAllByText("Tul (you)")).toHaveLength(1);
+    // Each row renders twice. The mobile card has a "Logged by" caption above the name; the desktop table's column header already says it, so its cell is just the name.
+    const cards = within(screen.getByRole("list", { name: "Transactions" }));
+    expect(cards.getAllByText("Logged by")).toHaveLength(2);
+    expect(cards.getAllByText("Guy")).toHaveLength(1);
+    expect(cards.getAllByText("Tul (you)")).toHaveLength(1);
+    const table = within(screen.getByRole("table"));
+    expect(table.getAllByText("Guy")).toHaveLength(1);
+    expect(table.getAllByText("Tul (you)")).toHaveLength(1);
     expect(screen.getAllByText("edited by Tul (you)")).toHaveLength(2);
     expect(screen.queryByText(/edited by Guy/)).not.toBeInTheDocument();
   });
@@ -101,17 +104,19 @@ describe("TransactionTable — shared wallet rows", () => {
     it("expands the names in full from the chevron, and collapses them again", () => {
       renderWithClient(<TransactionTable transactions={SHARED_ROWS} onDeleteRequest={vi.fn()} />);
 
+      // Only the desktop table's name cells offer the chevron.
+      const table = within(screen.getByRole("table"));
       const chevrons = screen.getAllByRole("button", { name: "Show full names" });
       expect(chevrons).toHaveLength(2);
-      expect(screen.getByText("Guy")).toHaveClass("truncate");
+      expect(table.getByText("Guy")).toHaveClass("truncate");
 
       fireEvent.click(chevrons[0]);
 
       expect(screen.getByRole("button", { name: "Collapse names" })).toHaveAttribute("aria-expanded", "true");
-      expect(screen.getByText("Guy")).not.toHaveClass("truncate");
+      expect(table.getByText("Guy")).not.toHaveClass("truncate");
 
       fireEvent.click(screen.getByRole("button", { name: "Collapse names" }));
-      expect(screen.getByText("Guy")).toHaveClass("truncate");
+      expect(table.getByText("Guy")).toHaveClass("truncate");
     });
   });
 

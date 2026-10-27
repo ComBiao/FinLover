@@ -287,7 +287,7 @@ export function StartDatePicker({
           <PopoverContent
             align="start"
             sideOffset={6}
-            className="w-[330px] p-3.5 shadow-2xl rounded-2xl border border-border/80 bg-popover text-popover-foreground animate-in fade-in-0 zoom-in-95"
+            className="w-[min(330px,calc(100vw-2rem))] p-3.5 shadow-2xl rounded-2xl border border-border/80 bg-popover text-popover-foreground animate-in fade-in-0 zoom-in-95"
           >
             {/* Header: Mode Switcher & Stepper */}
             <div className="flex items-center justify-between pb-2.5 border-b border-border/50">

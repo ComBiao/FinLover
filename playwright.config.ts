@@ -11,7 +11,11 @@ export default defineConfig({
   workers: 1,
   reporter: [['list']],
   use: { baseURL: `http://localhost:${port}`, trace: 'retain-on-failure' },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    { name: 'chromium', testIgnore: /.*\.mobile\.spec\.ts/, use: { ...devices['Desktop Chrome'] } },
+    // iPhone-sized viewport (Chromium engine) for the mobile layout specs: `*.mobile.spec.ts` only.
+    { name: 'mobile', testMatch: /.*\.mobile\.spec\.ts/, use: { ...devices['iPhone 14'], defaultBrowserType: 'chromium' } },
+  ],
   webServer: {
     command: 'node tests/e2e/start-server.mjs',
     url: `http://localhost:${port}/login`,

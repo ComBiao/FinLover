@@ -20,13 +20,13 @@ export function AuthCard({ gradient, illustration, children }: AuthCardProps) {
       <div className="grid items-stretch md:grid-cols-2">
         <div
           className={cn(
-            "flex flex-col justify-between gap-9 p-8 sm:p-10 md:p-11",
+            "flex flex-col justify-between gap-5 p-6 sm:p-10 md:gap-9 md:p-11",
             gradient === "a" ? "bg-gradient-pastel-a" : "bg-gradient-pastel-b"
           )}
         >
           {illustration}
         </div>
-        <div className="flex flex-col justify-center p-8 sm:p-10 md:p-12 lg:px-13 lg:py-13">
+        <div className="flex flex-col justify-center p-6 sm:p-10 md:p-12 lg:px-13 lg:py-13">
           {children}
         </div>
       </div>

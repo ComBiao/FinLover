@@ -117,7 +117,8 @@ describe("Home — a shared wallet selected", () => {
   it("shows who logged each row, with Logged by in place of Wallet", async () => {
     renderHome();
 
-    expect((await screen.findAllByText("Logged by Guy")).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText("Guy")).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Logged by").length).toBeGreaterThan(0);
     expect(screen.getAllByText("edited by Tul (you)").length).toBeGreaterThan(0);
     expect(screen.getByRole("columnheader", { name: "Logged by" })).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "Category" })).toBeInTheDocument();

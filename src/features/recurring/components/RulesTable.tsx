@@ -150,6 +150,144 @@ export function RulesTable({
     completed: rules.filter((r) => r.status === "completed").length,
   };
 
+  /** Everything a rule needs to show itself, shared by the table row and the phone card. */
+  const ruleView = (rule: RecurringRule) => {
+    const category = categoryOf(rule);
+    const wallet = wallets.find(({ id }) => id === rule.walletId);
+    const CategoryIcon = category?.icon;
+    const WalletIcon = wallet?.icon;
+    const categoryTone = category
+      ? resolveChipTone(category.color, CATEGORY_STYLES, category.id)
+      : undefined;
+    const walletTone = wallet
+      ? resolveChipTone(wallet.color, WALLET_TYPE_STYLES, wallet.type ?? wallet.id)
+      : undefined;
+
+    const isDue = rule.status === "active" && rule.nextRunDate <= simulatedDate;
+    const cadence = formatCadenceString(rule);
+    const endSummary = formatEndConditionSummary(rule);
+
+    return { category, wallet, CategoryIcon, WalletIcon, categoryTone, walletTone, isDue, cadence, endSummary };
+  };
+
+  const renderStatusBadge = (rule: RecurringRule) => (
+    <>
+      {rule.status === "active" && (
+        <Badge
+          variant="outline"
+          className="border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-semibold text-xs flex items-center gap-1.5 w-fit"
+        >
+          <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          Active
+        </Badge>
+      )}
+      {rule.status === "paused" && (
+        <Badge
+          variant="outline"
+          className="border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300 font-semibold text-xs flex items-center gap-1.5 w-fit"
+        >
+          <Pause className="size-2.5" />
+          Paused
+        </Badge>
+      )}
+      {rule.status === "completed" && (
+        <Badge
+          variant="outline"
+          className="border-blue-500/40 bg-blue-500/10 text-blue-700 dark:text-blue-300 font-semibold text-xs flex items-center gap-1 w-fit"
+        >
+          <Check className="size-2.5" />
+          Completed
+        </Badge>
+      )}
+    </>
+  );
+
+  const renderActions = (rule: RecurringRule) => (
+    <div className="flex items-center justify-end gap-1 shrink-0">
+      {/* Quick-Action Pause / Resume Button (US4-4) */}
+      {rule.status === "active" ? (
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => onPause(rule.id)}
+                disabled={pendingStatusId === rule.id}
+                aria-label="Pause rule"
+                className="text-amber-600 hover:text-amber-700 hover:bg-amber-500/10 disabled:opacity-50 max-md:size-10"
+              />
+            }
+          >
+            <Pause className="size-4" />
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            <p className="text-xs">Pause schedule (halt future postings)</p>
+          </TooltipContent>
+        </Tooltip>
+      ) : rule.status === "paused" ? (
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => onResume(rule.id)}
+                disabled={pendingStatusId === rule.id}
+                aria-label="Resume rule"
+                className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 disabled:opacity-50 max-md:size-10"
+              />
+            }
+          >
+            <Play className="size-4 fill-current" />
+          </TooltipTrigger>
+          <TooltipContent side="top" className="max-w-xs">
+            <p className="text-xs">
+              <strong>Resume rule:</strong> Overdue cycles will be skipped without retroactive double-posting; advances to next upcoming cycle.
+            </p>
+          </TooltipContent>
+        </Tooltip>
+      ) : null}
+
+      {/* More dropdown */}
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              aria-label="More actions"
+              className="text-muted-foreground hover:text-foreground max-md:size-10"
+            />
+          }
+        >
+          <MoreVertical className="size-4" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-44 text-sm">
+          {rule.status !== "completed" && (
+            <DropdownMenuItem onClick={() => onEdit(rule)}>
+              <Edit className="mr-2 size-4" />
+              Edit Rule
+            </DropdownMenuItem>
+          )}
+
+          {rule.status !== "completed" && <DropdownMenuSeparator />}
+
+          <DropdownMenuItem
+            variant="destructive"
+            onClick={() => setDeleteCandidate(rule)}
+          >
+            <Trash2 className="mr-2 size-4" />
+            Delete Rule
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+
   return (
     <TooltipProvider>
       <div className="space-y-3">
@@ -208,8 +346,114 @@ export function RulesTable({
           </div>
         </div>
 
-        {/* Rules Table */}
-        <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
+        {/* Phones: one card per rule instead of the 8-column table */}
+        {filteredRules.length > 0 ? (
+          <ul className="flex flex-col gap-3 md:hidden" aria-label="Recurring rules">
+            {filteredRules.map((rule) => {
+              const { category, wallet, CategoryIcon, WalletIcon, categoryTone, walletTone, isDue, cadence, endSummary } =
+                ruleView(rule);
+
+              return (
+                <li
+                  key={rule.id}
+                  className={cn(
+                    "flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-sm",
+                    rule.status === "completed" && "opacity-75"
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 flex-col gap-1">
+                      <span className="truncate text-[15px] font-semibold text-foreground">{rule.title}</span>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <Badge
+                          variant="outline"
+                          className={
+                            categoryTone
+                              ? cn("border-transparent text-xs py-0.5", categoryTone.className)
+                              : "border-border bg-muted text-muted-foreground text-xs py-0.5"
+                          }
+                          style={categoryTone?.style}
+                        >
+                          {CategoryIcon ? <CategoryIcon className="size-3 mr-1" /> : null}
+                          {category?.name ?? FALLBACK_CATEGORY_NAME}
+                        </Badge>
+                        <Badge
+                          variant="secondary"
+                          className={cn("border-transparent text-xs py-0.5", walletTone?.className)}
+                          style={walletTone?.style}
+                        >
+                          {WalletIcon ? <WalletIcon className="size-3 mr-1" /> : null}
+                          {wallet?.name ?? "Main Bank"}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="shrink-0">{renderStatusBadge(rule)}</div>
+                  </div>
+
+                  {rule.note ? <p className="text-xs italic text-muted-foreground">{rule.note}</p> : null}
+
+                  <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                    <div>
+                      <dt className="text-muted-foreground">Cadence</dt>
+                      <dd className="text-sm font-medium text-foreground">{cadence}</dd>
+                      <dd className="text-muted-foreground">Starts {formatShortDateWithAbbrMonth(rule.startDate)}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-muted-foreground">Next run</dt>
+                      <dd
+                        className={cn(
+                          "font-mono text-sm",
+                          rule.status === "paused"
+                            ? "text-muted-foreground opacity-60"
+                            : isDue
+                            ? "font-bold text-primary"
+                            : "text-foreground"
+                        )}
+                      >
+                        {formatShortDateWithAbbrMonth(rule.nextRunDate)}
+                        {isDue ? (
+                          <span className="ml-1.5 rounded bg-primary/10 px-1.5 py-0.5 font-sans text-xs font-bold text-primary">
+                            Due
+                          </span>
+                        ) : null}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-muted-foreground">Ends</dt>
+                      <dd className="whitespace-pre-line text-sm text-foreground">{endSummary}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-muted-foreground">Amount</dt>
+                      <dd
+                        className={cn(
+                          "inline-flex items-center gap-0.5 text-base font-bold",
+                          rule.type === "income" ? "text-success" : "text-destructive"
+                        )}
+                      >
+                        {rule.type === "income" ? (
+                          <ArrowUpRight className="size-4" />
+                        ) : (
+                          <ArrowDownRight className="size-4" />
+                        )}
+                        {`${rule.type === "income" ? "+" : "-"}${formatBaht(rule.amount)}`}
+                      </dd>
+                    </div>
+                  </dl>
+
+                  <div className="flex justify-end border-t border-border pt-2">{renderActions(rule)}</div>
+                </li>
+              );
+            })}
+          </ul>
+        ) : null}
+
+        {/* Rules Table (md and up; on phones it only shows the "nothing matches" message) */}
+        <div
+          className={cn(
+            "overflow-x-auto rounded-xl border border-border bg-card shadow-sm",
+            filteredRules.length > 0 && "max-md:hidden"
+          )}
+        >
           {filteredRules.length === 0 ? (
             <div className="py-12 text-center">
               <p className="text-sm font-semibold text-foreground">No recurring transactions found matching filters</p>
@@ -233,20 +477,7 @@ export function RulesTable({
               </TableHeader>
               <TableBody>
                 {filteredRules.map((rule) => {
-                  const category = categoryOf(rule);
-                  const wallet = wallets.find(({ id }) => id === rule.walletId);
-                  const CategoryIcon = category?.icon;
-                  const WalletIcon = wallet?.icon;
-                  const categoryTone = category
-                    ? resolveChipTone(category.color, CATEGORY_STYLES, category.id)
-                    : undefined;
-                  const walletTone = wallet
-                    ? resolveChipTone(wallet.color, WALLET_TYPE_STYLES, wallet.type ?? wallet.id)
-                    : undefined;
-
-                  const isDue = rule.status === "active" && rule.nextRunDate <= simulatedDate;
-                  const cadence = formatCadenceString(rule);
-                  const endSummary = formatEndConditionSummary(rule);
+                  const { category, wallet, CategoryIcon, WalletIcon, categoryTone, walletTone, isDue, cadence, endSummary } = ruleView(rule);
 
                   return (
                     <TableRow
@@ -258,33 +489,7 @@ export function RulesTable({
                     >
                       {/* Status Badge */}
                       <TableCell className="py-3.5">
-                        {rule.status === "active" && (
-                          <Badge
-                            variant="outline"
-                            className="border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-semibold text-xs flex items-center gap-1.5 w-fit"
-                          >
-                            <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                            Active
-                          </Badge>
-                        )}
-                        {rule.status === "paused" && (
-                          <Badge
-                            variant="outline"
-                            className="border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300 font-semibold text-xs flex items-center gap-1.5 w-fit"
-                          >
-                            <Pause className="size-2.5" />
-                            Paused
-                          </Badge>
-                        )}
-                        {rule.status === "completed" && (
-                          <Badge
-                            variant="outline"
-                            className="border-blue-500/40 bg-blue-500/10 text-blue-700 dark:text-blue-300 font-semibold text-xs flex items-center gap-1 w-fit"
-                          >
-                            <Check className="size-2.5" />
-                            Completed
-                          </Badge>
-                        )}
+                        {renderStatusBadge(rule)}
                       </TableCell>
 
                       {/* Rule Title & Category */}
@@ -386,89 +591,7 @@ export function RulesTable({
 
                       {/* Quick-action Pause/Resume & Dropdown Actions */}
                       <TableCell className="py-3.5 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1 shrink-0">
-                          {/* Quick-Action Pause / Resume Button (US4-4) */}
-                          {rule.status === "active" ? (
-                            <Tooltip>
-                              <TooltipTrigger
-                                render={
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon-sm"
-                                    onClick={() => onPause(rule.id)}
-                                    disabled={pendingStatusId === rule.id}
-                                    aria-label="Pause rule"
-                                    className="text-amber-600 hover:text-amber-700 hover:bg-amber-500/10 disabled:opacity-50"
-                                  />
-                                }
-                              >
-                                <Pause className="size-4" />
-                              </TooltipTrigger>
-                              <TooltipContent side="top">
-                                <p className="text-xs">Pause schedule (halt future postings)</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          ) : rule.status === "paused" ? (
-                            <Tooltip>
-                              <TooltipTrigger
-                                render={
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon-sm"
-                                    onClick={() => onResume(rule.id)}
-                                    disabled={pendingStatusId === rule.id}
-                                    aria-label="Resume rule"
-                                    className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 disabled:opacity-50"
-                                  />
-                                }
-                              >
-                                <Play className="size-4 fill-current" />
-                              </TooltipTrigger>
-                              <TooltipContent side="top" className="max-w-xs">
-                                <p className="text-xs">
-                                  <strong>Resume rule:</strong> Overdue cycles will be skipped without retroactive double-posting; advances to next upcoming cycle.
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          ) : null}
-
-                          {/* More dropdown */}
-                          <DropdownMenu>
-                            <DropdownMenuTrigger
-                              render={
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon-sm"
-                                  aria-label="More actions"
-                                  className="text-muted-foreground hover:text-foreground"
-                                />
-                              }
-                            >
-                              <MoreVertical className="size-4" />
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-44 text-sm">
-                              {rule.status !== "completed" && (
-                                <DropdownMenuItem onClick={() => onEdit(rule)}>
-                                  <Edit className="mr-2 size-4" />
-                                  Edit Rule
-                                </DropdownMenuItem>
-                              )}
-
-                              {rule.status !== "completed" && <DropdownMenuSeparator />}
-
-                              <DropdownMenuItem
-                                variant="destructive"
-                                onClick={() => setDeleteCandidate(rule)}
-                              >
-                                <Trash2 className="mr-2 size-4" />
-                                Delete Rule
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
+                        {renderActions(rule)}
                       </TableCell>
                     </TableRow>
                   );

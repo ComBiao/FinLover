@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Tag, Wallet as WalletIcon } from "lucide-react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -11,6 +11,9 @@ import type { RecurringRule } from "../types";
 afterEach(() => {
   cleanup();
 });
+
+/** The desktop table. Phones get a card list of the same rules, which jsdom renders too (it ignores CSS), so row content is queried inside the table. */
+const inTable = () => within(screen.getByRole("table"));
 
 const mockWallets: Wallet[] = [
   {
@@ -132,31 +135,31 @@ describe("RulesTable (US4-3, US4-4, US4-5)", () => {
     );
 
     // Titles
-    expect(await screen.findByText("Netflix 4K")).toBeInTheDocument();
-    expect(screen.getByText("Gym Membership")).toBeInTheDocument();
-    expect(screen.getByText("Loan Installment")).toBeInTheDocument();
+    expect(inTable().getByText("Netflix 4K")).toBeInTheDocument();
+    expect(inTable().getByText("Gym Membership")).toBeInTheDocument();
+    expect(inTable().getByText("Loan Installment")).toBeInTheDocument();
 
     // Formatted amounts with ฿
-    expect(screen.getByText("-฿419")).toBeInTheDocument();
-    expect(screen.getByText("-฿1,500")).toBeInTheDocument();
+    expect(inTable().getByText("-฿419")).toBeInTheDocument();
+    expect(inTable().getByText("-฿1,500")).toBeInTheDocument();
 
     // Status badges
-    expect(screen.getByText("Active")).toBeInTheDocument();
-    expect(screen.getByText("Paused")).toBeInTheDocument();
-    expect(screen.getByText("Completed")).toBeInTheDocument();
+    expect(inTable().getByText("Active")).toBeInTheDocument();
+    expect(inTable().getByText("Paused")).toBeInTheDocument();
+    expect(inTable().getByText("Completed")).toBeInTheDocument();
 
     // End condition summaries
-    expect(screen.getByText("Indefinite")).toBeInTheDocument();
-    expect(screen.getByText(/Ongoing,/i)).toBeInTheDocument();
-    expect(screen.getByText(/2 of 6 posted/i)).toBeInTheDocument();
-    expect(screen.getByText("Ends on 2026-09-01")).toBeInTheDocument();
+    expect(inTable().getByText("Indefinite")).toBeInTheDocument();
+    expect(inTable().getByText(/Ongoing,/i)).toBeInTheDocument();
+    expect(inTable().getByText(/2 of 6 posted/i)).toBeInTheDocument();
+    expect(inTable().getByText("Ends on 2026-09-01")).toBeInTheDocument();
 
     // Next Run Date formatted as dd Mon YYYY
-    expect(screen.getByText("23 Oct 2026")).toBeInTheDocument();
-    expect(screen.getByText("05 Nov 2026")).toBeInTheDocument();
+    expect(inTable().getByText("23 Oct 2026")).toBeInTheDocument();
+    expect(inTable().getByText("05 Nov 2026")).toBeInTheDocument();
 
     // Start Date formatted as dd Mon YYYY
-    expect(screen.getByText("Starts 23 Aug 2026")).toBeInTheDocument();
+    expect(inTable().getByText("Starts 23 Aug 2026")).toBeInTheDocument();
   });
 
   it("triggers quick-action pause for an active rule (US4-4)", async () => {
@@ -177,7 +180,7 @@ describe("RulesTable (US4-3, US4-4, US4-5)", () => {
       />
     );
 
-    const pauseBtn = await screen.findByRole("button", { name: /pause rule/i });
+    const pauseBtn = inTable().getByRole("button", { name: /pause rule/i });
     await user.click(pauseBtn);
     expect(onPause).toHaveBeenCalledWith("r1");
   });
@@ -200,7 +203,7 @@ describe("RulesTable (US4-3, US4-4, US4-5)", () => {
       />
     );
 
-    const resumeBtn = await screen.findByRole("button", { name: /resume rule/i });
+    const resumeBtn = inTable().getByRole("button", { name: /resume rule/i });
     await user.click(resumeBtn);
     expect(onResume).toHaveBeenCalledWith("r2");
   });
@@ -223,7 +226,7 @@ describe("RulesTable (US4-3, US4-4, US4-5)", () => {
     );
 
     // Open dropdown menu
-    const moreBtn = await screen.findByRole("button", { name: /more actions/i });
+    const moreBtn = inTable().getByRole("button", { name: /more actions/i });
     fireEvent.click(moreBtn);
 
     // Find delete menu item
@@ -261,7 +264,7 @@ describe("RulesTable (US4-3, US4-4, US4-5)", () => {
     );
 
     // Open dropdown menu
-    const moreBtn = await screen.findByRole("button", { name: /more actions/i });
+    const moreBtn = inTable().getByRole("button", { name: /more actions/i });
     fireEvent.click(moreBtn);
 
     // Edit Rule should NOT be in the document
@@ -269,6 +272,29 @@ describe("RulesTable (US4-3, US4-4, US4-5)", () => {
 
     // Delete Rule should be present
     expect(await screen.findByRole("menuitem", { name: /delete rule/i })).toBeInTheDocument();
+  });
+
+  it("lists every rule as a card for phones, with the same actions as the table", () => {
+    render(
+      <RulesTable
+        rules={mockRules}
+        wallets={mockWallets}
+        categories={mockCategories}
+        simulatedDate="2026-10-23"
+        onPause={vi.fn()}
+        onResume={vi.fn()}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onOpenCreateModal={vi.fn()}
+      />
+    );
+
+    const cards = within(screen.getByRole("list", { name: "Recurring rules" })).getAllByRole("listitem");
+    expect(cards).toHaveLength(mockRules.length);
+    expect(within(cards[0]).getByText("Netflix 4K")).toBeInTheDocument();
+    expect(within(cards[0]).getByText("-฿419")).toBeInTheDocument();
+    expect(within(cards[0]).getByRole("button", { name: /pause rule/i })).toBeInTheDocument();
+    expect(within(cards[0]).getByRole("button", { name: /more actions/i })).toBeInTheDocument();
   });
 });
 

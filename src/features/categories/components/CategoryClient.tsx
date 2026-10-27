@@ -189,8 +189,8 @@ export function CategoryClient() {
   return (
     <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto flex max-w-6xl flex-col gap-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
+        <div className="flex items-center justify-between gap-3 sm:flex-wrap">
+          <div className="min-w-0">
             <h1 className="text-xl font-extrabold text-foreground sm:text-2xl">Category</h1>
             <p className="mt-0.5 text-sm text-muted-foreground">Manage your income and expense category</p>
           </div>
@@ -198,9 +198,9 @@ export function CategoryClient() {
           <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger
               render={
-                <Button className="gap-2">
+                <Button className="gap-2 max-sm:size-11 max-sm:shrink-0 max-sm:px-0">
                   <Plus className="size-4" />
-                  <span>Add new category</span>
+                  <span className="max-sm:sr-only">Add new category</span>
                 </Button>
               }
             />
@@ -477,12 +477,12 @@ export function CategoryClient() {
                 }
               }}
               className={cn(
-                "relative flex flex-col items-center justify-center p-6 gap-4 rounded-2xl border-border/60 bg-card shadow-sm transition-all",
+                "relative flex flex-col items-center justify-center p-4 sm:p-6 gap-4 rounded-2xl border-border/60 bg-card shadow-sm transition-all",
                 !readOnly && "hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer hover:shadow-md group"
               )}
             >
               {!readOnly && <div
-                className="absolute top-2.5 right-2.5 p-1.5 rounded-full text-muted-foreground group-hover:bg-muted group-hover:text-foreground opacity-0 group-hover:opacity-100 transition-all"
+                className="absolute top-2.5 right-2.5 p-1.5 rounded-full text-muted-foreground group-hover:bg-muted group-hover:text-foreground max-md:opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all"
                 title="Edit Category"
               >
                 <Pencil className="size-4" />

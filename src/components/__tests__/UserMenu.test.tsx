@@ -24,10 +24,10 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-function mount(onNavigate?: () => void) {
+function mount() {
   return render(
     <QueryClientProvider client={new QueryClient()}>
-      <UserMenu onNavigate={onNavigate} />
+      <UserMenu />
     </QueryClientProvider>
   );
 }

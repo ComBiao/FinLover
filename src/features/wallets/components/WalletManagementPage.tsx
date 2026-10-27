@@ -75,13 +75,13 @@ export function WalletManagementPage() {
     const savingCount = shown.filter((w) => w.isSaving).length;
 
     return (
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
         <Card className="rounded-2xl bg-gradient-pastel-a shadow-sm">
-          <CardContent className="flex flex-col gap-1.5 p-5">
+          <CardContent className="flex flex-col gap-1.5 p-4 sm:p-5">
             <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               Total Balance
             </span>
-            <div className="text-3xl font-extrabold text-foreground">
+            <div className="text-2xl font-extrabold text-foreground sm:text-3xl">
               {isPending ? (
                 <Skeleton className="h-9 w-32" />
               ) : (
@@ -95,12 +95,12 @@ export function WalletManagementPage() {
         </Card>
 
         <Card className="rounded-2xl shadow-sm">
-          <CardContent className="flex flex-col gap-1.5 p-5">
+          <CardContent className="flex flex-col gap-1.5 p-4 sm:p-5">
             <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               Total Wallets
             </span>
             <div className="flex items-baseline gap-2">
-              <div className="text-3xl font-extrabold text-foreground">{shown.length}</div>
+              <div className="text-2xl font-extrabold text-foreground sm:text-3xl">{shown.length}</div>
               <div className="text-sm font-semibold text-primary">({savingCount} saving)</div>
             </div>
             <span className="text-xs text-muted-foreground">
@@ -117,12 +117,12 @@ export function WalletManagementPage() {
   }
 
   return (
-    <main className="min-h-screen bg-background px-6 py-8 sm:px-10 sm:py-10">
-      <div className="mx-auto flex max-w-6xl flex-col gap-6 pb-28">
+    <main className="min-h-screen bg-background px-4 py-5 sm:px-10 sm:py-10">
+      <div className="mx-auto flex max-w-6xl flex-col gap-5 pb-6 sm:gap-6 md:pb-28">
         {/* Header */}
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex flex-col gap-1">
-            <h1 className="text-2xl font-extrabold text-foreground sm:text-3xl">Wallets</h1>
+        <div className="flex items-center justify-between gap-4 sm:flex-wrap">
+          <div className="flex min-w-0 flex-col gap-1">
+            <h1 className="text-xl font-extrabold text-foreground sm:text-3xl">Wallets</h1>
             <p className="text-sm text-muted-foreground">
               Manage your spending accounts, savings goals, and payment sources.
             </p>
@@ -130,9 +130,9 @@ export function WalletManagementPage() {
 
           <div className="flex items-center gap-2">
             <NotificationBell />
-            <Button type="button" onClick={() => setCreateOpen(true)} className="gap-1.5">
+            <Button type="button" onClick={() => setCreateOpen(true)} className="gap-1.5 max-sm:size-11 max-sm:px-0">
               <Plus className="size-4" />
-              <span>Create Wallet</span>
+              <span className="max-sm:sr-only">Create Wallet</span>
             </Button>
           </div>
         </div>
@@ -143,7 +143,7 @@ export function WalletManagementPage() {
           {hasShared ? (
             <TabsList
               aria-label="Wallet type"
-              className="relative h-11 w-fit border border-border bg-card p-1 shadow-sm group-data-horizontal/tabs:h-11"
+              className="relative h-11 w-full border border-border bg-card p-1 shadow-sm group-data-horizontal/tabs:h-11 sm:w-fit"
             >
               <TabsIndicator className={TAB_INDICATOR_CLASS} />
               <TabsTrigger value="personal" className={TAB_TRIGGER_CLASS}>
