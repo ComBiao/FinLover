@@ -9,5 +9,7 @@ export function useCategoryDistribution(filter: ReportFilter) {
     queryKey: ["reports", "category-distribution", filter],
     queryFn: () => getCategoryDistribution(filter),
     placeholderData: keepPreviousData,
+    // Offline, the default networkMode pauses the request for good: the old data stays dimmed under the new period and no error shows.
+    networkMode: "always",
   });
 }

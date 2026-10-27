@@ -5,6 +5,7 @@ import { useState } from "react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ReportSection } from "@/features/reports/components/ReportSection";
 import { RunningBalanceChart } from "@/features/reports/components/RunningBalanceChart";
+import { segmentedGroupClass, segmentedItemClass } from "@/features/reports/components/segmented";
 import type { RunningBalanceInterval } from "@/shared/contracts";
 import { useRunningBalance } from "@/features/reports/hooks/useRunningBalance";
 import { MAX_BUCKETS, isIntervalAllowed } from "@/features/reports/period";
@@ -35,9 +36,9 @@ export function RunningBalanceSection({ walletIds, startDate, endDate }: ReportF
   const toggle = (
     <ToggleGroup
       aria-label="Interval"
-      variant="outline"
       size="sm"
-      spacing={0}
+      spacing={1}
+      className={segmentedGroupClass}
       value={[active]}
       onValueChange={(next) => {
         const chosen = next[0] as RunningBalanceInterval | undefined;
@@ -51,7 +52,7 @@ export function RunningBalanceSection({ walletIds, startDate, endDate }: ReportF
             key={value}
             title={allowed ? undefined : `Too many ${label.toLowerCase()} points for this range (max ${MAX_BUCKETS})`}
           >
-            <ToggleGroupItem value={value} disabled={!allowed} className="px-3">
+            <ToggleGroupItem value={value} disabled={!allowed} className={segmentedItemClass}>
               {label}
             </ToggleGroupItem>
           </span>

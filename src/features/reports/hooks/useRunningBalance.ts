@@ -10,5 +10,7 @@ export function useRunningBalance(filter: ReportFilter, interval: RunningBalance
     queryKey: ["reports", "running-balance", filter, interval],
     queryFn: () => getRunningBalance(filter, interval),
     placeholderData: keepPreviousData,
+    // Offline, the default networkMode pauses the request for good: the old data stays dimmed under the new period and no error shows.
+    networkMode: "always",
   });
 }
