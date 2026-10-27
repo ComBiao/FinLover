@@ -14,6 +14,7 @@ type TotalBalanceCardProps = {
   savingGoal: HomeSavingGoal | null;
   /** First load, no data yet — shows a skeleton instead of a misleading ฿0 / "Create a wallet". */
   isLoading?: boolean;
+  className?: string;
 };
 
 /** Pink-lilac gradient card for the current (month-independent) combined or per-wallet balance, with an optional embedded saving-goal section. */
@@ -23,9 +24,10 @@ export function TotalBalanceCard({
   totalBalance,
   savingGoal,
   isLoading = false,
+  className,
 }: TotalBalanceCardProps) {
   return (
-    <Card className="rounded-2xl bg-gradient-pastel-a shadow-sm">
+    <Card className={cn("rounded-2xl bg-gradient-pastel-a shadow-sm", className)}>
       <CardContent className="flex h-full flex-col gap-3.5 py-1">
         {isLoading ? (
           <>
@@ -102,21 +104,21 @@ function AmountCard({ label, amount, emptyLabel, tone, isLoading }: AmountCardPr
     <Card className="rounded-2xl shadow-sm">
       <CardContent className="flex h-full flex-col gap-3.5 py-1">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-base font-bold tracking-wide text-muted-foreground uppercase">
+          <span className="text-xs font-bold tracking-wide text-muted-foreground uppercase sm:text-base">
             {label}
           </span>
           <span
             className={cn(
-              "flex size-13 shrink-0 items-center justify-center rounded-full",
+              "flex size-9 shrink-0 items-center justify-center rounded-full sm:size-13",
               tone === "expense" ? "bg-danger-bg text-destructive" : "bg-success-bg text-success"
             )}
           >
-            <Icon className="size-6.5" />
+            <Icon className="size-5 sm:size-6.5" />
           </span>
         </div>
         <div
           className={cn(
-            "text-3xl font-extrabold",
+            "text-2xl font-extrabold sm:text-3xl",
             tone === "expense" ? "text-destructive" : "text-success"
           )}
         >
@@ -181,6 +183,7 @@ type NetCardProps = {
   income: number;
   expense: number;
   isLoading?: boolean;
+  className?: string;
 };
 
 const NET_TAG = {
@@ -189,15 +192,15 @@ const NET_TAG = {
   even: { label: "Break-even", className: "bg-muted text-muted-foreground" },
 } as const;
 
-export function NetCard({ monthLabel, net, status, income, expense, isLoading = false }: NetCardProps) {
+export function NetCard({ monthLabel, net, status, income, expense, isLoading = false, className }: NetCardProps) {
   const tag = NET_TAG[status];
   const maxValue = Math.max(income, expense, 1);
 
   return (
-    <Card className="rounded-2xl shadow-sm">
+    <Card className={cn("rounded-2xl shadow-sm", className)}>
       <CardContent className="flex h-full flex-col gap-3.5 py-1">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-base font-bold tracking-wide text-muted-foreground uppercase">
+          <span className="text-sm font-bold tracking-wide text-muted-foreground uppercase sm:text-base">
             Net in {monthLabel.toUpperCase()}
           </span>
           {isLoading ? (
@@ -249,9 +252,9 @@ type TopCategoriesCardProps = {
 
 export function TopCategoriesCard({ monthLabel, topCategories, isLoading = false }: TopCategoriesCardProps) {
   return (
-    <Card className="rounded-2xl shadow-sm md:col-span-2">
+    <Card className="col-span-2 rounded-2xl shadow-sm">
       <CardContent className="flex h-full flex-col gap-3 py-1">
-        <span className="text-base font-bold tracking-wide text-muted-foreground uppercase">
+        <span className="text-sm font-bold tracking-wide text-muted-foreground uppercase sm:text-base">
           Top categories · {monthLabel.toUpperCase()}
         </span>
         {isLoading ? (

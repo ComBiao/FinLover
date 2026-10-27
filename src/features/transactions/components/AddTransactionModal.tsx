@@ -388,7 +388,7 @@ export function AddTransactionModal({
             </DialogTitle>
           </div>
           <DialogClose
-            render={<Button type="button" variant="ghost" size="icon-sm" aria-label="Close" />}
+            render={<Button type="button" variant="ghost" size="icon-sm" aria-label="Close" className="max-sm:size-10" />}
           >
             <X className="size-4.5" />
           </DialogClose>

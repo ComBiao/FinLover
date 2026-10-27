@@ -70,8 +70,8 @@ export function RecurringPage() {
     <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto flex max-w-6xl flex-col gap-6">
         {/* Page Header */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
+        <div className="flex items-center justify-between gap-3 sm:flex-wrap">
+          <div className="min-w-0">
             <h1 className="text-xl font-extrabold text-foreground sm:text-2xl">
               Recurring Transactions
             </h1>
@@ -81,9 +81,9 @@ export function RecurringPage() {
           </div>
 
           {!isLoading && !isError && rules.length > 0 && (
-            <Button onClick={() => setCreateModalOpen(true)} className="font-semibold">
-              <Plus className="mr-1.5 size-4" />
-              Create Recurring Transaction
+            <Button onClick={() => setCreateModalOpen(true)} className="font-semibold max-sm:size-11 max-sm:px-0">
+              <Plus className="size-4 sm:mr-1.5" />
+              <span className="max-sm:sr-only">Create Recurring Transaction</span>
             </Button>
           )}
         </div>

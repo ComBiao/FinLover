@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 
+import { AddTransactionFab } from "@/features/transactions/components/AddTransactionFab";
 import { AddTransactionModal } from "@/features/transactions/components/AddTransactionModal";
 import { DeleteTransactionDialog } from "@/features/transactions/components/DeleteTransactionDialog";
 import { TransactionFilterBar } from "@/features/transactions/components/TransactionFilterBar";
@@ -136,7 +137,11 @@ export default function TransactionsPage() {
               View, search, and manage every transaction.
             </p>
           </div>
-          <Button type="button" onClick={() => openModal(undefined, isSharedView ? selectedWallet?.id : undefined)}>
+          <Button
+            type="button"
+            className="max-md:hidden"
+            onClick={() => openModal(undefined, isSharedView ? selectedWallet?.id : undefined)}
+          >
             <Plus className="size-4" />
             Add Transaction
           </Button>
@@ -169,6 +174,8 @@ export default function TransactionsPage() {
           onDeleteRequest={openDeleteModal}
         />
       </div>
+
+      <AddTransactionFab onClick={() => openModal(undefined, isSharedView ? selectedWallet?.id : undefined)} />
 
       <AddTransactionModal
         initialData={editingTransaction}

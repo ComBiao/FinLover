@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Tag, Wallet as WalletIcon } from "lucide-react";
 import React from "react";
@@ -203,10 +203,12 @@ describe("RecurringPage Integration (Issue #178 Step 3)", () => {
   it("renders populated rules list accurately with badges and action buttons", async () => {
     renderWithProviders(<RecurringPage />, queryClient);
 
-    expect(await screen.findByText("Netflix Subscription")).toBeInTheDocument();
-    expect(screen.getByText("Fitness First")).toBeInTheDocument();
-    expect(screen.getByText("Active")).toBeInTheDocument();
-    expect(screen.getByText("Paused")).toBeInTheDocument();
+    // Rows are read inside the desktop table; phones get a card list of the same rules (jsdom renders both).
+    const table = within(await screen.findByRole("table"));
+    expect(table.getByText("Netflix Subscription")).toBeInTheDocument();
+    expect(table.getByText("Fitness First")).toBeInTheDocument();
+    expect(table.getByText("Active")).toBeInTheDocument();
+    expect(table.getByText("Paused")).toBeInTheDocument();
   });
 
   it("excludes shared wallets from Create Rule modal (EPIC 4 scope)", async () => {
@@ -309,7 +311,7 @@ describe("RecurringPage Integration (Issue #178 Step 3)", () => {
     renderWithProviders(<RecurringPage />, queryClient);
 
     // Find quick-action pause button
-    const pauseBtn = await screen.findByRole("button", { name: "Pause rule" });
+    const pauseBtn = within(await screen.findByRole("table")).getByRole("button", { name: "Pause rule" });
     fireEvent.click(pauseBtn);
 
     await waitFor(() => {
