@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
+import { ChevronLeft, ChevronRight, Info, RotateCcw } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -50,12 +50,18 @@ function FilterBarSkeleton() {
 export function ReportFilterBar({ wallets, filter, isLoading = false }: ReportFilterBarProps) {
   const { preset, range, errors } = filter;
   const isCustom = preset === "custom";
+  // The chips describe what the sections show (the applied filter), not the draft being edited.
+  const shown = filter.applied ?? { walletIds: filter.walletIds, ...range };
+  const shownRange = { startDate: shown.startDate, endDate: shown.endDate };
+  const shownPreset = filter.applied ? filter.appliedPreset : preset;
+  const showingLastValid = !filter.isValid && filter.applied !== null;
 
   return (
     <div
       role="search"
       aria-label="Report filters"
-      className="sticky top-0 z-30 -mx-4 border-b border-border bg-background/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
+      // sticky from md up only: below that the sidebar's floating menu button sits over the top-left corner
+      className="md:sticky md:top-0 md:z-30 -mx-4 border-b border-border bg-background/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
     >
       <div className="mx-auto flex max-w-6xl flex-col gap-3">
         {isLoading ? (
@@ -165,8 +171,8 @@ export function ReportFilterBar({ wallets, filter, isLoading = false }: ReportFi
             </div>
 
             <div className="flex flex-wrap items-center gap-2" aria-label="Active filters">
-              <Badge variant="secondary">Wallets: {walletSummaryLabel(wallets, filter.walletIds)}</Badge>
-              <Badge variant="secondary">Period: {rangeLabel(preset, range)}</Badge>
+              <Badge variant="secondary">Wallets: {walletSummaryLabel(wallets, shown.walletIds)}</Badge>
+              <Badge variant="secondary">Period: {rangeLabel(shownPreset, shownRange)}</Badge>
               <Button
                 type="button"
                 variant="outline"
@@ -178,6 +184,12 @@ export function ReportFilterBar({ wallets, filter, isLoading = false }: ReportFi
                 <RotateCcw className="size-3" aria-hidden="true" />
                 Reset
               </Button>
+              {showingLastValid ? (
+                <p role="status" className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Info className="size-3.5 shrink-0" aria-hidden="true" />
+                  Fix the highlighted fields to update the report. The results below still match the filters shown here.
+                </p>
+              ) : null}
             </div>
           </>
         )}

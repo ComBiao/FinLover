@@ -12,6 +12,7 @@ import { ReportSlot } from "@/features/reports/components/ReportSlot";
 import { ReportSummaryCards } from "@/features/reports/components/ReportSummaryCards";
 import { useReportFilter } from "@/features/reports/hooks/useReportFilter";
 import { useWallets } from "@/features/wallets/hooks/useWallets";
+import { cn } from "@/lib/utils";
 
 /**
  * Reports page (Epic 8): filter bar, summary cards, cash flow, then the
@@ -87,14 +88,23 @@ export default function ReportPage() {
 
   return (
     <main className="min-h-screen bg-background px-4 pb-10 pt-6 sm:px-6 lg:px-8">
-      <div className="mx-auto mb-4 flex max-w-6xl flex-col gap-1">
+      {/* pl-12 below md keeps the title clear of the sidebar's floating menu button */}
+      <div className="mx-auto mb-4 flex max-w-6xl flex-col gap-1 pl-12 md:pl-0">
         <h1 className="text-xl font-extrabold text-foreground sm:text-2xl">Reports</h1>
         <p className="text-sm text-muted-foreground">Income, expenses and balance across your wallets.</p>
       </div>
 
       <ReportFilterBar wallets={walletOptions} filter={filter} isLoading={walletsQuery.isPending} />
 
-      <div className="mx-auto mt-5 flex max-w-6xl flex-col gap-5">{content}</div>
+      <div
+        className={cn(
+          "mx-auto mt-5 flex max-w-6xl flex-col gap-5 transition-opacity",
+          // an invalid draft leaves the last results on screen; dim them so they read as not yet updated
+          !filter.isValid && applied !== null && "opacity-60"
+        )}
+      >
+        {content}
+      </div>
     </main>
   );
 }

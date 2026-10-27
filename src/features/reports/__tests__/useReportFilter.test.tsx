@@ -83,10 +83,13 @@ describe("useReportFilter (US8-1)", () => {
     expect(result.current.errors.endDate).toBe("End date must be on or after the start date");
     // still the first (default month) filter — nothing new was applied
     expect(result.current.applied).toMatchObject({ startDate: "2026-10-01", endDate: "2026-10-31" });
+    // and it is still labelled as the monthly filter it was applied as
+    expect(result.current.appliedPreset).toBe("monthly");
 
     act(() => result.current.setEndDate("2026-10-05"));
     act(() => vi.advanceTimersByTime(FILTER_APPLY_DELAY_MS));
     expect(result.current.applied).toMatchObject({ startDate: "2026-09-30", endDate: "2026-10-05" });
+    expect(result.current.appliedPreset).toBe("custom");
   });
 
   it("does not apply when every wallet is unchecked, and select-all brings them back", () => {

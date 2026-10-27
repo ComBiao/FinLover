@@ -27,6 +27,8 @@ export type ReportFilterState = {
   isValid: boolean;
   /** The last valid filter (debounced); `null` until the first one. The sections query with this. */
   applied: ReportFilter | null;
+  /** The period preset that was chosen when `applied` was applied (for labelling it). */
+  appliedPreset: ReportPreset;
   setPreset: (preset: ReportPreset) => void;
   shift: (direction: 1 | -1) => void;
   setStartDate: (value: string) => void;
@@ -72,17 +74,22 @@ export function useReportFilter(wallets: ReportFilterWallet[]): ReportFilterStat
   );
 
   const [applied, setApplied] = useState<ReportFilter | null>(null);
+  const [appliedPreset, setAppliedPreset] = useState<ReportPreset>("monthly");
   const hasApplied = useRef(false);
   useEffect(() => {
     if (!isValid) return;
+    const apply = () => {
+      setApplied(draft);
+      setAppliedPreset(preset);
+    };
     if (!hasApplied.current) {
       hasApplied.current = true;
-      setApplied(draft);
+      apply();
       return;
     }
-    const timer = setTimeout(() => setApplied(draft), FILTER_APPLY_DELAY_MS);
+    const timer = setTimeout(apply, FILTER_APPLY_DELAY_MS);
     return () => clearTimeout(timer);
-  }, [draft, isValid]);
+  }, [draft, preset, isValid]);
 
   const setPreset = useCallback((next: ReportPreset) => {
     setPresetState(next);
@@ -122,6 +129,7 @@ export function useReportFilter(wallets: ReportFilterWallet[]): ReportFilterStat
     errors,
     isValid,
     applied,
+    appliedPreset,
     setPreset,
     shift,
     setStartDate,

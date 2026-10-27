@@ -128,6 +128,9 @@ describe("ReportPage (US8-1 to US8-3)", () => {
     await new Promise((resolve) => setTimeout(resolve, 450));
     expect(summary.mock.calls.length).toBe(callsBefore);
     expect(screen.getByText("+฿15,000.00")).toBeInTheDocument();
+    // the chips describe what is on screen, not the unchecked draft, and a note says why
+    expect(screen.getByText("Wallets: All wallets (2)")).toBeInTheDocument();
+    expect(screen.getByText(/Fix the highlighted fields to update the report/)).toBeInTheDocument();
   });
 
   it("points to Wallets when the user has none", async () => {
