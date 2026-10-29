@@ -1,5 +1,4 @@
 import * as React from "react";
-import Image from "next/image";
 
 const CONFETTI_PIECES = [
   // Top left near icon & title
@@ -10,12 +9,14 @@ const CONFETTI_PIECES = [
   { x: "42%", y: "12%", w: 16, h: 6, rot: -38, color: "#059669" },
   { x: "54%", y: "7%", w: 13, h: 5, rot: 22, color: "#34D399" },
   { x: "64%", y: "16%", w: 15, h: 6, rot: -18, color: "#F59E0B" },
-  // Right side / around piggy bank
+  // Right side
   { x: "78%", y: "10%", w: 14, h: 6, rot: 42, color: "#10B981" },
   { x: "92%", y: "18%", w: 12, h: 5, rot: -28, color: "#FBBF24" },
   { x: "93%", y: "46%", w: 15, h: 6, rot: 52, color: "#34D399" },
-  { x: "86%", y: "68%", w: 13, h: 5, rot: -16, color: "#F59E0B" },
-  { x: "68%", y: "30%", w: 12, h: 5, rot: 28, color: "#FB7185" },
+  { x: "82%", y: "34%", w: 14, h: 6, rot: -28, color: "#10B981" },
+  { x: "88%", y: "62%", w: 13, h: 5, rot: -16, color: "#F59E0B" },
+  { x: "72%", y: "48%", w: 15, h: 6, rot: 25, color: "#34D399" },
+  { x: "66%", y: "28%", w: 12, h: 5, rot: 28, color: "#FB7185" },
   // Left / mid area
   { x: "26%", y: "46%", w: 13, h: 5, rot: -12, color: "#34D399" },
   { x: "10%", y: "65%", w: 14, h: 6, rot: 38, color: "#F59E0B" },
@@ -25,7 +26,8 @@ const CONFETTI_PIECES = [
 const SPARKLES = [
   { x: "22%", y: "22%", size: 10, color: "#F59E0B" },
   { x: "72%", y: "12%", size: 12, color: "#FBBF24" },
-  { x: "88%", y: "32%", size: 9, color: "#10B981" },
+  { x: "88%", y: "32%", size: 10, color: "#10B981" },
+  { x: "78%", y: "54%", size: 9, color: "#F59E0B" },
   { x: "36%", y: "40%", size: 9, color: "#34D399" },
 ];
 
@@ -72,15 +74,6 @@ export function GoalReachedCelebration() {
           <path d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5L12 0Z" />
         </svg>
       ))}
-
-      {/* Piggy bank illustration in the background layer */}
-      <Image
-        src="/images/piggy-goal-reached.png"
-        alt=""
-        width={136}
-        height={136}
-        className="absolute -right-1 sm:right-0 top-14 sm:top-13 w-32 h-32 sm:w-34 sm:h-34 object-contain opacity-95 drop-shadow-[0_4px_12px_rgba(16,185,129,0.22)] select-none pointer-events-none"
-      />
     </div>
   );
 }

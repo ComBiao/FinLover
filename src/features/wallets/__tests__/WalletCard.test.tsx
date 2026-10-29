@@ -26,7 +26,7 @@ describe("WalletCard — Goal Reached Celebration", () => {
     vi.restoreAllMocks();
   });
 
-  it("renders piggy bank image and celebratory confetti when saving goal is reached", () => {
+  it("renders celebratory confetti and reached status when saving goal is reached", () => {
     const { container } = render(
       <WalletCard
         wallet={baseWallet}
@@ -41,10 +41,9 @@ describe("WalletCard — Goal Reached Celebration", () => {
     expect(screen.getByText("100% saved")).toBeInTheDocument();
     expect(screen.getByText("Goal: ฿20,000")).toBeInTheDocument();
 
-    // Piggy bank illustration is present in background layer
+    // Piggy bank illustration should NOT be present (user requested removal)
     const piggyImg = container.querySelector("img[src*='piggy-goal-reached.png']");
-    expect(piggyImg).toBeInTheDocument();
-    expect(piggyImg).toHaveClass("pointer-events-none");
+    expect(piggyImg).not.toBeInTheDocument();
 
     // Confetti pieces are present
     const confettiContainer = container.querySelector("[aria-hidden='true'].pointer-events-none");
