@@ -418,7 +418,7 @@ export function CategoryClient() {
           className={cn(
             "flex h-11 items-center justify-center gap-2 rounded-lg text-base font-bold transition-all shadow-none",
             type === "expense"
-              ? "bg-destructive text-destructive-foreground shadow-sm"
+              ? "bg-destructive text-white shadow-sm"
               : "text-muted-foreground hover:text-foreground"
           )}
         >

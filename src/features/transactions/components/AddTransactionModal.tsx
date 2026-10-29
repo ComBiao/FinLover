@@ -413,7 +413,7 @@ export function AddTransactionModal({
                 className={cn(
                   "flex h-11 items-center justify-center gap-2 rounded-lg text-sm font-bold transition-colors",
                   type === "expense"
-                    ? cn(MODE_STYLES.expense.solidBgClass, "text-destructive-foreground shadow-sm")
+                    ? cn(MODE_STYLES.expense.solidBgClass, "text-white shadow-sm")
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
