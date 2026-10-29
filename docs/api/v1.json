@@ -12507,7 +12507,7 @@
           "reports"
         ],
         "summary": "getReportSummary",
-        "description": "Report summary cards (US8-2): total income, total expense, net cash flow (income minus expense) and the number of transactions in the selected wallets and period. Query: walletIds is a comma-separated list of wallet ids (omitted = every personal wallet the caller owns, the same set Home totals for walletId=all, saving wallets included; empty = 400 fields.walletIds); startDate and endDate are inclusive YYYY-MM-DD calendar days matched against the stored UTC-midnight transaction dates with no timezone conversion (endDate before startDate = 400 fields.endDate). A wallet the caller does not own, a missing wallet or (until Epic 7 wires reports) a shared wallet returns 404. Money is rounded to at most 2 decimal places by the server; a period without transactions returns 200 with zeros or empty lists. Authorization takes precedence over cookie. Cookie-authenticated GETs do not require an Origin. Implemented.",
+        "description": "Report summary cards (US8-2): total income, total expense, net cash flow (income minus expense) and the number of transactions in the selected wallets and period. Query: walletIds is a comma-separated list of wallet ids (omitted = every personal wallet the caller owns, the same set Home totals for walletId=all, saving wallets included; empty = 400 fields.walletIds); startDate and endDate are inclusive YYYY-MM-DD calendar days matched against the stored UTC-midnight transaction dates with no timezone conversion (endDate before startDate = 400 fields.endDate). Shared wallets are not part of the default: name one in walletIds (as the Owner or an accepted member) and every transaction of every member in it counts, next to the caller own rows in any personal wallet named. A wallet of another user, a shared wallet the caller has not joined, a pending invitation or a missing wallet returns 404. Money is rounded to at most 2 decimal places by the server; a period without transactions returns 200 with zeros or empty lists. Authorization takes precedence over cookie. Cookie-authenticated GETs do not require an Origin. Implemented.",
         "security": [
           {
             "bearerAuth": []
@@ -12828,7 +12828,7 @@
           "reports"
         ],
         "summary": "getReportCashFlow",
-        "description": "Income and expense per bucket for the cash flow chart (US8-3). Without interval the server uses suggestedInterval: up to 31 days daily, up to 120 days weekly, otherwise monthly; suggestedInterval is always returned. Weeks start on Monday and months on the 1st; the first and last buckets are clipped to the range. Every bucket is returned, empty ones with income 0 and expense 0. Labels: daily YYYY-MM-DD, weekly the bucket start date, monthly YYYY-MM. More than 400 buckets returns 400 fields.interval. Query: walletIds is a comma-separated list of wallet ids (omitted = every personal wallet the caller owns, the same set Home totals for walletId=all, saving wallets included; empty = 400 fields.walletIds); startDate and endDate are inclusive YYYY-MM-DD calendar days matched against the stored UTC-midnight transaction dates with no timezone conversion (endDate before startDate = 400 fields.endDate). A wallet the caller does not own, a missing wallet or (until Epic 7 wires reports) a shared wallet returns 404. Money is rounded to at most 2 decimal places by the server; a period without transactions returns 200 with zeros or empty lists. Authorization takes precedence over cookie. Cookie-authenticated GETs do not require an Origin. Implemented.",
+        "description": "Income and expense per bucket for the cash flow chart (US8-3). Without interval the server uses suggestedInterval: up to 31 days daily, up to 120 days weekly, otherwise monthly; suggestedInterval is always returned. Weeks start on Monday and months on the 1st; the first and last buckets are clipped to the range. Every bucket is returned, empty ones with income 0 and expense 0. Labels: daily YYYY-MM-DD, weekly the bucket start date, monthly YYYY-MM. More than 400 buckets returns 400 fields.interval. Query: walletIds is a comma-separated list of wallet ids (omitted = every personal wallet the caller owns, the same set Home totals for walletId=all, saving wallets included; empty = 400 fields.walletIds); startDate and endDate are inclusive YYYY-MM-DD calendar days matched against the stored UTC-midnight transaction dates with no timezone conversion (endDate before startDate = 400 fields.endDate). Shared wallets are not part of the default: name one in walletIds (as the Owner or an accepted member) and every transaction of every member in it counts, next to the caller own rows in any personal wallet named. A wallet of another user, a shared wallet the caller has not joined, a pending invitation or a missing wallet returns 404. Money is rounded to at most 2 decimal places by the server; a period without transactions returns 200 with zeros or empty lists. Authorization takes precedence over cookie. Cookie-authenticated GETs do not require an Origin. Implemented.",
         "security": [
           {
             "bearerAuth": []
@@ -13214,7 +13214,7 @@
           "reports"
         ],
         "summary": "getReportCategoryDistribution",
-        "description": "Income and expense split by category (US8-4), each with its total and items sorted by amount descending. Transactions without a category count toward the caller's seeded Others of the same type, as on Home; without one, they appear as categoryId null named Other (No Category) with null icon and color. Percentages have one decimal place and add up to exactly 100.0 per type (largest remainder, taken after rows are merged). A type without transactions is { total: 0, items: [] }. Query: walletIds is a comma-separated list of wallet ids (omitted = every personal wallet the caller owns, the same set Home totals for walletId=all, saving wallets included; empty = 400 fields.walletIds); startDate and endDate are inclusive YYYY-MM-DD calendar days matched against the stored UTC-midnight transaction dates with no timezone conversion (endDate before startDate = 400 fields.endDate). A wallet the caller does not own, a missing wallet or (until Epic 7 wires reports) a shared wallet returns 404. Money is rounded to at most 2 decimal places by the server; a period without transactions returns 200 with zeros or empty lists. Authorization takes precedence over cookie. Cookie-authenticated GETs do not require an Origin. Implemented.",
+        "description": "Income and expense split by category (US8-4), each with its total and items sorted by amount descending. Transactions without a category count toward the caller's seeded Others of the same type, as on Home; without one, they appear as categoryId null named Other (No Category) with null icon and color. Rows of a shared wallet use the shared preset categories (a row without a stored key counts as Others) with categoryId null; a personal category and a preset with the same name are one item and keep the personal id, icon and color. Percentages have one decimal place and add up to exactly 100.0 per type (largest remainder, taken after rows are merged). A type without transactions is { total: 0, items: [] }. Query: walletIds is a comma-separated list of wallet ids (omitted = every personal wallet the caller owns, the same set Home totals for walletId=all, saving wallets included; empty = 400 fields.walletIds); startDate and endDate are inclusive YYYY-MM-DD calendar days matched against the stored UTC-midnight transaction dates with no timezone conversion (endDate before startDate = 400 fields.endDate). Shared wallets are not part of the default: name one in walletIds (as the Owner or an accepted member) and every transaction of every member in it counts, next to the caller own rows in any personal wallet named. A wallet of another user, a shared wallet the caller has not joined, a pending invitation or a missing wallet returns 404. Money is rounded to at most 2 decimal places by the server; a period without transactions returns 200 with zeros or empty lists. Authorization takes precedence over cookie. Cookie-authenticated GETs do not require an Origin. Implemented.",
         "security": [
           {
             "bearerAuth": []
@@ -13600,7 +13600,7 @@
           "reports"
         ],
         "summary": "getReportRunningBalance",
-        "description": "Combined balance of the selected wallets at the end of each day (interval=daily, the default) or week (interval=weekly, Monday start, last point clipped to endDate; each point is dated at its bucket end) for the running balance chart (US8-5). Wallets have no stored opening balance and only transactions change a balance, so openingBalance (the balance before startDate) is the current balance minus the net of every transaction dated on or after startDate, including transactions after endDate. Every point is returned; days without transactions carry the previous balance, which may be negative. closingBalance equals the last point. More than 400 points returns 400 fields.interval. Query: walletIds is a comma-separated list of wallet ids (omitted = every personal wallet the caller owns, the same set Home totals for walletId=all, saving wallets included; empty = 400 fields.walletIds); startDate and endDate are inclusive YYYY-MM-DD calendar days matched against the stored UTC-midnight transaction dates with no timezone conversion (endDate before startDate = 400 fields.endDate). A wallet the caller does not own, a missing wallet or (until Epic 7 wires reports) a shared wallet returns 404. Money is rounded to at most 2 decimal places by the server; a period without transactions returns 200 with zeros or empty lists. Authorization takes precedence over cookie. Cookie-authenticated GETs do not require an Origin. Implemented.",
+        "description": "Combined balance of the selected wallets at the end of each day (interval=daily, the default) or week (interval=weekly, Monday start, last point clipped to endDate; each point is dated at its bucket end) for the running balance chart (US8-5). Wallets have no stored opening balance and only transactions change a balance, so openingBalance (the balance before startDate) is the current balance minus the net of every transaction dated on or after startDate, including transactions after endDate. Every point is returned; days without transactions carry the previous balance, which may be negative. closingBalance equals the last point. More than 400 points returns 400 fields.interval. Query: walletIds is a comma-separated list of wallet ids (omitted = every personal wallet the caller owns, the same set Home totals for walletId=all, saving wallets included; empty = 400 fields.walletIds); startDate and endDate are inclusive YYYY-MM-DD calendar days matched against the stored UTC-midnight transaction dates with no timezone conversion (endDate before startDate = 400 fields.endDate). Shared wallets are not part of the default: name one in walletIds (as the Owner or an accepted member) and every transaction of every member in it counts, next to the caller own rows in any personal wallet named. A wallet of another user, a shared wallet the caller has not joined, a pending invitation or a missing wallet returns 404. Money is rounded to at most 2 decimal places by the server; a period without transactions returns 200 with zeros or empty lists. Authorization takes precedence over cookie. Cookie-authenticated GETs do not require an Origin. Implemented.",
         "security": [
           {
             "bearerAuth": []
@@ -14027,6 +14027,25 @@
                             "type": "string",
                             "pattern": "^[a-f0-9]{24}$"
                           },
+                          "categoryKey": {
+                            "type": "string",
+                            "enum": [
+                              "food-drinks",
+                              "transportation",
+                              "essentials",
+                              "shopping",
+                              "utilities",
+                              "health",
+                              "entertainment",
+                              "others-expense",
+                              "salary",
+                              "wages",
+                              "allowance-gift",
+                              "bonus",
+                              "investment",
+                              "others-income"
+                            ]
+                          },
                           "type": {
                             "type": "string",
                             "enum": [
@@ -14168,7 +14187,6 @@
                         "required": [
                           "id",
                           "walletId",
-                          "categoryId",
                           "type",
                           "amount",
                           "title",
@@ -14409,6 +14427,25 @@
                     "type": "string",
                     "pattern": "^[a-f0-9]{24}$"
                   },
+                  "categoryKey": {
+                    "type": "string",
+                    "enum": [
+                      "food-drinks",
+                      "transportation",
+                      "essentials",
+                      "shopping",
+                      "utilities",
+                      "health",
+                      "entertainment",
+                      "others-expense",
+                      "salary",
+                      "wages",
+                      "allowance-gift",
+                      "bonus",
+                      "investment",
+                      "others-income"
+                    ]
+                  },
                   "type": {
                     "type": "string",
                     "enum": [
@@ -14589,6 +14626,25 @@
                           "type": "string",
                           "pattern": "^[a-f0-9]{24}$"
                         },
+                        "categoryKey": {
+                          "type": "string",
+                          "enum": [
+                            "food-drinks",
+                            "transportation",
+                            "essentials",
+                            "shopping",
+                            "utilities",
+                            "health",
+                            "entertainment",
+                            "others-expense",
+                            "salary",
+                            "wages",
+                            "allowance-gift",
+                            "bonus",
+                            "investment",
+                            "others-income"
+                          ]
+                        },
                         "type": {
                           "type": "string",
                           "enum": [
@@ -14730,7 +14786,6 @@
                       "required": [
                         "id",
                         "walletId",
-                        "categoryId",
                         "type",
                         "amount",
                         "title",
@@ -15204,6 +15259,25 @@
                           "type": "string",
                           "pattern": "^[a-f0-9]{24}$"
                         },
+                        "categoryKey": {
+                          "type": "string",
+                          "enum": [
+                            "food-drinks",
+                            "transportation",
+                            "essentials",
+                            "shopping",
+                            "utilities",
+                            "health",
+                            "entertainment",
+                            "others-expense",
+                            "salary",
+                            "wages",
+                            "allowance-gift",
+                            "bonus",
+                            "investment",
+                            "others-income"
+                          ]
+                        },
                         "type": {
                           "type": "string",
                           "enum": [
@@ -15345,7 +15419,6 @@
                       "required": [
                         "id",
                         "walletId",
-                        "categoryId",
                         "type",
                         "amount",
                         "title",
@@ -15647,6 +15720,25 @@
                     "type": "string",
                     "pattern": "^[a-f0-9]{24}$"
                   },
+                  "categoryKey": {
+                    "type": "string",
+                    "enum": [
+                      "food-drinks",
+                      "transportation",
+                      "essentials",
+                      "shopping",
+                      "utilities",
+                      "health",
+                      "entertainment",
+                      "others-expense",
+                      "salary",
+                      "wages",
+                      "allowance-gift",
+                      "bonus",
+                      "investment",
+                      "others-income"
+                    ]
+                  },
                   "type": {
                     "type": "string",
                     "enum": [
@@ -15827,6 +15919,25 @@
                           "type": "string",
                           "pattern": "^[a-f0-9]{24}$"
                         },
+                        "categoryKey": {
+                          "type": "string",
+                          "enum": [
+                            "food-drinks",
+                            "transportation",
+                            "essentials",
+                            "shopping",
+                            "utilities",
+                            "health",
+                            "entertainment",
+                            "others-expense",
+                            "salary",
+                            "wages",
+                            "allowance-gift",
+                            "bonus",
+                            "investment",
+                            "others-income"
+                          ]
+                        },
                         "type": {
                           "type": "string",
                           "enum": [
@@ -15968,7 +16079,6 @@
                       "required": [
                         "id",
                         "walletId",
-                        "categoryId",
                         "type",
                         "amount",
                         "title",
@@ -16837,6 +16947,25 @@
                           "type": "string",
                           "pattern": "^[a-f0-9]{24}$"
                         },
+                        "categoryKey": {
+                          "type": "string",
+                          "enum": [
+                            "food-drinks",
+                            "transportation",
+                            "essentials",
+                            "shopping",
+                            "utilities",
+                            "health",
+                            "entertainment",
+                            "others-expense",
+                            "salary",
+                            "wages",
+                            "allowance-gift",
+                            "bonus",
+                            "investment",
+                            "others-income"
+                          ]
+                        },
                         "type": {
                           "type": "string",
                           "enum": [
@@ -16978,7 +17107,6 @@
                       "required": [
                         "id",
                         "walletId",
-                        "categoryId",
                         "type",
                         "amount",
                         "title",

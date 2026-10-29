@@ -74,7 +74,7 @@ UserSchema.pre('findOneAndDelete', async function() {
       await Wallet.updateOne({ _id: member.walletId, isShared: true }, { $inc: { membershipVersion: 1 } }, { session });
     }
   }
-  // TODO(Epic 4 / US7-6): cancel recurring schedules when memberships are removed.
+  // Recurring schedules created by user or targeting owned wallets are cleaned below.
   await WalletMember.deleteMany({ $or: [{ userId }, { walletId: { $in: ownedIds } }] }, { session });
   // Keep transactions in surviving shared wallets, including deleted authors.
   const shared = await Wallet.find({ isShared: true, userId: { $ne: userId } }).select('_id').session(session ?? null);

@@ -297,5 +297,97 @@ describe("RulesTable (US4-3, US4-4, US4-5)", () => {
     expect(within(cards[0]).getByRole("button", { name: /pause rule/i })).toBeInTheDocument();
     expect(within(cards[0]).getByRole("button", { name: /more actions/i })).toBeInTheDocument();
   });
+
+  it("renders target shared wallet badge and preset category label (US7-6)", async () => {
+    const mockSharedWallet: Wallet = {
+      id: "w-shared",
+      name: "Housemate Fund",
+      balance: 20000,
+      icon: WalletIcon,
+      isShared: true,
+    };
+    const sharedRule: RecurringRule = {
+      id: "r-shared",
+      title: "Apartment Rent",
+      amount: 4000,
+      type: "expense",
+      walletId: "w-shared",
+      categoryId: null,
+      categoryKey: "essentials",
+      intervalN: 1,
+      intervalUnit: "months",
+      anchorDay: 1,
+      startDate: "2026-10-01",
+      nextRunDate: "2026-11-01",
+      endType: "never",
+      postedCount: 1,
+      status: "active",
+      createdAt: "2026-10-01T00:00:00Z",
+      updatedAt: "2026-10-01T00:00:00Z",
+    };
+
+    render(
+      <RulesTable
+        rules={[sharedRule]}
+        wallets={[...mockWallets, mockSharedWallet]}
+        categories={mockCategories}
+        simulatedDate="2026-10-23"
+        onPause={vi.fn()}
+        onResume={vi.fn()}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onOpenCreateModal={vi.fn()}
+      />
+    );
+
+    expect(await screen.findByRole("table")).toBeInTheDocument();
+
+    // Target badge contains target label
+    const targetBadges = screen.getAllByLabelText("Target: Housemate Fund");
+    expect(targetBadges.length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Housemate Fund").length).toBeGreaterThan(0);
+
+    // Preset category label
+    expect(screen.getAllByText("Essentials").length).toBeGreaterThan(0);
+  });
+
+  it("labels a rule whose wallet is no longer available instead of guessing another wallet", async () => {
+    const orphanRule: RecurringRule = {
+      id: "r-orphan",
+      title: "Apartment Rent",
+      amount: 4000,
+      type: "expense",
+      walletId: "w-gone",
+      categoryId: null,
+      categoryKey: "essentials",
+      intervalN: 1,
+      intervalUnit: "months",
+      anchorDay: 1,
+      startDate: "2026-10-01",
+      nextRunDate: "2026-11-01",
+      endType: "never",
+      postedCount: 1,
+      status: "paused",
+      createdAt: "2026-10-01T00:00:00Z",
+      updatedAt: "2026-10-01T00:00:00Z",
+    };
+
+    render(
+      <RulesTable
+        rules={[orphanRule]}
+        wallets={mockWallets}
+        categories={mockCategories}
+        simulatedDate="2026-10-23"
+        onPause={vi.fn()}
+        onResume={vi.fn()}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onOpenCreateModal={vi.fn()}
+      />
+    );
+
+    expect((await screen.findAllByLabelText("Target: Unavailable wallet")).length).toBeGreaterThan(0);
+    expect(screen.queryByLabelText("Target: Main Bank")).not.toBeInTheDocument();
+  });
 });
 
