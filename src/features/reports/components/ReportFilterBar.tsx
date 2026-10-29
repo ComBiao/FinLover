@@ -15,13 +15,16 @@ import {
   type WalletOption,
 } from "@/features/reports/components/WalletMultiSelect";
 import type { ReportFilterState } from "@/features/reports/hooks/useReportFilter";
-import { rangeLabel, type ReportPreset } from "@/features/reports/period";
+import { isoToLocalDate, rangeLabel, type ReportPreset } from "@/features/reports/period";
+import { DayRangePicker } from "@/features/transactions/components/DayRangePicker";
 import { YearPicker } from "@/features/transactions/components/YearPicker";
+import { toLocalISODate } from "@/lib/utils";
 
 const PRESETS: SlidingToggleOption<ReportPreset>[] = [
   { value: "weekly", label: "Weekly" },
   { value: "monthly", label: "Monthly" },
   { value: "annual", label: "Annual" },
+  { value: "custom", label: "Custom" },
 ];
 
 type ReportFilterBarProps = {
@@ -44,8 +47,8 @@ function FilterBarSkeleton() {
 
 /**
  * The period selector that goes with the chosen preset, built from the same pieces as the Home and
- * Transactions pages: a week picker, Home's `MonthPicker` and the Transactions `YearPicker`.
- * Each carries its own previous / next arrows.
+ * Transactions pages: a week picker, Home's `MonthPicker`, the Transactions `YearPicker` and
+ * `DayRangePicker` (one range calendar for Custom). Each carries its own previous / next arrows.
  */
 function PeriodNavigator({ filter }: { filter: ReportFilterState }) {
   const { preset, range } = filter;
@@ -61,16 +64,24 @@ function PeriodNavigator({ filter }: { filter: ReportFilterState }) {
       />
     );
   }
+  if (preset === "annual") {
+    return (
+      <YearPicker
+        value={Number(range.startDate.slice(0, 4))}
+        onValueChange={(year) => filter.jumpTo(`${year}-01-01`)}
+      />
+    );
+  }
   return (
-    <YearPicker
-      value={Number(range.startDate.slice(0, 4))}
-      onValueChange={(year) => filter.jumpTo(`${year}-01-01`)}
+    <DayRangePicker
+      value={{ from: isoToLocalDate(range.startDate), to: isoToLocalDate(range.endDate) }}
+      onValueChange={({ from, to }) => filter.setRange({ startDate: toLocalISODate(from), endDate: toLocalISODate(to) })}
     />
   );
 }
 
 /**
- * US8-1: wallet multi-select, a Weekly / Monthly / Annual period with its picker,
+ * US8-1: wallet multi-select, a Weekly / Monthly / Annual / Custom period with its picker,
  * the wallet validation message, and chips of what is applied (with Reset). It only edits state;
  * `useReportFilter` decides when to apply.
  */

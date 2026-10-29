@@ -58,21 +58,23 @@ export class TransactionRepository implements TransactionRepositoryPort, Transac
     return docs.map(record);
   }
 
-  async sumByType(userId: string, { start, end, walletId, walletIds, type, categoryIds, search }: TransactionSummaryFilter) {
-    const match: Record<string, unknown> = { userId: objectId(userId), date: dateRange(start, end) };
+  async sumByType(userId: string, { start, end, walletId, walletIds, sharedWalletIds, type, categoryIds, search }: TransactionSummaryFilter) {
+    const match: Record<string, unknown> = { date: dateRange(start, end) };
     const personalWalletIds = await this.personalWalletIds(userId);
     if (walletId) {
       const targetId = objectId(walletId);
       if (!personalWalletIds.some(pid => pid.equals(targetId))) {
         return { income: 0, expense: 0, count: 0 };
       }
+      match.userId = objectId(userId);
       match.walletId = targetId;
     } else {
-      match.walletId = { $in: walletIds ? personalWalletIds.filter(pid => walletIds.includes(String(pid))) : personalWalletIds };
+      const personal = walletIds ? personalWalletIds.filter(pid => walletIds.includes(String(pid))) : personalWalletIds;
+      Object.assign(match, this.scopeMatch(userId, personal, await this.sharedWalletIds(sharedWalletIds)));
     }
     if (type) match.type = type;
     if (categoryIds) match.categoryId = { $in: categoryIds.map(value => value === null ? null : objectId(value)) };
-    if (search) match.$or = searchFilter(search);
+    if (search) match.$and = [{ $or: searchFilter(search) }];
     const groups: { _id: string; total: number; count: number }[] = await Transaction.aggregate([
       { $match: match },
       { $group: { _id: '$type', total: { $sum: '$amount' }, count: { $sum: 1 } } },
@@ -83,7 +85,7 @@ export class TransactionRepository implements TransactionRepositoryPort, Transac
 
   async totalsByDay(userId: string, filter: TransactionReportFilter) {
     const groups: { _id: string; income: number; expense: number }[] = await Transaction.aggregate([
-      { $match: await this.reportMatch(userId, filter) },
+      { $match: (await this.reportScope(userId, filter)).match },
       { $group: {
         _id: { $dateToString: { format: '%Y-%m-%d', date: '$date', timezone: 'UTC' } },
         income: { $sum: { $cond: [{ $eq: ['$type', 'income'] }, '$amount', 0] } },
@@ -95,17 +97,45 @@ export class TransactionRepository implements TransactionRepositoryPort, Transac
   }
 
   async totalsByCategory(userId: string, filter: TransactionReportFilter) {
-    const groups: { _id: { categoryId: Types.ObjectId | null; type: 'income' | 'expense' }; amount: number }[] = await Transaction.aggregate([
-      { $match: await this.reportMatch(userId, filter) },
-      { $group: { _id: { categoryId: { $ifNull: ['$categoryId', null] }, type: '$type' }, amount: { $sum: '$amount' } } },
+    const { match, shared } = await this.reportScope(userId, filter);
+    const groups: { _id: { categoryId: Types.ObjectId | null; categoryKey: string | null; shared: boolean; type: 'income' | 'expense' }; amount: number }[] = await Transaction.aggregate([
+      { $match: match },
+      { $group: {
+        _id: {
+          categoryId: { $ifNull: ['$categoryId', null] },
+          categoryKey: { $ifNull: ['$categoryKey', null] },
+          shared: { $in: ['$walletId', shared] },
+          type: '$type',
+        },
+        amount: { $sum: '$amount' },
+      } },
     ]);
-    return groups.map(group => ({ categoryId: group._id.categoryId ? String(group._id.categoryId) : null, type: group._id.type, amount: group.amount }));
+    return groups.map(group => ({
+      categoryId: group._id.categoryId ? String(group._id.categoryId) : null,
+      categoryKey: group._id.categoryKey,
+      shared: group._id.shared,
+      type: group._id.type,
+      amount: group.amount,
+    }));
   }
 
-  /** Same personal-wallet scope as sumByType, so report totals agree with the Home and Transactions pages. */
-  private async reportMatch(userId: string, { start, end, walletIds }: TransactionReportFilter) {
-    const personalWalletIds = await this.personalWalletIds(userId);
-    return { userId: objectId(userId), walletId: { $in: personalWalletIds.filter(pid => walletIds.includes(String(pid))) }, date: dateRange(start, end) };
+  /** Same personal-wallet scope as sumByType, so report totals agree with the Home and Transactions pages; shared wallets add every member's rows. */
+  private async reportScope(userId: string, { start, end, walletIds, sharedWalletIds }: TransactionReportFilter) {
+    const personal = (await this.personalWalletIds(userId)).filter(pid => walletIds.includes(String(pid)));
+    const shared = await this.sharedWalletIds(sharedWalletIds);
+    return { match: { ...this.scopeMatch(userId, personal, shared), date: dateRange(start, end) }, shared };
+  }
+
+  /** The caller's own rows in these personal wallets, plus every member's rows in these shared wallets. */
+  private scopeMatch(userId: string, personal: Types.ObjectId[], shared: Types.ObjectId[]) {
+    const own = { userId: objectId(userId), walletId: { $in: personal } };
+    return shared.length ? { $or: [own, { walletId: { $in: shared } }] } : own;
+  }
+
+  /** Keeps only ids that are shared wallets; the caller has already checked the membership. */
+  private async sharedWalletIds(ids: string[] | undefined) {
+    if (!ids?.length) return [];
+    return (await Wallet.find({ _id: { $in: ids.map(objectId) }, isShared: true }).select('_id')).map(w => w._id as Types.ObjectId);
   }
 
   private async personalWalletIds(userId: string) {

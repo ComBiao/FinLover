@@ -8,6 +8,7 @@ import {
   validateReportFilter,
   type DateRangeStrings,
   type FilterErrors,
+  type PeriodPreset,
   type ReportPreset,
 } from "@/features/reports/period";
 import type { ReportFilter } from "@/features/reports/types";
@@ -15,12 +16,12 @@ import type { ReportFilter } from "@/features/reports/types";
 /** How long the filter must sit still before the sections re-fetch. */
 export const FILTER_APPLY_DELAY_MS = 300;
 
-export type ReportFilterWallet = { id: string };
+export type ReportFilterWallet = { id: string; isShared?: boolean };
 
 export type ReportFilterState = {
   preset: ReportPreset;
   range: DateRangeStrings;
-  /** Selected wallets, limited to wallets that still exist. */
+  /** Selected wallets, limited to wallets that still exist. Until the user picks, every personal wallet. */
   walletIds: string[];
   errors: FilterErrors;
   isValid: boolean;
@@ -30,7 +31,9 @@ export type ReportFilterState = {
   appliedPreset: ReportPreset;
   setPreset: (preset: ReportPreset) => void;
   shift: (direction: 1 | -1) => void;
-  /** Move the period to the week / month / year containing this `YYYY-MM-DD` day. */
+  /** Replace both dates at once (the Custom range picker). */
+  setRange: (range: DateRangeStrings) => void;
+  /** Move a Weekly / Monthly / Annual period to the one containing this `YYYY-MM-DD` day. */
   jumpTo: (anchor: string) => void;
   setWalletIds: (ids: string[]) => void;
   selectAllWallets: () => void;
@@ -53,12 +56,16 @@ export function useReportFilter(wallets: ReportFilterWallet[]): ReportFilterStat
   const [selected, setSelected] = useState<string[] | null>(null);
 
   const allIds = useMemo(() => wallets.map((wallet) => wallet.id), [wallets]);
+  const personalIds = useMemo(() => wallets.filter((wallet) => !wallet.isShared).map((wallet) => wallet.id), [wallets]);
   const allKey = allIds.join(",");
+  const personalKey = personalIds.join(",");
+  const hasShared = personalIds.length !== allIds.length;
   const walletIds = useMemo(
-    () => (selected === null ? allIds : selected.filter((id) => allIds.includes(id))),
-    // allKey stands in for allIds so a refetch that returns the same wallets doesn't churn the filter
+    // Shared wallets are opt-in, like on Home and Transactions; with no personal wallet at all the shared ones stand in.
+    () => (selected === null ? (personalIds.length > 0 ? personalIds : allIds) : selected.filter((id) => allIds.includes(id))),
+    // the keys stand in for the arrays so a refetch that returns the same wallets doesn't churn the filter
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [selected, allKey]
+    [selected, allKey, personalKey]
   );
 
   const errors = useMemo(
@@ -92,20 +99,32 @@ export function useReportFilter(wallets: ReportFilterWallet[]): ReportFilterStat
 
   const setPreset = useCallback((next: ReportPreset) => {
     setPresetState(next);
-    // Picking a preset jumps to the current week / month / year.
-    setRange(presetRange(next, todayISO()));
+    // Presets jump to the current week / month / year; Custom keeps the dates on screen to adjust.
+    if (next !== "custom") setRange(presetRange(next, todayISO()));
   }, []);
 
   const shift = useCallback(
     (direction: 1 | -1) => {
-      setRange((current) => shiftPresetRange(preset, current, direction));
+      if (preset === "custom") return;
+      setRange((current) => shiftPresetRange(preset as PeriodPreset, current, direction));
     },
     [preset]
   );
 
-  const jumpTo = useCallback((anchor: string) => setRange(presetRange(preset, anchor)), [preset]);
+  const replaceRange = useCallback((next: DateRangeStrings) => setRange(next), []);
+  const jumpTo = useCallback(
+    (anchor: string) => {
+      if (preset !== "custom") setRange(presetRange(preset as PeriodPreset, anchor));
+    },
+    [preset]
+  );
   const setWalletIds = useCallback((ids: string[]) => setSelected(ids), []);
-  const selectAllWallets = useCallback(() => setSelected(null), []);
+  // Select all means every wallet, shared ones included; without shared wallets that is just the default.
+  const selectAllWallets = useCallback(
+    () => setSelected(hasShared ? allIds : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [hasShared, allKey]
+  );
   const reset = useCallback(() => {
     setPresetState("monthly");
     setRange(defaultRange());
@@ -129,6 +148,7 @@ export function useReportFilter(wallets: ReportFilterWallet[]): ReportFilterStat
     appliedPreset,
     setPreset,
     shift,
+    setRange: replaceRange,
     jumpTo,
     setWalletIds,
     selectAllWallets,
