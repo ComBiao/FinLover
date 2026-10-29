@@ -72,24 +72,24 @@ describe("useReportFilter (US8-1)", () => {
     expect(result.current.applied).toMatchObject({ startDate: "2026-09-01", endDate: "2026-09-30" });
   });
 
-  it("keeps the last applied filter when the end date falls before the start date", () => {
+  it("keeps the last applied filter, and its preset, while no wallet is selected", () => {
     const { result } = renderHook(() => useReportFilter(WALLETS));
-    act(() => result.current.setPreset("custom"));
-    act(() => result.current.setStartDate("2026-09-30"));
-    act(() => result.current.setEndDate("2026-09-01"));
+    act(() => {
+      result.current.setPreset("weekly");
+      result.current.setWalletIds([]);
+    });
     act(() => vi.advanceTimersByTime(FILTER_APPLY_DELAY_MS * 2));
 
     expect(result.current.isValid).toBe(false);
-    expect(result.current.errors.endDate).toBe("End date must be on or after the start date");
-    // still the first (default month) filter — nothing new was applied
+    expect(result.current.errors.walletIds).toBe("Select at least 1 wallet");
+    // still the first (default month) filter, labelled as the monthly one it was applied as
     expect(result.current.applied).toMatchObject({ startDate: "2026-10-01", endDate: "2026-10-31" });
-    // and it is still labelled as the monthly filter it was applied as
     expect(result.current.appliedPreset).toBe("monthly");
 
-    act(() => result.current.setEndDate("2026-10-05"));
+    act(() => result.current.setWalletIds(["w1"]));
     act(() => vi.advanceTimersByTime(FILTER_APPLY_DELAY_MS));
-    expect(result.current.applied).toMatchObject({ startDate: "2026-09-30", endDate: "2026-10-05" });
-    expect(result.current.appliedPreset).toBe("custom");
+    expect(result.current.applied).toMatchObject({ walletIds: ["w1"], startDate: "2026-10-19", endDate: "2026-10-25" });
+    expect(result.current.appliedPreset).toBe("weekly");
   });
 
   it("does not apply when every wallet is unchecked, and select-all brings them back", () => {
@@ -137,11 +137,17 @@ describe("useReportFilter (US8-1)", () => {
     });
   });
 
-  it("ignores shift on a custom range", () => {
+  it("jumps to the week, month or year containing a picked day", () => {
     const { result } = renderHook(() => useReportFilter(WALLETS));
-    act(() => result.current.setPreset("custom"));
-    const before = result.current.range;
-    act(() => result.current.shift(1));
-    expect(result.current.range).toEqual(before);
+    act(() => result.current.jumpTo("2026-03-15"));
+    expect(result.current.range).toEqual({ startDate: "2026-03-01", endDate: "2026-03-31" });
+
+    act(() => result.current.setPreset("weekly"));
+    act(() => result.current.jumpTo("2026-10-14"));
+    expect(result.current.range).toEqual({ startDate: "2026-10-12", endDate: "2026-10-18" });
+
+    act(() => result.current.setPreset("annual"));
+    act(() => result.current.jumpTo("2024-06-30"));
+    expect(result.current.range).toEqual({ startDate: "2024-01-01", endDate: "2024-12-31" });
   });
 });
