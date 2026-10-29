@@ -568,7 +568,7 @@ export function CreateRuleModal({
               <div className="flex items-center gap-1.5">
                 <Repeat className="size-3.5 text-primary" />
                 <Label className="text-xs font-bold text-foreground">
-                  Custom Frequency & Interval (US4-1)
+                  Custom Frequency & Interval
                 </Label>
               </div>
               <span className="text-xs font-bold text-primary">{cadencePreview}</span>

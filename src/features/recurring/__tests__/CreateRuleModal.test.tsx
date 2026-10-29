@@ -59,7 +59,7 @@ describe("CreateRuleModal (US4-1)", () => {
     expect(screen.getByRole("radio", { name: /income/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/title/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/amount/i)).toBeInTheDocument();
-    expect(screen.getByText("Custom Frequency & Interval (US4-1)")).toBeInTheDocument();
+    expect(screen.getByText("Custom Frequency & Interval")).toBeInTheDocument();
     expect(screen.getByText(/never/i)).toBeInTheDocument();
     expect(screen.getByText(/after fixed number of occurrences/i)).toBeInTheDocument();
     expect(screen.getByText(/on specific end date/i)).toBeInTheDocument();
