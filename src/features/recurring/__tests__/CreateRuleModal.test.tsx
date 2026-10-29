@@ -239,5 +239,62 @@ describe("CreateRuleModal (US4-1)", () => {
     expect(await screen.findByText("Please enter a frequency interval")).toBeInTheDocument();
     expect(onCreate).not.toHaveBeenCalled();
   });
+
+  it("creates recurring rule targeting a shared wallet with shared category preset (US7-6)", async () => {
+    const user = userEvent.setup();
+    const onCreate = vi.fn().mockResolvedValue(undefined);
+    const mockSharedWallet: Wallet = {
+      id: "w-shared",
+      name: "Housemate Fund",
+      balance: 20000,
+      icon: WalletIcon,
+      isShared: true,
+    };
+
+    render(
+      <CreateRuleModal
+        open={true}
+        onOpenChange={vi.fn()}
+        wallets={[...mockWallets, mockSharedWallet]}
+        categories={mockCategories}
+        authorAttribution="Alex Demo"
+        onCreateRule={onCreate}
+      />
+    );
+
+    const titleInput = screen.getByLabelText(/title/i);
+    await user.type(titleInput, "Monthly Rent");
+
+    const amountInput = screen.getByLabelText(/amount/i);
+    await user.type(amountInput, "4000");
+
+    // Select the shared wallet
+    const comboboxes = screen.getAllByRole("combobox");
+    await user.click(comboboxes[0]);
+    await user.click(await screen.findByRole("option", { name: /Housemate Fund/i }));
+
+    // The category dropdown should now show presets such as "Utilities" instead of personal categories
+    const categoryCombobox = screen.getAllByRole("combobox")[1];
+    await user.click(categoryCombobox);
+    await user.click(await screen.findByRole("option", { name: /Utilities/i }));
+
+    const submitBtn = screen.getByRole("button", { name: /save recurring rule/i });
+    await user.click(submitBtn);
+
+    expect(onCreate).toHaveBeenCalledTimes(1);
+    expect(onCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "Monthly Rent",
+        amount: 4000,
+        type: "expense",
+        walletId: "w-shared",
+        categoryId: null,
+        categoryKey: "utilities",
+        intervalN: 1,
+        intervalUnit: "months",
+        status: "active",
+      })
+    );
+  });
 });
 

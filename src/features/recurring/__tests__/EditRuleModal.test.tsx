@@ -210,5 +210,64 @@ describe("EditRuleModal (US4-5)", () => {
     expect(onSave).toHaveBeenCalledTimes(1);
     expect(onSave.mock.calls[0][1]).toMatchObject({ startDate: "2027-03-11", endDate: "2027-05-11" });
   });
+
+  it("edits recurring rule targeting a shared wallet with shared category preset (US7-6)", async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn();
+    const mockSharedWallet: Wallet = {
+      id: "w-shared",
+      name: "Housemate Fund",
+      balance: 20000,
+      icon: WalletIcon,
+      isShared: true,
+    };
+    const mockSharedRule: RecurringRule = {
+      ...mockRule,
+      id: "r-shared",
+      title: "Apartment Internet",
+      amount: 800,
+      walletId: "w-shared",
+      categoryId: null,
+      categoryKey: "utilities",
+    };
+
+    render(
+      <EditRuleModal
+        rule={mockSharedRule}
+        open={true}
+        onOpenChange={vi.fn()}
+        wallets={[...mockWallets, mockSharedWallet]}
+        categories={mockCategories}
+        onSave={onSave}
+      />
+    );
+
+    expect(screen.getByDisplayValue("Apartment Internet")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("800")).toBeInTheDocument();
+
+    const amountInput = screen.getByLabelText(/future amount/i);
+    await user.clear(amountInput);
+    await user.type(amountInput, "900");
+
+    // Change category to Essentials
+    const categoryCombobox = screen.getAllByRole("combobox")[1];
+    await user.click(categoryCombobox);
+    await user.click(await screen.findByRole("option", { name: /Essentials/i }));
+
+    const submitBtn = screen.getByRole("button", { name: /save future changes/i });
+    await user.click(submitBtn);
+
+    expect(onSave).toHaveBeenCalledTimes(1);
+    expect(onSave).toHaveBeenCalledWith(
+      "r-shared",
+      expect.objectContaining({
+        title: "Apartment Internet",
+        amount: 900,
+        walletId: "w-shared",
+        categoryId: null,
+        categoryKey: "essentials",
+      })
+    );
+  });
 });
 
