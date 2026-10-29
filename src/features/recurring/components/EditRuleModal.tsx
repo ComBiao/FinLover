@@ -31,6 +31,8 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { CategorySelector } from "@/components/CategorySelector";
 import { WalletSelector } from "@/components/WalletSelector";
+import { SHARED_CATEGORY_PRESETS, defaultSharedCategoryKey } from "@/shared/contracts";
+import { resolveCategoryIcon } from "@/features/categories/categoryIcons";
 import { cn, formatEnglishDayMonth, todayISODate } from "@/lib/utils";
 import type { Category, TransactionType } from "@/types/category";
 import type { Wallet } from "@/types/wallet";
@@ -73,14 +75,29 @@ function EditRuleForm({
   onCancel,
   onSave,
 }: EditRuleFormProps) {
-  const personalWallets = useMemo(() => wallets.filter((w) => !w.isShared), [wallets]);
   const [type, setType] = useState<TransactionType>(rule.type);
   const [title, setTitle] = useState(rule.title);
   const [amount, setAmount] = useState(String(rule.amount));
   const [walletId, setWalletId] = useState<string | undefined>(
-    personalWallets.some((w) => w.id === rule.walletId) ? rule.walletId : personalWallets[0]?.id
+    wallets.some((w) => w.id === rule.walletId) ? rule.walletId : wallets[0]?.id
   );
-  const [categoryId, setCategoryId] = useState<string | undefined>(rule.categoryId || undefined);
+  const selectedWallet = useMemo(() => wallets.find((w) => w.id === walletId), [wallets, walletId]);
+  const isShared = Boolean(selectedWallet?.isShared);
+
+  const sharedCategories = useMemo(() => {
+    return SHARED_CATEGORY_PRESETS.filter((p) => p.type === type).map((p) => ({
+      id: p.key,
+      name: p.name,
+      type: p.type,
+      color: p.color,
+      icon: resolveCategoryIcon(p.icon),
+      isSystem: true,
+    }));
+  }, [type]);
+
+  const [categoryId, setCategoryId] = useState<string | undefined>(
+    rule.categoryKey || rule.categoryId || undefined
+  );
   const [note, setNote] = useState(rule.note || "");
   const [startDate, setStartDate] = useState(rule.startDate);
   const [intervalNStr, setIntervalNStr] = useState(String(rule.intervalN));
@@ -156,12 +173,13 @@ function EditRuleForm({
     }
   };
 
+  const fallbackCategoryId = (forType: TransactionType) =>
+    (categories.find((c) => c.type === forType && c.name.toLowerCase() === "others") ??
+      categories.find((c) => c.type === forType))?.id;
+
   const handleTypeChange = (nextType: TransactionType) => {
     setType(nextType);
-    const nextFallback =
-      categories.find((c) => c.type === nextType && c.name.toLowerCase() === "others") ??
-      categories.find((c) => c.type === nextType);
-    setCategoryId(nextFallback?.id);
+    setCategoryId(isShared ? defaultSharedCategoryKey(nextType) : fallbackCategoryId(nextType));
   };
 
   const handleUnitChange = (nextUnit: IntervalUnit) => {
@@ -258,7 +276,8 @@ function EditRuleForm({
         title: title.trim(),
         amount: numAmount,
         walletId,
-        categoryId: categoryId || null,
+        categoryId: isShared ? null : (categoryId || null),
+        categoryKey: isShared ? categoryId : null,
         note: note.trim() || undefined,
         startDate,
         intervalN: n,
@@ -397,8 +416,15 @@ function EditRuleForm({
           <Label className="text-xs font-semibold text-foreground">Target Wallet *</Label>
           <WalletSelector
             value={walletId}
-            onValueChange={(val) => setWalletId(val)}
-            wallets={personalWallets}
+            onValueChange={(val) => {
+              // Categories differ between shared and personal wallets, so only a switch across that line resets it.
+              const nextShared = Boolean(wallets.find((w) => w.id === val)?.isShared);
+              if (nextShared !== isShared) {
+                setCategoryId(nextShared ? defaultSharedCategoryKey(type) : fallbackCategoryId(type));
+              }
+              setWalletId(val);
+            }}
+            wallets={wallets}
             placeholder="Choose wallet"
           />
           {(fieldErrors.walletId || fieldErrors.wallet_id) && (
@@ -413,7 +439,7 @@ function EditRuleForm({
             type={type}
             value={categoryId}
             onValueChange={(cat) => setCategoryId(cat)}
-            categories={categories}
+            categories={isShared ? sharedCategories : categories}
             placeholder="Category"
           />
           {(fieldErrors.categoryId || fieldErrors.category_id) && (

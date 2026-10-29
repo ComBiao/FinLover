@@ -1,23 +1,26 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Info, RotateCcw } from "lucide-react";
+import { Info, RotateCcw } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { MonthPicker } from "@/features/homepage/components/MonthPicker";
+import type { MonthKey } from "@/features/homepage/month";
+import { SlidingToggle, type SlidingToggleOption } from "@/features/reports/components/SlidingToggle";
+import { WeekPicker } from "@/features/reports/components/WeekPicker";
 import {
   WalletMultiSelect,
   walletSummaryLabel,
   type WalletOption,
 } from "@/features/reports/components/WalletMultiSelect";
 import type { ReportFilterState } from "@/features/reports/hooks/useReportFilter";
-import { segmentedGroupClass, segmentedItemClass } from "@/features/reports/components/segmented";
-import { rangeLabel, type ReportPreset } from "@/features/reports/period";
+import { isoToLocalDate, rangeLabel, type ReportPreset } from "@/features/reports/period";
+import { DayRangePicker } from "@/features/transactions/components/DayRangePicker";
+import { YearPicker } from "@/features/transactions/components/YearPicker";
+import { toLocalISODate } from "@/lib/utils";
 
-const PRESETS: { value: ReportPreset; label: string }[] = [
+const PRESETS: SlidingToggleOption<ReportPreset>[] = [
   { value: "weekly", label: "Weekly" },
   { value: "monthly", label: "Monthly" },
   { value: "annual", label: "Annual" },
@@ -43,13 +46,47 @@ function FilterBarSkeleton() {
 }
 
 /**
- * US8-1: wallet multi-select, a Weekly / Monthly / Annual / Custom period with
- * previous/next arrows, validation messages, and chips of what is applied
- * (with Reset). It only edits state; `useReportFilter` decides when to apply.
+ * The period selector that goes with the chosen preset, built from the same pieces as the Home and
+ * Transactions pages: a week picker, Home's `MonthPicker`, the Transactions `YearPicker` and
+ * `DayRangePicker` (one range calendar for Custom). Each carries its own previous / next arrows.
+ */
+function PeriodNavigator({ filter }: { filter: ReportFilterState }) {
+  const { preset, range } = filter;
+
+  if (preset === "weekly") {
+    return <WeekPicker range={range} onPickDay={filter.jumpTo} onShift={filter.shift} />;
+  }
+  if (preset === "monthly") {
+    return (
+      <MonthPicker
+        value={range.startDate.slice(0, 7) as MonthKey}
+        onValueChange={(monthKey) => filter.jumpTo(`${monthKey}-01`)}
+      />
+    );
+  }
+  if (preset === "annual") {
+    return (
+      <YearPicker
+        value={Number(range.startDate.slice(0, 4))}
+        onValueChange={(year) => filter.jumpTo(`${year}-01-01`)}
+      />
+    );
+  }
+  return (
+    <DayRangePicker
+      value={{ from: isoToLocalDate(range.startDate), to: isoToLocalDate(range.endDate) }}
+      onValueChange={({ from, to }) => filter.setRange({ startDate: toLocalISODate(from), endDate: toLocalISODate(to) })}
+    />
+  );
+}
+
+/**
+ * US8-1: wallet multi-select, a Weekly / Monthly / Annual / Custom period with its picker,
+ * the wallet validation message, and chips of what is applied (with Reset). It only edits state;
+ * `useReportFilter` decides when to apply.
  */
 export function ReportFilterBar({ wallets, filter, isLoading = false }: ReportFilterBarProps) {
   const { preset, range, errors } = filter;
-  const isCustom = preset === "custom";
   // The chips describe what the sections show (the applied filter), not the draft being edited.
   const shown = filter.applied ?? { walletIds: filter.walletIds, ...range };
   const shownRange = { startDate: shown.startDate, endDate: shown.endDate };
@@ -78,96 +115,9 @@ export function ReportFilterBar({ wallets, filter, isLoading = false }: ReportFi
                 error={wallets.length > 0 ? errors.walletIds : undefined}
               />
 
-              <ToggleGroup
-                aria-label="Period"
-                size="default"
-                spacing={1}
-                className={segmentedGroupClass}
-                value={[preset]}
-                onValueChange={(next) => {
-                  // clicking the pressed segment would deselect it; keep exactly one selected
-                  const chosen = next[0] as ReportPreset | undefined;
-                  if (chosen && chosen !== preset) filter.setPreset(chosen);
-                }}
-              >
-                {PRESETS.map(({ value, label }) => (
-                  <ToggleGroupItem key={value} value={value} className={segmentedItemClass}>
-                    {label}
-                  </ToggleGroupItem>
-                ))}
-              </ToggleGroup>
+              <SlidingToggle aria-label="Period" value={preset} onValueChange={filter.setPreset} options={PRESETS} />
 
-              {isCustom ? (
-                <div className="flex flex-wrap items-start gap-3">
-                  <div className="flex flex-col gap-1">
-                    <Label htmlFor="report-start-date" className="sr-only">
-                      Start date
-                    </Label>
-                    <Input
-                      id="report-start-date"
-                      type="date"
-                      aria-label="Start date"
-                      aria-invalid={errors.startDate ? true : undefined}
-                      value={range.startDate}
-                      onChange={(event) => filter.setStartDate(event.target.value)}
-                      className="h-9 w-40 rounded-xl"
-                    />
-                    {errors.startDate ? (
-                      <p role="alert" className="text-xs text-destructive">
-                        {errors.startDate}
-                      </p>
-                    ) : null}
-                  </div>
-                  <span className="pt-2 text-sm text-muted-foreground" aria-hidden="true">
-                    to
-                  </span>
-                  <div className="flex flex-col gap-1">
-                    <Label htmlFor="report-end-date" className="sr-only">
-                      End date
-                    </Label>
-                    <Input
-                      id="report-end-date"
-                      type="date"
-                      aria-label="End date"
-                      aria-invalid={errors.endDate ? true : undefined}
-                      value={range.endDate}
-                      onChange={(event) => filter.setEndDate(event.target.value)}
-                      className="h-9 w-40 rounded-xl"
-                    />
-                    {errors.endDate ? (
-                      <p role="alert" className="text-xs text-destructive">
-                        {errors.endDate}
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
-              ) : (
-                <div className="flex h-9 items-center gap-0.5 rounded-xl border border-border bg-card p-[3px]">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label="Previous period"
-                    onClick={() => filter.shift(-1)}
-                    className="text-primary hover:bg-primary/10 hover:text-primary"
-                  >
-                    <ChevronLeft className="size-4" />
-                  </Button>
-                  <span className="min-w-36 px-2 text-center text-sm font-semibold" aria-live="polite">
-                    {rangeLabel(preset, range)}
-                  </span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label="Next period"
-                    onClick={() => filter.shift(1)}
-                    className="text-primary hover:bg-primary/10 hover:text-primary"
-                  >
-                    <ChevronRight className="size-4" />
-                  </Button>
-                </div>
-              )}
+              <PeriodNavigator filter={filter} />
             </div>
 
             <div className="flex flex-wrap items-center gap-2" aria-label="Active filters">
@@ -187,7 +137,7 @@ export function ReportFilterBar({ wallets, filter, isLoading = false }: ReportFi
               {showingLastValid ? (
                 <p role="status" className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <Info className="size-3.5 shrink-0" aria-hidden="true" />
-                  Fix the highlighted fields to update the report. The results below still match the filters shown here.
+                  Select at least one wallet to update the report. The results below still match the filters shown here.
                 </p>
               ) : null}
             </div>

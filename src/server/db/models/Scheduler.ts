@@ -1,12 +1,15 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import mongooseLeanGetters from 'mongoose-lean-getters';
+import { SHARED_CATEGORY_PRESETS, type SharedCategoryKey } from '@/shared/contracts';
 import { assertTransactionWrite } from '../transaction-write-guard';
 import { MAX_INTERVAL, SCHEDULER_FREQUENCIES, SCHEDULER_STATUSES, type SchedulerFrequency, type SchedulerStatus } from '@/shared/contracts/schedulers';
 
 export interface IScheduler extends Document {
   userId: mongoose.Types.ObjectId;
   walletId: mongoose.Types.ObjectId;
-  categoryId: mongoose.Types.ObjectId;
+  categoryId?: mongoose.Types.ObjectId | null;
+  /** Shared wallets only: a key of SHARED_CATEGORY_PRESETS. */
+  categoryKey?: SharedCategoryKey | null;
   type: 'income' | 'expense';
   amount: number;
   title: string;
@@ -31,7 +34,18 @@ export interface IScheduler extends Document {
 const SchedulerSchema = new Schema<IScheduler>({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   walletId: { type: Schema.Types.ObjectId, ref: 'Wallet', required: true },
-  categoryId: { type: Schema.Types.ObjectId, ref: 'Category', required: true },
+  categoryId: {
+    type: Schema.Types.ObjectId,
+    ref: 'Category',
+    default: null,
+    validate: {
+      validator(this: unknown, value: mongoose.Types.ObjectId | null) {
+        return Boolean(value || (this as IScheduler)?.categoryKey);
+      },
+      message: 'Path `categoryId` is required when `categoryKey` is absent.',
+    },
+  },
+  categoryKey: { type: String, enum: SHARED_CATEGORY_PRESETS.map(preset => preset.key) },
   type: { type: String, enum: ['income', 'expense'], required: true },
   amount: { type: Number, required: true, min: [0.01, 'Amount must be at least 0.01'] },
   title: { type: String, required: true, trim: true, maxlength: 100 },

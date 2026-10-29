@@ -25,10 +25,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Progress } from "@/components/ui/progress";
 import { hexToRgba, shadeHex } from "@/components/chipColor";
-import { formatBaht } from "@/lib/utils";
+import { cn, formatBaht } from "@/lib/utils";
 import type { Wallet } from "@/types/wallet";
 import { MemberAvatar } from "@/features/wallets/shared/MemberAvatar";
 import { useActiveWallet } from "@/features/wallets/store/useActiveWallet";
+import { GoalReachedCelebration } from "./GoalReachedCelebration";
 
 type WalletCardProps = {
   wallet: Wallet;
@@ -73,13 +74,22 @@ export function WalletCard({
 
   return (
     <Card
-      className="relative overflow-hidden rounded-2xl border-2 transition-all hover:shadow-md"
+      className={cn(
+        "relative overflow-hidden rounded-2xl border-2 transition-all hover:shadow-md",
+        reached && "border-emerald-500/40 shadow-sm shadow-emerald-500/10 hover:shadow-lg hover:shadow-emerald-500/15"
+      )}
       style={{
-        borderColor: hexToRgba(color, 0.3),
-        backgroundColor: hexToRgba(color, 0.04),
+        borderColor: reached ? hexToRgba(color, 0.45) : hexToRgba(color, 0.3),
+        backgroundColor: reached ? undefined : hexToRgba(color, 0.04),
+        ...(reached
+          ? {
+              background: `linear-gradient(135deg, ${hexToRgba(color, 0.12)} 0%, ${hexToRgba(color, 0.04)} 45%, rgba(16, 185, 129, 0.12) 100%)`,
+            }
+          : {}),
       }}
     >
-      <CardContent className="flex flex-col gap-4 p-5">
+      {reached ? <GoalReachedCelebration /> : null}
+      <CardContent className="relative z-10 flex flex-col gap-4 p-5">
         {/* Top Header */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
@@ -247,17 +257,40 @@ export function WalletCard({
 
         {/* Saving Goal Progress Section */}
         {isSaving ? (
-          <div className="mt-auto flex flex-col gap-2 rounded-xl border border-border/50 bg-card/60 p-3 pt-2.5">
+          <div
+            className={cn(
+              "mt-auto flex flex-col gap-2 rounded-xl border p-3 pt-2.5 transition-colors",
+              reached
+                ? "border-emerald-500/30 bg-card/90 shadow-xs backdrop-blur-sm"
+                : "border-border/50 bg-card/60"
+            )}
+          >
             <div className="flex items-baseline justify-between gap-2">
               <span className="text-xs font-bold text-foreground">Goal: {formatBaht(goal)}</span>
-              <span className="text-xs font-semibold text-muted-foreground">
+              <span
+                className={cn(
+                  "text-xs font-semibold",
+                  reached
+                    ? "font-bold text-emerald-600 dark:text-emerald-400"
+                    : "text-muted-foreground"
+                )}
+              >
                 {reached ? "Goal reached! 🎉" : `${formatBaht(remaining)} left`}
               </span>
             </div>
-            <Progress value={percent} className="h-2" />
+            <Progress
+              value={percent}
+              className={cn("h-2", reached && "[&>div]:bg-emerald-500")}
+            />
             <div className="flex justify-between text-[11px] text-muted-foreground">
-              <span>{percent}% saved</span>
-              <span>{formatBaht(wallet.balance)}</span>
+              <span
+                className={cn(
+                  reached && "font-semibold text-emerald-600 dark:text-emerald-400"
+                )}
+              >
+                {percent}% saved
+              </span>
+              <span className="font-semibold text-foreground">{formatBaht(wallet.balance)}</span>
             </div>
           </div>
         ) : null}

@@ -8,10 +8,20 @@ export class SchedulerResponseDTO {
   static from(record: SchedulerRecord, viewerId: string): SchedulerResponse {
     const { end } = record;
     return {
-      id: record.id, walletId: record.walletId, categoryId: record.categoryId, type: record.type, amount: record.amount,
-      title: record.title, note: record.note, startDate: day(record.startDate), frequency: record.frequency, interval: record.interval,
+      id: record.id,
+      walletId: record.walletId,
+      categoryId: record.categoryId ?? undefined,
+      categoryKey: record.categoryKey ?? undefined,
+      type: record.type,
+      amount: record.amount,
+      title: record.title,
+      note: record.note,
+      startDate: day(record.startDate),
+      frequency: record.frequency,
+      interval: record.interval,
       end: end.type === 'count' ? { type: 'count', count: end.count! } : end.type === 'endDate' ? { type: 'endDate', endDate: day(end.endDate!) } : { type: 'never' },
-      status: record.status, createdCount: record.createdCount,
+      status: record.status,
+      createdCount: record.createdCount,
       nextDueDate: record.nextDueDate ? day(record.nextDueDate) : null,
       canManage: record.userId === viewerId,
     };

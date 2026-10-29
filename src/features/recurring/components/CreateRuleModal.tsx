@@ -29,6 +29,8 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { WalletSelector } from "@/components/WalletSelector";
 import { CategorySelector } from "@/components/CategorySelector";
+import { SHARED_CATEGORY_PRESETS, defaultSharedCategoryKey } from "@/shared/contracts";
+import { resolveCategoryIcon } from "@/features/categories/categoryIcons";
 import { isFallbackCategory } from "@/features/categories/categoriesService";
 import { cn, formatEnglishDayMonth, todayISODate, toLocalISODate } from "@/lib/utils";
 import type { Category, TransactionType } from "@/types/category";
@@ -97,11 +99,12 @@ export function CreateRuleModal({
   onCreateRule,
 }: CreateRuleModalProps) {
   const today = todayISODate();
-  const personalWallets = useMemo(() => wallets.filter((w) => !w.isShared), [wallets]);
   const [type, setType] = useState<TransactionType>("expense");
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
-  const [walletId, setWalletId] = useState<string | undefined>(personalWallets[0]?.id);
+  // New rules default to a personal wallet; a shared wallet must be chosen on purpose.
+  const defaultWalletId = (wallets.find((w) => !w.isShared) ?? wallets[0])?.id;
+  const [walletId, setWalletId] = useState<string | undefined>(defaultWalletId);
   const [categoryId, setCategoryId] = useState<string | undefined>(undefined);
   const [note, setNote] = useState("");
 
@@ -118,12 +121,24 @@ export function CreateRuleModal({
   const [endYear, setEndYear] = useState(() => String(getFirstAllowedYear(today, 1)));
 
   // Flags & Errors
-  const isShared = false;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  const effectiveWalletId = walletId ?? personalWallets[0]?.id;
+  const effectiveWalletId = walletId ?? defaultWalletId;
+  const selectedWallet = useMemo(() => wallets.find((w) => w.id === effectiveWalletId), [wallets, effectiveWalletId]);
+  const isShared = Boolean(selectedWallet?.isShared);
+
+  const sharedCategories = useMemo(() => {
+    return SHARED_CATEGORY_PRESETS.filter((p) => p.type === type).map((p) => ({
+      id: p.key,
+      name: p.name,
+      type: p.type,
+      color: p.color,
+      icon: resolveCategoryIcon(p.icon),
+      isSystem: true,
+    }));
+  }, [type]);
 
   // Find fallback "Others" category for current type
   const fallbackCategory = useMemo(() => {
@@ -140,11 +155,17 @@ export function CreateRuleModal({
 
   // Derived effective category id ensuring default to "Others"
   const effectiveCategoryId = useMemo(() => {
+    if (isShared) {
+      if (categoryId && sharedCategories.some((c) => c.id === categoryId)) {
+        return categoryId;
+      }
+      return defaultSharedCategoryKey(type);
+    }
     if (categoryId && categories.some((c) => c.id === categoryId && c.type === type)) {
       return categoryId;
     }
     return fallbackCategory?.id;
-  }, [categoryId, categories, type, fallbackCategory]);
+  }, [isShared, categoryId, sharedCategories, categories, type, fallbackCategory]);
 
   // Weekday calculations for weekly interval
   const startDayOfWeekIndex = useMemo(() => {
@@ -343,7 +364,8 @@ export function CreateRuleModal({
         amount: numAmount,
         type,
         walletId: effectiveWalletId,
-        categoryId: effectiveCategoryId || null,
+        categoryId: isShared ? null : (effectiveCategoryId || null),
+        categoryKey: isShared ? effectiveCategoryId : null,
         note: note.trim() || undefined,
         intervalN: n,
         intervalUnit,
@@ -357,7 +379,7 @@ export function CreateRuleModal({
         status: "active",
         isShared,
         authorName: authorAttribution,
-        authorRole: "owner",
+        authorRole: selectedWallet?.role ?? (selectedWallet?.isShared ? "contributor" : "owner"),
       });
       onOpenChange(false);
       // Reset form
@@ -512,8 +534,9 @@ export function CreateRuleModal({
               <Label className="text-xs font-semibold text-foreground">Target Wallet *</Label>
               <WalletSelector
                 value={effectiveWalletId}
+                // A category from the other wallet kind is not in the list, so effectiveCategoryId falls back to "Others".
                 onValueChange={(val) => setWalletId(val)}
-                wallets={personalWallets}
+                wallets={wallets}
                 placeholder="Choose wallet"
               />
               {(fieldErrors.walletId || fieldErrors.wallet_id) && (
@@ -528,7 +551,7 @@ export function CreateRuleModal({
                 type={type}
                 value={effectiveCategoryId}
                 onValueChange={(cat) => setCategoryId(cat)}
-                categories={categories}
+                categories={isShared ? sharedCategories : categories}
                 placeholder="Category"
               />
               {(fieldErrors.categoryId || fieldErrors.category_id) && (
