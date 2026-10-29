@@ -1,10 +1,12 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import ReportPage from "@/features/reports/components/ReportPage";
-import { defaultRange } from "@/features/reports/period";
+import { defaultRange, isoToLocalDate, presetRange, shiftPresetRange, todayISO } from "@/features/reports/period";
+import { shiftDayRange } from "@/features/transactions/period";
+import { toLocalISODate } from "@/lib/utils";
 import * as reportsService from "@/features/reports/reportsService";
 import * as walletsService from "@/features/wallets/walletsService";
 import type { Wallet } from "@/types/wallet";
@@ -63,7 +65,7 @@ describe("ReportPage (US8-1 to US8-3)", () => {
     expect(screen.getByText("Running balance")).toBeInTheDocument();
   });
 
-  it("leaves shared wallets out because the reports API answers 404 for them", async () => {
+  it("starts on the personal wallets and lets a shared wallet be ticked", async () => {
     const shared = { ...wallet("w3", "Housemate Fund"), isShared: true } as Wallet;
     vi.spyOn(walletsService, "getWallets").mockResolvedValue([...WALLETS, shared]);
     renderPage();
@@ -73,6 +75,15 @@ describe("ReportPage (US8-1 to US8-3)", () => {
       expect(summary).toHaveBeenCalledWith({ walletIds: ["w1", "w2"], startDate: month.startDate, endDate: month.endDate })
     );
     expect(summary).not.toHaveBeenCalledWith(expect.objectContaining({ walletIds: expect.arrayContaining(["w3"]) }));
+    expect(screen.getAllByText(/All personal wallets \(2\)/).length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getByRole("button", { name: "Wallets" }));
+    expect(await screen.findByRole("heading", { name: "Shared" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("checkbox", { name: "Housemate Fund" }));
+
+    await waitFor(() =>
+      expect(summary).toHaveBeenLastCalledWith({ walletIds: ["w1", "w2", "w3"], startDate: month.startDate, endDate: month.endDate })
+    );
   });
 
   it("does not call any report API while the wallets are still loading", () => {
@@ -84,34 +95,49 @@ describe("ReportPage (US8-1 to US8-3)", () => {
     expect(cashFlow).not.toHaveBeenCalled();
   });
 
-  it("shows an error and does not apply the filter when the end date is before the start date", async () => {
+  it("moves to the next month with the period arrows", async () => {
     vi.spyOn(walletsService, "getWallets").mockResolvedValue(WALLETS);
     renderPage();
     await screen.findByText("+฿15,000.00");
-    const callsBefore = summary.mock.calls.length;
 
-    fireEvent.click(screen.getByRole("button", { name: "Custom" }));
-    fireEvent.change(screen.getByLabelText("Start date"), { target: { value: "2026-09-30" } });
-    fireEvent.change(screen.getByLabelText("End date"), { target: { value: "2026-09-01" } });
+    fireEvent.click(screen.getByRole("button", { name: "Next month" }));
 
-    expect(await screen.findByText("End date must be on or after the start date")).toBeInTheDocument();
-    // wait past the debounce: nothing new may have been requested
-    await new Promise((resolve) => setTimeout(resolve, 450));
-    expect(summary.mock.calls.length).toBe(callsBefore);
+    const next = shiftPresetRange("monthly", defaultRange(), 1);
+    await waitFor(() =>
+      expect(summary).toHaveBeenLastCalledWith({ walletIds: ["w1", "w2"], startDate: next.startDate, endDate: next.endDate })
+    );
   });
 
-  it("applies a valid custom range once the dates are fixed", async () => {
+  it("shows the range picker on Custom and steps the range by its length with the arrows", async () => {
     vi.spyOn(walletsService, "getWallets").mockResolvedValue(WALLETS);
     renderPage();
     await screen.findByText("+฿15,000.00");
 
-    fireEvent.click(screen.getByRole("button", { name: "Custom" }));
-    fireEvent.change(screen.getByLabelText("Start date"), { target: { value: "2026-09-01" } });
-    fireEvent.change(screen.getByLabelText("End date"), { target: { value: "2026-09-30" } });
+    fireEvent.click(within(screen.getByRole("tablist", { name: "Period" })).getByRole("tab", { name: "Custom" }));
+    // the dates already on screen carry over, so nothing is re-requested yet
+    const month = defaultRange();
+    expect(summary).toHaveBeenLastCalledWith({ walletIds: ["w1", "w2"], startDate: month.startDate, endDate: month.endDate });
 
+    fireEvent.click(screen.getByRole("button", { name: "Previous period" }));
+
+    const back = shiftDayRange({ from: isoToLocalDate(month.startDate), to: isoToLocalDate(month.endDate) }, -1);
     await waitFor(() =>
-      expect(summary).toHaveBeenLastCalledWith({ walletIds: ["w1", "w2"], startDate: "2026-09-01", endDate: "2026-09-30" })
+      expect(summary).toHaveBeenLastCalledWith({ walletIds: ["w1", "w2"], startDate: toLocalISODate(back.from), endDate: toLocalISODate(back.to) })
     );
+  });
+
+  it("switches to the current week when Weekly is picked", async () => {
+    vi.spyOn(walletsService, "getWallets").mockResolvedValue(WALLETS);
+    renderPage();
+    await screen.findByText("+฿15,000.00");
+
+    fireEvent.click(within(screen.getByRole("tablist", { name: "Period" })).getByRole("tab", { name: "Weekly" }));
+
+    const week = presetRange("weekly", todayISO());
+    await waitFor(() =>
+      expect(summary).toHaveBeenLastCalledWith({ walletIds: ["w1", "w2"], startDate: week.startDate, endDate: week.endDate })
+    );
+    expect(within(screen.getByRole("tablist", { name: "Period" })).getByRole("tab", { name: "Weekly" })).toHaveAttribute("aria-selected", "true");
   });
 
   it("asks for at least one wallet and keeps what is on screen when all are unchecked", async () => {
@@ -130,7 +156,7 @@ describe("ReportPage (US8-1 to US8-3)", () => {
     expect(screen.getByText("+฿15,000.00")).toBeInTheDocument();
     // the chips describe what is on screen, not the unchecked draft, and a note says why
     expect(screen.getByText("Wallets: All wallets (2)")).toBeInTheDocument();
-    expect(screen.getByText(/Fix the highlighted fields to update the report/)).toBeInTheDocument();
+    expect(screen.getByText(/Select at least one wallet to update the report/)).toBeInTheDocument();
   });
 
   it("points to Wallets when the user has none", async () => {

@@ -46,7 +46,7 @@ function renderSection(filter: ReportFilter = THREE_MONTHS) {
   };
 }
 
-const pressed = (name: string) => screen.getByRole("button", { name }).getAttribute("aria-pressed");
+const pressed = (name: string) => screen.getByRole("tab", { name }).getAttribute("aria-selected");
 
 describe("CashFlowSection (US8-3)", () => {
   beforeEach(() => vi.restoreAllMocks());
@@ -70,7 +70,7 @@ describe("CashFlowSection (US8-3)", () => {
     renderSection();
     await screen.findByTestId("chart");
 
-    fireEvent.click(screen.getByRole("button", { name: "Monthly" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Monthly" }));
 
     await waitFor(() => expect(spy).toHaveBeenCalledWith(THREE_MONTHS, "monthly"));
     await waitFor(() => expect(screen.getByTestId("chart")).toHaveAttribute("data-interval", "monthly"));
@@ -83,7 +83,7 @@ describe("CashFlowSection (US8-3)", () => {
     );
     const { rerenderWith } = renderSection();
     await screen.findByTestId("chart");
-    fireEvent.click(screen.getByRole("button", { name: "Monthly" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Monthly" }));
     await waitFor(() => expect(pressed("Monthly")).toBe("true"));
 
     const next = { ...THREE_MONTHS, endDate: "2026-10-31" };
@@ -133,8 +133,8 @@ describe("CashFlowSection (US8-3)", () => {
     renderSection({ walletIds: ["w1"], startDate: "2025-01-01", endDate: "2026-12-31" });
     await screen.findByTestId("chart");
 
-    expect(screen.getByRole("button", { name: "Daily" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Weekly" })).toBeEnabled();
-    expect(screen.getByRole("button", { name: "Monthly" })).toBeEnabled();
+    expect(screen.getByRole("tab", { name: "Daily" })).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByRole("tab", { name: "Weekly" })).not.toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByRole("tab", { name: "Monthly" })).not.toHaveAttribute("aria-disabled", "true");
   });
 });
