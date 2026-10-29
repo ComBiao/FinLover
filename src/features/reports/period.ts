@@ -1,8 +1,9 @@
 import { formatEnglishDate, formatEnglishDayMonth, toLocalISODate } from "@/lib/utils";
 import type { ReportInterval } from "@/features/reports/types";
 
-/** Weekly = a Monday–Sunday week, Monthly = a calendar month, Annual = a calendar year. */
-export type ReportPreset = "weekly" | "monthly" | "annual";
+/** Weekly = a Monday–Sunday week, Monthly = a calendar month, Annual = a calendar year, Custom = any run of days. */
+export type ReportPreset = "weekly" | "monthly" | "annual" | "custom";
+export type PeriodPreset = Exclude<ReportPreset, "custom">;
 
 /** Inclusive `YYYY-MM-DD` range. */
 export type DateRangeStrings = { startDate: string; endDate: string };
@@ -49,7 +50,7 @@ export function todayISO(now: Date = new Date()) {
 }
 
 /** The period containing `anchor` (a `YYYY-MM-DD` day): Monday–Sunday, the calendar month, or the calendar year. */
-export function presetRange(preset: ReportPreset, anchor: string): DateRangeStrings {
+export function presetRange(preset: PeriodPreset, anchor: string): DateRangeStrings {
   const [year, month] = anchor.split("-").map(Number);
   if (preset === "weekly") {
     const monday = mondayOf(toDayNumber(anchor));
@@ -70,7 +71,7 @@ export function defaultRange(today: string = todayISO()): DateRangeStrings {
 }
 
 /** The previous (-1) or next (+1) week / month / year relative to `range`. */
-export function shiftPresetRange(preset: ReportPreset, range: DateRangeStrings, direction: 1 | -1): DateRangeStrings {
+export function shiftPresetRange(preset: PeriodPreset, range: DateRangeStrings, direction: 1 | -1): DateRangeStrings {
   if (preset === "weekly") {
     return presetRange("weekly", fromDayNumber(toDayNumber(range.startDate) + 7 * direction));
   }
@@ -82,7 +83,7 @@ export function shiftPresetRange(preset: ReportPreset, range: DateRangeStrings, 
   return presetRange("annual", `${pad(year + direction, 4)}-01-01`);
 }
 
-/** "12 Oct – 18 Oct 2026" for a week, "October 2026" for a month, "2026" for a year. */
+/** "12 Oct – 18 Oct 2026" for a week, "October 2026" for a month, "2026" for a year, or the custom span written out. */
 export function rangeLabel(preset: ReportPreset, range: DateRangeStrings) {
   const [year, month] = range.startDate.split("-").map(Number);
   if (preset === "monthly") return `${LONG_MONTHS[month - 1]} ${year}`;
@@ -90,7 +91,7 @@ export function rangeLabel(preset: ReportPreset, range: DateRangeStrings) {
   const from = isoToLocalDate(range.startDate);
   const to = isoToLocalDate(range.endDate);
   const sameYear = from.getFullYear() === to.getFullYear();
-  const fromLabel = sameYear ? formatEnglishDayMonth(from) : formatEnglishDate(from);
+  const fromLabel = sameYear && preset === "weekly" ? formatEnglishDayMonth(from) : formatEnglishDate(from);
   return `${fromLabel} – ${formatEnglishDate(to)}`;
 }
 

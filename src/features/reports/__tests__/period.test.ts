@@ -77,6 +77,7 @@ describe("rangeLabel", () => {
     expect(rangeLabel("monthly", { startDate: "2026-10-01", endDate: "2026-10-31" })).toBe("October 2026");
     expect(rangeLabel("annual", { startDate: "2026-01-01", endDate: "2026-12-31" })).toBe("2026");
     expect(rangeLabel("weekly", { startDate: "2026-10-12", endDate: "2026-10-18" })).toBe("12 Oct – 18 Oct 2026");
+    expect(rangeLabel("custom", { startDate: "2026-08-01", endDate: "2026-08-31" })).toBe("1 Aug 2026 – 31 Aug 2026");
   });
 
   it("writes both years when a week spans New Year", () => {

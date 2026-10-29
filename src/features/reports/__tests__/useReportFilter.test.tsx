@@ -110,6 +110,24 @@ describe("useReportFilter (US8-1)", () => {
     expect(result.current.applied?.walletIds).toEqual(["w1", "w2"]);
   });
 
+  it("starts on the personal wallets only, and select-all brings in the shared ones", () => {
+    const wallets = [{ id: "w1" }, { id: "w2" }, { id: "s1", isShared: true }];
+    const { result } = renderHook(() => useReportFilter(wallets));
+    expect(result.current.walletIds).toEqual(["w1", "w2"]);
+
+    act(() => result.current.setWalletIds(["w1", "s1"]));
+    expect(result.current.walletIds).toEqual(["w1", "s1"]);
+
+    act(() => result.current.selectAllWallets());
+    expect(result.current.walletIds).toEqual(["w1", "w2", "s1"]);
+  });
+
+  it("uses the shared wallets when there is no personal wallet", () => {
+    const wallets = [{ id: "s1", isShared: true }, { id: "s2", isShared: true }];
+    const { result } = renderHook(() => useReportFilter(wallets));
+    expect(result.current.walletIds).toEqual(["s1", "s2"]);
+  });
+
   it("drops a selected wallet that no longer exists", () => {
     const { result, rerender } = renderHook(({ wallets }) => useReportFilter(wallets), {
       initialProps: { wallets: WALLETS },
@@ -135,6 +153,26 @@ describe("useReportFilter (US8-1)", () => {
       startDate: "2026-10-01",
       endDate: "2026-10-31",
     });
+  });
+
+  it("keeps the dates on screen when Custom is picked, and takes a whole range at once", () => {
+    const { result } = renderHook(() => useReportFilter(WALLETS));
+    act(() => result.current.setPreset("custom"));
+    expect(result.current.range).toEqual({ startDate: "2026-10-01", endDate: "2026-10-31" });
+
+    act(() => result.current.setRange({ startDate: "2026-09-03", endDate: "2026-09-17" }));
+    act(() => vi.advanceTimersByTime(FILTER_APPLY_DELAY_MS));
+    expect(result.current.applied).toMatchObject({ startDate: "2026-09-03", endDate: "2026-09-17" });
+    expect(result.current.appliedPreset).toBe("custom");
+  });
+
+  it("ignores shift and jumpTo on a custom range", () => {
+    const { result } = renderHook(() => useReportFilter(WALLETS));
+    act(() => result.current.setPreset("custom"));
+    const before = result.current.range;
+    act(() => result.current.shift(1));
+    act(() => result.current.jumpTo("2020-01-01"));
+    expect(result.current.range).toEqual(before);
   });
 
   it("jumps to the week, month or year containing a picked day", () => {

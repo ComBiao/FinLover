@@ -1,6 +1,6 @@
 import type { ReportQuery } from '@/shared/contracts';
 import type { TransactionSummaryReader } from '@/server/shared/ports/transactions';
-import type { ReportWalletScope } from './ReportWalletScope';
+import { walletFilterOf, type ReportWalletScope } from './ReportWalletScope';
 import { utcDate } from './report-period';
 import { fromCents, roundMoney, toCents } from './report-math';
 
@@ -13,7 +13,7 @@ export class GetReportSummaryService {
     const { income, expense, count } = await this.transactions.sumByType(userId, {
       start: utcDate(startDate),
       end: utcDate(endDate, 1),
-      walletIds: wallets.map(wallet => wallet.id),
+      ...walletFilterOf(wallets),
     });
     return {
       totalIncome: roundMoney(income),

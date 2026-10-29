@@ -8,6 +8,7 @@ import Wallet from '@/server/db/models/Wallet';
 import User from '@/server/db/models/User';
 import Transaction from '@/server/db/models/Transaction';
 import Category from '@/server/db/models/Category';
+import WalletMember from '@/server/db/models/WalletMember';
 import { signToken } from '@/server/shared/auth/crypto';
 import { seedUser } from '@/test/user-fixture';
 
@@ -32,7 +33,7 @@ beforeAll(async () => {
 }, 60_000);
 afterAll(async () => { await mongoose.disconnect(); await replSet?.stop(); }, 60_000);
 beforeEach(async () => {
-  await Promise.all([Wallet.deleteMany({}), User.deleteMany({}), Transaction.collection.deleteMany({}), Category.deleteMany({})]);
+  await Promise.all([Wallet.deleteMany({}), User.deleteMany({}), Transaction.collection.deleteMany({}), Category.deleteMany({}), WalletMember.deleteMany({})]);
   await seedUser(USER);
 });
 
@@ -88,11 +89,13 @@ describe('GET /api/v1/reports/* — validation and access (US8-1)', () => {
     }
   });
 
-  it("returns 404 for another user's, an unknown or a shared wallet", async () => {
+  it("returns 404 for another user's wallet, an unknown one, a shared wallet the caller is not in and a pending invitation", async () => {
     const mine = await Wallet.create({ userId: USER, name: 'Cash' });
     const theirs = await Wallet.create({ userId: OTHER, name: 'Theirs' });
-    const shared = await Wallet.create({ userId: USER, name: 'Trip', isShared: true });
-    for (const id of [theirs._id, new mongoose.Types.ObjectId(), shared._id]) {
+    const strangers = await Wallet.create({ userId: OTHER, name: 'Strangers', isShared: true });
+    const invited = await Wallet.create({ userId: OTHER, name: 'Invited', isShared: true });
+    await WalletMember.create({ walletId: invited._id, userId: USER, status: 'pending', invitedBy: OTHER });
+    for (const id of [theirs._id, new mongoose.Types.ObjectId(), strangers._id, invited._id]) {
       for (const name of names) {
         const res = await call(name, `?walletIds=${mine._id},${id}&startDate=2026-09-01&endDate=2026-09-30`);
         expect(res.status).toBe(404);
@@ -203,5 +206,82 @@ describe('GET /api/v1/reports/running-balance (US8-5)', () => {
       { date: '2026-10-04', balance: 15200 },
     ]);
     expect(result.points.at(-1)).toEqual({ date: '2026-10-15', balance: 15200 });
+  });
+});
+
+describe('GET /api/v1/reports/* — shared wallets (Epic 7)', () => {
+  /** Alex owns the shared wallet "Trip"; USER joined it (accepted) and also has a personal "Cash". */
+  async function seedTrip() {
+    await seedUser(OTHER);
+    const cash = await Wallet.create({ userId: USER, name: 'Cash', balance: 1000 });
+    const trip = await Wallet.create({ userId: OTHER, name: 'Trip', isShared: true, balance: 700 });
+    await WalletMember.create({ walletId: trip._id, userId: USER, status: 'accepted', invitedBy: OTHER });
+    // rows of both members in the shared wallet, by preset key; the owner's row is not USER's own
+    await seedTransaction({ userId: OTHER, walletId: trip._id, type: 'income', amount: 1000, categoryKey: 'salary', date: day('2026-09-02') });
+    await seedTransaction({ userId: USER, walletId: trip._id, type: 'expense', amount: 200, categoryKey: 'food-drinks', date: day('2026-09-05') });
+    await seedTransaction({ userId: OTHER, walletId: trip._id, type: 'expense', amount: 100, categoryKey: 'food-drinks', date: day('2026-09-06') });
+    await seedTransaction({ userId: OTHER, walletId: trip._id, type: 'expense', amount: 0.5, date: day('2026-09-07') });
+    await seedTransaction({ walletId: cash._id, type: 'expense', amount: 50, date: day('2026-09-05') });
+    return { cash, trip };
+  }
+
+  it('leaves shared wallets out unless they are named', async () => {
+    await seedTrip();
+    const result = await data('summary', '?startDate=2026-09-01&endDate=2026-09-30');
+    expect(result).toEqual({ totalIncome: 0, totalExpense: 50, netCashFlow: -50, transactionCount: 1 });
+  });
+
+  it('sums every member\'s rows of a named shared wallet, with the personal wallets alongside', async () => {
+    const { cash, trip } = await seedTrip();
+
+    const sharedOnly = await data('summary', `?walletIds=${trip._id}&startDate=2026-09-01&endDate=2026-09-30`);
+    expect(sharedOnly).toEqual({ totalIncome: 1000, totalExpense: 300.5, netCashFlow: 699.5, transactionCount: 4 });
+
+    const both = await data('summary', `?walletIds=${cash._id},${trip._id}&startDate=2026-09-01&endDate=2026-09-30`);
+    expect(both).toEqual({ totalIncome: 1000, totalExpense: 350.5, netCashFlow: 649.5, transactionCount: 5 });
+  });
+
+  it('does not let a named personal wallet of the owner leak rows through the shared path', async () => {
+    const { trip } = await seedTrip();
+    const ownersCash = await Wallet.create({ userId: OTHER, name: 'Alex cash' });
+    await seedTransaction({ userId: OTHER, walletId: ownersCash._id, type: 'income', amount: 5000, date: day('2026-09-03') });
+    const res = await call('summary', `?walletIds=${trip._id},${ownersCash._id}&startDate=2026-09-01&endDate=2026-09-30`);
+    expect(res.status).toBe(404);
+  });
+
+  it('buckets shared rows by day in cash flow', async () => {
+    const { trip } = await seedTrip();
+    const result = await data('cash-flow', `?walletIds=${trip._id}&startDate=2026-09-01&endDate=2026-09-07&interval=daily`);
+    const byLabel = Object.fromEntries(result.buckets.map((b: { label: string; income: number; expense: number }) => [b.label, b]));
+    expect(byLabel['2026-09-02']).toMatchObject({ income: 1000, expense: 0 });
+    expect(byLabel['2026-09-05']).toMatchObject({ income: 0, expense: 200 });
+    expect(byLabel['2026-09-06']).toMatchObject({ income: 0, expense: 100 });
+    expect(byLabel['2026-09-07']).toMatchObject({ income: 0, expense: 0.5 });
+  });
+
+  it('names shared rows after the preset categories and merges them with a personal category of the same name', async () => {
+    const { cash, trip } = await seedTrip();
+    const food = await Category.create({ userId: USER, name: 'Food & Drinks', type: 'expense', color: '#F97316', icon: 'Utensils', isSystem: true });
+    const others = await Category.create({ userId: USER, name: 'Others', type: 'expense', color: '#9CA3AF', icon: 'MoreHorizontal', isSystem: true });
+    await seedTransaction({ walletId: cash._id, categoryId: food._id, type: 'expense', amount: 50, date: day('2026-09-08') });
+
+    const result = await data('category-distribution', `?walletIds=${cash._id},${trip._id}&startDate=2026-09-01&endDate=2026-09-30`);
+
+    expect(result.income).toEqual({
+      total: 1000,
+      items: [{ categoryId: null, name: 'Salary', icon: 'Wallet', color: '#16A34A', amount: 1000, percentage: 100 }],
+    });
+    // Food & Drinks: 200 + 100 shared + 50 personal = 350, the personal category's id wins; the unkeyed row and the cash row without a category fall into Others
+    expect(result.expense.total).toBe(400.5);
+    expect(result.expense.items[0]).toMatchObject({ categoryId: String(food._id), name: 'Food & Drinks', amount: 350 });
+    expect(result.expense.items.find((item: { name: string }) => item.name === 'Others')).toMatchObject({ categoryId: String(others._id), amount: 50.5 });
+  });
+
+  it('works the opening balance of a shared wallet back from its current balance', async () => {
+    const { trip } = await seedTrip();
+    // Current balance 700; rows on or after 2026-09-05 net -300.5, so 1000.5 stood before.
+    const result = await data('running-balance', `?walletIds=${trip._id}&startDate=2026-09-05&endDate=2026-09-08`);
+    expect(result).toMatchObject({ openingBalance: 1000.5, closingBalance: 700 });
+    expect(result.points.map((point: { balance: number }) => point.balance)).toEqual([800.5, 700.5, 700, 700]);
   });
 });
