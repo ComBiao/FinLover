@@ -173,16 +173,13 @@ function EditRuleForm({
     }
   };
 
+  const fallbackCategoryId = (forType: TransactionType) =>
+    (categories.find((c) => c.type === forType && c.name.toLowerCase() === "others") ??
+      categories.find((c) => c.type === forType))?.id;
+
   const handleTypeChange = (nextType: TransactionType) => {
     setType(nextType);
-    if (isShared) {
-      setCategoryId(defaultSharedCategoryKey(nextType));
-    } else {
-      const nextFallback =
-        categories.find((c) => c.type === nextType && c.name.toLowerCase() === "others") ??
-        categories.find((c) => c.type === nextType);
-      setCategoryId(nextFallback?.id);
-    }
+    setCategoryId(isShared ? defaultSharedCategoryKey(nextType) : fallbackCategoryId(nextType));
   };
 
   const handleUnitChange = (nextUnit: IntervalUnit) => {
@@ -420,8 +417,12 @@ function EditRuleForm({
           <WalletSelector
             value={walletId}
             onValueChange={(val) => {
+              // Categories differ between shared and personal wallets, so only a switch across that line resets it.
+              const nextShared = Boolean(wallets.find((w) => w.id === val)?.isShared);
+              if (nextShared !== isShared) {
+                setCategoryId(nextShared ? defaultSharedCategoryKey(type) : fallbackCategoryId(type));
+              }
               setWalletId(val);
-              setCategoryId(undefined);
             }}
             wallets={wallets}
             placeholder="Choose wallet"

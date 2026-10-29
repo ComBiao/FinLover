@@ -34,6 +34,8 @@ export async function resolveCategory(
       if (!await wallets.exists(cmd.walletId, userId, context)) {
         throw new AppError('FORBIDDEN', 'Only wallet members can access this wallet');
       }
+      // A concurrent removal of this member then conflicts and retries, instead of leaving a rule for a non-member.
+      await wallets.lockMembership?.(cmd.walletId, context);
       if (cmd.categoryId) {
         throw invalid({ categoryId: 'Category is not allowed for shared wallets' });
       }

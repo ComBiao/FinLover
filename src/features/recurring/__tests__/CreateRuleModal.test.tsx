@@ -296,5 +296,35 @@ describe("CreateRuleModal (US4-1)", () => {
       })
     );
   });
+  it("defaults the target to a personal wallet even when a shared wallet is listed first", async () => {
+    const user = userEvent.setup();
+    const onCreate = vi.fn().mockResolvedValue(undefined);
+    const sharedFirst: Wallet = {
+      id: "w-shared",
+      name: "Housemate Fund",
+      balance: 20000,
+      icon: WalletIcon,
+      isShared: true,
+    };
+
+    render(
+      <CreateRuleModal
+        open={true}
+        onOpenChange={vi.fn()}
+        wallets={[sharedFirst, ...mockWallets]}
+        categories={mockCategories}
+        authorAttribution="Alex Demo"
+        onCreateRule={onCreate}
+      />
+    );
+
+    await user.type(screen.getByLabelText(/title/i), "Gym");
+    await user.type(screen.getByLabelText(/amount/i), "500");
+    await user.click(screen.getByRole("button", { name: /save recurring rule/i }));
+
+    expect(onCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ walletId: mockWallets[0].id, categoryKey: null, isShared: false })
+    );
+  });
 });
 

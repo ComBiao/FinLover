@@ -102,7 +102,9 @@ export function CreateRuleModal({
   const [type, setType] = useState<TransactionType>("expense");
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
-  const [walletId, setWalletId] = useState<string | undefined>(wallets[0]?.id);
+  // New rules default to a personal wallet; a shared wallet must be chosen on purpose.
+  const defaultWalletId = (wallets.find((w) => !w.isShared) ?? wallets[0])?.id;
+  const [walletId, setWalletId] = useState<string | undefined>(defaultWalletId);
   const [categoryId, setCategoryId] = useState<string | undefined>(undefined);
   const [note, setNote] = useState("");
 
@@ -123,7 +125,7 @@ export function CreateRuleModal({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  const effectiveWalletId = walletId ?? wallets[0]?.id;
+  const effectiveWalletId = walletId ?? defaultWalletId;
   const selectedWallet = useMemo(() => wallets.find((w) => w.id === effectiveWalletId), [wallets, effectiveWalletId]);
   const isShared = Boolean(selectedWallet?.isShared);
 
@@ -532,10 +534,8 @@ export function CreateRuleModal({
               <Label className="text-xs font-semibold text-foreground">Target Wallet *</Label>
               <WalletSelector
                 value={effectiveWalletId}
-                onValueChange={(val) => {
-                  setWalletId(val);
-                  setCategoryId(undefined);
-                }}
+                // A category from the other wallet kind is not in the list, so effectiveCategoryId falls back to "Others".
+                onValueChange={(val) => setWalletId(val)}
                 wallets={wallets}
                 placeholder="Choose wallet"
               />

@@ -174,6 +174,8 @@ export function RulesTable({
   const ruleView = (rule: RecurringRule) => {
     const category = categoryOf(rule);
     const wallet = wallets.find(({ id }) => id === rule.walletId);
+    // Gone from the list (e.g. the Creator left the shared wallet), so do not pass it off as another wallet.
+    const walletName = wallet?.name ?? "Unavailable wallet";
     const CategoryIcon = category?.icon;
     const WalletIcon = wallet?.icon;
     const categoryTone = category
@@ -187,7 +189,7 @@ export function RulesTable({
     const cadence = formatCadenceString(rule);
     const endSummary = formatEndConditionSummary(rule);
 
-    return { category, wallet, CategoryIcon, WalletIcon, categoryTone, walletTone, isDue, cadence, endSummary };
+    return { category, walletName, CategoryIcon, WalletIcon, categoryTone, walletTone, isDue, cadence, endSummary };
   };
 
   const renderStatusBadge = (rule: RecurringRule) => (
@@ -370,7 +372,7 @@ export function RulesTable({
         {filteredRules.length > 0 ? (
           <ul className="flex flex-col gap-3 md:hidden" aria-label="Recurring rules">
             {filteredRules.map((rule) => {
-              const { category, wallet, CategoryIcon, WalletIcon, categoryTone, walletTone, isDue, cadence, endSummary } =
+              const { category, walletName, CategoryIcon, WalletIcon, categoryTone, walletTone, isDue, cadence, endSummary } =
                 ruleView(rule);
 
               return (
@@ -401,12 +403,11 @@ export function RulesTable({
                           variant="secondary"
                           className={cn("border-transparent text-xs py-0.5", walletTone?.className)}
                           style={walletTone?.style}
-                          aria-label={`Target: ${wallet?.name ?? "Main Bank"}`}
-                          title={`Target: ${wallet?.name ?? "Main Bank"}`}
+                          aria-label={`Target: ${walletName}`}
+                          title={`Target: ${walletName}`}
                         >
                           {WalletIcon ? <WalletIcon className="size-3 mr-1" /> : null}
-                          <span className="sr-only">Target: </span>
-                          {wallet?.name ?? "Main Bank"}
+                          {walletName}
                         </Badge>
                       </div>
                     </div>
@@ -500,7 +501,7 @@ export function RulesTable({
               </TableHeader>
               <TableBody>
                 {filteredRules.map((rule) => {
-                  const { category, wallet, CategoryIcon, WalletIcon, categoryTone, walletTone, isDue, cadence, endSummary } = ruleView(rule);
+                  const { category, walletName, CategoryIcon, WalletIcon, categoryTone, walletTone, isDue, cadence, endSummary } = ruleView(rule);
 
                   return (
                     <TableRow
@@ -549,12 +550,11 @@ export function RulesTable({
                           variant="secondary"
                           className={cn("border-transparent text-xs py-0.5", walletTone?.className)}
                           style={walletTone?.style}
-                          aria-label={`Target: ${wallet?.name ?? "Main Bank"}`}
-                          title={`Target: ${wallet?.name ?? "Main Bank"}`}
+                          aria-label={`Target: ${walletName}`}
+                          title={`Target: ${walletName}`}
                         >
                           {WalletIcon ? <WalletIcon className="size-3 mr-1" /> : null}
-                          <span className="sr-only">Target: </span>
-                          {wallet?.name ?? "Main Bank"}
+                          {walletName}
                         </Badge>
                       </TableCell>
 

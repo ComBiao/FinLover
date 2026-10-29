@@ -11,6 +11,7 @@ import Scheduler from '@/server/db/models/Scheduler';
 import { signToken } from '@/server/shared/auth/crypto';
 import { seedSharedWallet } from '@/test/shared-wallet-fixture';
 import { v1 } from '@/server/shared/http/versioned-handlers';
+import { todayBangkok } from '@/server/modules/schedulers/domain/schedule';
 
 vi.mock('@/server/db/index', () => ({ connectDB: vi.fn(async () => {}) }));
 
@@ -87,7 +88,7 @@ describe('US7-6: Recurring Transactions in Shared Wallets', () => {
     const walletId = String(wallet._id);
 
     // Bangkok today date YYYY-MM-DD
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayBangkok().toISOString().slice(0, 10);
 
     // 1. Guy creates a recurring rule of ฿4,000.00 "Monthly" targeting "Housemate Fund"
     const createReq = jsonRequest('http://localhost:3000/api/v1/schedulers', 'POST', guyId, {
@@ -199,7 +200,7 @@ describe('US7-6: Recurring Transactions in Shared Wallets', () => {
       { userId: guyId, status: 'accepted' },
     ]);
     const walletId = String(wallet._id);
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayBangkok().toISOString().slice(0, 10);
 
     // Guy creates rule
     const createReq = jsonRequest('http://localhost:3000/api/v1/schedulers', 'POST', guyId, {
@@ -227,13 +228,38 @@ describe('US7-6: Recurring Transactions in Shared Wallets', () => {
     expect(stored?.nextDueDate).toBeNull();
   });
 
+  it('Scenario 1c: a future-dated rule takes the membership lock, so removal cannot leave an active rule behind', async () => {
+    const { wallet } = await seedSharedWallet(tulId, [{ userId: guyId, status: 'accepted' }]);
+    const walletId = String(wallet._id);
+    const future = new Date(todayBangkok().getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const body = {
+      walletId, categoryKey: 'food-drinks', type: 'expense', amount: 500, title: 'Future rule',
+      startDate: future, frequency: 'weekly', interval: 1, end: { type: 'never' },
+    };
+
+    const before = (await Wallet.findById(walletId))!.membershipVersion;
+    const created = await v1.createScheduler(jsonRequest('http://localhost:3000/api/v1/schedulers', 'POST', guyId, body), { params: Promise.resolve({ id: '' }) });
+    expect(created.status).toBe(201);
+    expect((await Wallet.findById(walletId))!.membershipVersion).toBeGreaterThan(before);
+
+    // Racing a create against the removal: whichever order wins, no active rule outlives the membership.
+    const [raceCreate, removed] = await Promise.all([
+      v1.createScheduler(jsonRequest('http://localhost:3000/api/v1/schedulers', 'POST', guyId, { ...body, title: 'Racing rule' }), { params: Promise.resolve({ id: '' }) }),
+      v1.removeWalletMember(jsonRequest(`http://localhost:3000/api/v1/wallets/${walletId}/members/${guyId}`, 'DELETE', tulId), { params: Promise.resolve({ id: walletId, userId: guyId }) }),
+    ]);
+    expect(removed.status).toBe(200);
+    expect([201, 403]).toContain(raceCreate.status);
+    expect(await WalletMember.countDocuments({ walletId, userId: guyId })).toBe(0);
+    expect(await Scheduler.countDocuments({ userId: guyId, walletId, status: { $in: ['active', 'paused'] } })).toBe(0);
+  });
+
   it('Scenario 2: Shared wallet ledger shows transactions posted by recurring scheduler with author attribution; members can view and author/owner can edit/delete per US7-5', async () => {
     const { wallet } = await seedSharedWallet(tulId, [
       { userId: guyId, status: 'accepted' },
       { userId: bobId, status: 'accepted' },
     ]);
     const walletId = String(wallet._id);
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayBangkok().toISOString().slice(0, 10);
     const currentMonth = today.slice(0, 7);
 
     // Guy creates recurring rule targeting Housemate Fund

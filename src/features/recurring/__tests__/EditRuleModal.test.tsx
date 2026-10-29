@@ -269,5 +269,54 @@ describe("EditRuleModal (US4-5)", () => {
       })
     );
   });
+  it("keeps the chosen category when switching between personal wallets", async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn();
+
+    render(
+      <EditRuleModal
+        rule={mockRule}
+        open={true}
+        onOpenChange={vi.fn()}
+        wallets={mockWallets}
+        categories={mockCategories}
+        onSave={onSave}
+      />
+    );
+
+    await user.click(screen.getAllByRole("combobox")[0]);
+    await user.click(await screen.findByRole("option", { name: /Cash/i }));
+    await user.click(screen.getByRole("button", { name: /save future changes/i }));
+
+    expect(onSave).toHaveBeenCalledWith(
+      "r1",
+      expect.objectContaining({ walletId: "w2", categoryId: "c1", categoryKey: null })
+    );
+  });
+
+  it("switches to the shared default category when moving a rule to a shared wallet", async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn();
+    const sharedWallet: Wallet = { id: "w-shared", name: "Housemate Fund", balance: 20000, icon: WalletIcon, isShared: true };
+
+    render(
+      <EditRuleModal
+        rule={mockRule}
+        open={true}
+        onOpenChange={vi.fn()}
+        wallets={[...mockWallets, sharedWallet]}
+        categories={mockCategories}
+        onSave={onSave}
+      />
+    );
+
+    await user.click(screen.getAllByRole("combobox")[0]);
+    await user.click(await screen.findByRole("option", { name: /Housemate Fund/i }));
+    await user.click(screen.getByRole("button", { name: /save future changes/i }));
+
+    const saved = onSave.mock.calls[0][1];
+    expect(saved).toMatchObject({ walletId: "w-shared", categoryId: null });
+    expect(typeof saved.categoryKey).toBe("string");
+  });
 });
 

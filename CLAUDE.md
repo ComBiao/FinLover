@@ -22,7 +22,7 @@ One modular Next.js application, one root package.json/lockfile, npm only, Node.
 - Config belongs at root; dev tooling in infra-dev; migrations remain source and never execute automatically.
 
 ## Schedulers
-- Repeating transactions are the `Scheduler` entity (`src/server/modules/schedulers`); `Transaction` has no `recurrence` field and no `schedulerId`. Only the Creator can read or change a Scheduler. Due dates are Asia/Bangkok calendar dates; the daily job (`/api/internal/cron/schedulers`, `CRON_SECRET` bearer, `vercel.json`) posts via `CreateTransactionService.post` with a compare-and-set advance of `nextDueDate`. Cancelled/completed are terminal; wallet/account deletion cascades to Schedulers. See `GLOSSARY.md` and `docs/adr/`.
+- Repeating transactions are the `Scheduler` entity (`src/server/modules/schedulers`); `Transaction` has no `recurrence` field and no `schedulerId`. Only the Creator can read or change a Scheduler. A Scheduler may target a shared wallet (preset `categoryKey`, `categoryId` null); creating/editing it takes the wallet membership lock, and member remove/leave cancels that member's Schedulers for the wallet in the same UnitOfWork. Due dates are Asia/Bangkok calendar dates; the daily job (`/api/internal/cron/schedulers`, `CRON_SECRET` bearer, `vercel.json`) posts via `CreateTransactionService.post` with a compare-and-set advance of `nextDueDate`. Cancelled/completed are terminal; wallet/account deletion cascades to Schedulers. See `GLOSSARY.md` and `docs/adr/`.
 
 ## Auth
 - Browser uses HttpOnly session_token; do not store JWT in localStorage. Both legacy/v1 use one resolver and principal.
