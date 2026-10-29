@@ -14,6 +14,15 @@ export async function postOccurrence(repo: SchedulerRepositoryPort, poster: Sche
   const finished = isFinished(s.end, createdCount, next);
   const progress = { createdCount, nextDueDate: finished ? null : next, status: finished ? 'completed' as const : 'active' as const };
   if (!await repo.advance(s.id, due, progress, context)) return null;
-  await poster.post(s.userId, { walletId: s.walletId, categoryId: s.categoryId, type: s.type, amount: s.amount, date: due, title: s.title, note: s.note }, context);
+  await poster.post(s.userId, {
+    walletId: s.walletId,
+    categoryId: s.categoryId ?? undefined,
+    categoryKey: s.categoryKey ?? undefined,
+    type: s.type,
+    amount: s.amount,
+    date: due,
+    title: s.title,
+    note: s.note,
+  }, context);
   return { ...s, ...progress };
 }
