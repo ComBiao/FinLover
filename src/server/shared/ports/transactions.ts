@@ -55,6 +55,8 @@ export interface TransactionReportReader {
 }
 export interface WalletAccess {
   exists(id: string, userId: string, context: TransactionContext): Promise<boolean>;
+  /** Serializes with membership changes on a shared wallet (the same lock Remove/leave/transfer take). */
+  lockMembership?(id: string, context: TransactionContext): Promise<void>;
   adjust(id: string, userId: string, delta: number, context: TransactionContext): Promise<void>;
   findById?(id: string, context?: TransactionContext): Promise<WalletRecord | null>;
   findOwned?(id: string, userId: string, context?: TransactionContext): Promise<WalletRecord | null>;

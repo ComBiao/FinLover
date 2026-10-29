@@ -1,3 +1,4 @@
+import type { SharedCategoryKey } from '@/shared/contracts';
 import type { SchedulerFrequency, SchedulerStatus } from '@/shared/contracts/schedulers';
 import type { CategoryAccess, TransactionInput } from './transactions';
 import type { TransactionContext } from './unit-of-work';
@@ -5,7 +6,8 @@ import type { TransactionContext } from './unit-of-work';
 export interface SchedulerEnd { type: 'never' | 'count' | 'endDate'; count?: number; endDate?: Date }
 export interface SchedulerState {
   walletId: string;
-  categoryId: string;
+  categoryId?: string | null;
+  categoryKey?: SharedCategoryKey | null;
   type: 'income' | 'expense';
   amount: number;
   title: string;

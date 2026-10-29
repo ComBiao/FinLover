@@ -8,7 +8,9 @@ import type { SchedulerProgress, SchedulerRecord, SchedulerRepositoryPort, Sched
 
 function record(doc: IScheduler): SchedulerRecord {
   return {
-    id: String(doc._id), userId: String(doc.userId), walletId: String(doc.walletId), categoryId: String(doc.categoryId),
+    id: String(doc._id), userId: String(doc.userId), walletId: String(doc.walletId),
+    categoryId: doc.categoryId ? String(doc.categoryId) : undefined,
+    categoryKey: doc.categoryKey ?? undefined,
     type: doc.type, amount: Number(doc.amount), title: doc.title, note: doc.note,
     startDate: doc.startDate, anchorDay: doc.anchorDay, frequency: doc.frequency, interval: doc.interval,
     end: { type: doc.endType, count: doc.endCount, endDate: doc.endDate },
@@ -17,7 +19,15 @@ function record(doc: IScheduler): SchedulerRecord {
 }
 // Flat storage of the end condition; unused parts are cleared so a changed end never keeps stale values.
 function fields({ end, note, ...state }: SchedulerState) {
-  return { ...state, notes: note, endType: end.type, endCount: end.count, endDate: end.endDate };
+  return {
+    ...state,
+    categoryId: state.categoryId ?? null,
+    categoryKey: state.categoryKey ?? null,
+    notes: note,
+    endType: end.type,
+    endCount: end.count,
+    endDate: end.endDate,
+  };
 }
 
 export class SchedulerRepository implements SchedulerRepositoryPort {

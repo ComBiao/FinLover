@@ -3,16 +3,20 @@ import Wallet from '@/server/db/models/Wallet';
 import WalletMember from '@/server/db/models/WalletMember';
 import { sessionOf } from '@/server/db/unit-of-work';
 import { AppError } from '@/server/shared/kernel/AppError';
+import type { SchedulerRepositoryPort } from '@/server/shared/ports/schedulers';
 import type { TransactionContext } from '@/server/shared/ports/unit-of-work';
 import type { WalletMembersPort } from '@/server/shared/ports/wallet-members';
 
 export class WalletMembersRepository implements WalletMembersPort {
+  constructor(private schedulers: Pick<SchedulerRepositoryPort, 'cancelByCreatorAndWallet'>) {}
+
   async list(walletId: string, context: TransactionContext) {
     const rows = await WalletMember.find({ walletId }).sort({ createdAt: 1, _id: 1 }).session(sessionOf(context)!).lean();
     return rows.map(row => ({ userId: String(row.userId), status: row.status }));
   }
   async remove(walletId: string, userId: string, context: TransactionContext) {
-    // TODO(Epic 4 / US7-6): cancel recurring schedules when membership is removed.
+    // Recurring rules the member created for this wallet stop with the membership, in the same UnitOfWork.
+    await this.schedulers.cancelByCreatorAndWallet(userId, walletId, context);
     const result = await WalletMember.deleteOne({ walletId, userId }, { session: sessionOf(context) });
     return result.deletedCount === 1;
   }

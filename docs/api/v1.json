@@ -14027,6 +14027,25 @@
                             "type": "string",
                             "pattern": "^[a-f0-9]{24}$"
                           },
+                          "categoryKey": {
+                            "type": "string",
+                            "enum": [
+                              "food-drinks",
+                              "transportation",
+                              "essentials",
+                              "shopping",
+                              "utilities",
+                              "health",
+                              "entertainment",
+                              "others-expense",
+                              "salary",
+                              "wages",
+                              "allowance-gift",
+                              "bonus",
+                              "investment",
+                              "others-income"
+                            ]
+                          },
                           "type": {
                             "type": "string",
                             "enum": [
@@ -14168,7 +14187,6 @@
                         "required": [
                           "id",
                           "walletId",
-                          "categoryId",
                           "type",
                           "amount",
                           "title",
@@ -14409,6 +14427,25 @@
                     "type": "string",
                     "pattern": "^[a-f0-9]{24}$"
                   },
+                  "categoryKey": {
+                    "type": "string",
+                    "enum": [
+                      "food-drinks",
+                      "transportation",
+                      "essentials",
+                      "shopping",
+                      "utilities",
+                      "health",
+                      "entertainment",
+                      "others-expense",
+                      "salary",
+                      "wages",
+                      "allowance-gift",
+                      "bonus",
+                      "investment",
+                      "others-income"
+                    ]
+                  },
                   "type": {
                     "type": "string",
                     "enum": [
@@ -14589,6 +14626,25 @@
                           "type": "string",
                           "pattern": "^[a-f0-9]{24}$"
                         },
+                        "categoryKey": {
+                          "type": "string",
+                          "enum": [
+                            "food-drinks",
+                            "transportation",
+                            "essentials",
+                            "shopping",
+                            "utilities",
+                            "health",
+                            "entertainment",
+                            "others-expense",
+                            "salary",
+                            "wages",
+                            "allowance-gift",
+                            "bonus",
+                            "investment",
+                            "others-income"
+                          ]
+                        },
                         "type": {
                           "type": "string",
                           "enum": [
@@ -14730,7 +14786,6 @@
                       "required": [
                         "id",
                         "walletId",
-                        "categoryId",
                         "type",
                         "amount",
                         "title",
@@ -15204,6 +15259,25 @@
                           "type": "string",
                           "pattern": "^[a-f0-9]{24}$"
                         },
+                        "categoryKey": {
+                          "type": "string",
+                          "enum": [
+                            "food-drinks",
+                            "transportation",
+                            "essentials",
+                            "shopping",
+                            "utilities",
+                            "health",
+                            "entertainment",
+                            "others-expense",
+                            "salary",
+                            "wages",
+                            "allowance-gift",
+                            "bonus",
+                            "investment",
+                            "others-income"
+                          ]
+                        },
                         "type": {
                           "type": "string",
                           "enum": [
@@ -15345,7 +15419,6 @@
                       "required": [
                         "id",
                         "walletId",
-                        "categoryId",
                         "type",
                         "amount",
                         "title",
@@ -15647,6 +15720,25 @@
                     "type": "string",
                     "pattern": "^[a-f0-9]{24}$"
                   },
+                  "categoryKey": {
+                    "type": "string",
+                    "enum": [
+                      "food-drinks",
+                      "transportation",
+                      "essentials",
+                      "shopping",
+                      "utilities",
+                      "health",
+                      "entertainment",
+                      "others-expense",
+                      "salary",
+                      "wages",
+                      "allowance-gift",
+                      "bonus",
+                      "investment",
+                      "others-income"
+                    ]
+                  },
                   "type": {
                     "type": "string",
                     "enum": [
@@ -15827,6 +15919,25 @@
                           "type": "string",
                           "pattern": "^[a-f0-9]{24}$"
                         },
+                        "categoryKey": {
+                          "type": "string",
+                          "enum": [
+                            "food-drinks",
+                            "transportation",
+                            "essentials",
+                            "shopping",
+                            "utilities",
+                            "health",
+                            "entertainment",
+                            "others-expense",
+                            "salary",
+                            "wages",
+                            "allowance-gift",
+                            "bonus",
+                            "investment",
+                            "others-income"
+                          ]
+                        },
                         "type": {
                           "type": "string",
                           "enum": [
@@ -15968,7 +16079,6 @@
                       "required": [
                         "id",
                         "walletId",
-                        "categoryId",
                         "type",
                         "amount",
                         "title",
@@ -16837,6 +16947,25 @@
                           "type": "string",
                           "pattern": "^[a-f0-9]{24}$"
                         },
+                        "categoryKey": {
+                          "type": "string",
+                          "enum": [
+                            "food-drinks",
+                            "transportation",
+                            "essentials",
+                            "shopping",
+                            "utilities",
+                            "health",
+                            "entertainment",
+                            "others-expense",
+                            "salary",
+                            "wages",
+                            "allowance-gift",
+                            "bonus",
+                            "investment",
+                            "others-income"
+                          ]
+                        },
                         "type": {
                           "type": "string",
                           "enum": [
@@ -16978,7 +17107,6 @@
                       "required": [
                         "id",
                         "walletId",
-                        "categoryId",
                         "type",
                         "amount",
                         "title",
