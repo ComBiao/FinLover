@@ -8,7 +8,6 @@ import {
   validateReportFilter,
   type DateRangeStrings,
   type FilterErrors,
-  type PeriodPreset,
   type ReportPreset,
 } from "@/features/reports/period";
 import type { ReportFilter } from "@/features/reports/types";
@@ -31,8 +30,8 @@ export type ReportFilterState = {
   appliedPreset: ReportPreset;
   setPreset: (preset: ReportPreset) => void;
   shift: (direction: 1 | -1) => void;
-  setStartDate: (value: string) => void;
-  setEndDate: (value: string) => void;
+  /** Move the period to the week / month / year containing this `YYYY-MM-DD` day. */
+  jumpTo: (anchor: string) => void;
   setWalletIds: (ids: string[]) => void;
   selectAllWallets: () => void;
   reset: () => void;
@@ -63,8 +62,8 @@ export function useReportFilter(wallets: ReportFilterWallet[]): ReportFilterStat
   );
 
   const errors = useMemo(
-    () => validateReportFilter({ walletIds, ...range }),
-    [walletIds, range]
+    () => validateReportFilter({ walletIds }),
+    [walletIds]
   );
   const isValid = Object.keys(errors).length === 0;
 
@@ -93,20 +92,18 @@ export function useReportFilter(wallets: ReportFilterWallet[]): ReportFilterStat
 
   const setPreset = useCallback((next: ReportPreset) => {
     setPresetState(next);
-    // Presets jump to the current week / month / year; Custom keeps the dates on screen to edit.
-    if (next !== "custom") setRange(presetRange(next, todayISO()));
+    // Picking a preset jumps to the current week / month / year.
+    setRange(presetRange(next, todayISO()));
   }, []);
 
   const shift = useCallback(
     (direction: 1 | -1) => {
-      if (preset === "custom") return;
-      setRange((current) => shiftPresetRange(preset as PeriodPreset, current, direction));
+      setRange((current) => shiftPresetRange(preset, current, direction));
     },
     [preset]
   );
 
-  const setStartDate = useCallback((value: string) => setRange((current) => ({ ...current, startDate: value })), []);
-  const setEndDate = useCallback((value: string) => setRange((current) => ({ ...current, endDate: value })), []);
+  const jumpTo = useCallback((anchor: string) => setRange(presetRange(preset, anchor)), [preset]);
   const setWalletIds = useCallback((ids: string[]) => setSelected(ids), []);
   const selectAllWallets = useCallback(() => setSelected(null), []);
   const reset = useCallback(() => {
@@ -132,8 +129,7 @@ export function useReportFilter(wallets: ReportFilterWallet[]): ReportFilterStat
     appliedPreset,
     setPreset,
     shift,
-    setStartDate,
-    setEndDate,
+    jumpTo,
     setWalletIds,
     selectAllWallets,
     reset,

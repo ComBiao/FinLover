@@ -6,7 +6,6 @@ import {
   daysInRange,
   defaultRange,
   isIntervalAllowed,
-  isValidISODate,
   presetRange,
   rangeLabel,
   shiftPresetRange,
@@ -78,53 +77,21 @@ describe("rangeLabel", () => {
     expect(rangeLabel("monthly", { startDate: "2026-10-01", endDate: "2026-10-31" })).toBe("October 2026");
     expect(rangeLabel("annual", { startDate: "2026-01-01", endDate: "2026-12-31" })).toBe("2026");
     expect(rangeLabel("weekly", { startDate: "2026-10-12", endDate: "2026-10-18" })).toBe("12 Oct – 18 Oct 2026");
-    expect(rangeLabel("custom", { startDate: "2026-08-01", endDate: "2026-08-31" })).toBe("1 Aug 2026 – 31 Aug 2026");
   });
 
   it("writes both years when a week spans New Year", () => {
     expect(rangeLabel("weekly", { startDate: "2026-12-28", endDate: "2027-01-03" })).toBe("28 Dec 2026 – 3 Jan 2027");
   });
 
-  it("asks for dates when they are not valid", () => {
-    expect(rangeLabel("custom", { startDate: "", endDate: "2026-10-01" })).toBe("Select dates");
-  });
-});
-
-describe("isValidISODate", () => {
-  it("accepts real dates only", () => {
-    expect(isValidISODate("2026-10-21")).toBe(true);
-    expect(isValidISODate("2028-02-29")).toBe(true);
-    expect(isValidISODate("2026-02-29")).toBe(false);
-    expect(isValidISODate("2026-13-01")).toBe(false);
-    expect(isValidISODate("2026-1-1")).toBe(false);
-    expect(isValidISODate("")).toBe(false);
-  });
 });
 
 describe("validateReportFilter (US8-1)", () => {
-  const valid = { walletIds: ["w1"], startDate: "2026-09-01", endDate: "2026-09-30" };
-
-  it("is empty for a good filter, including a single-day range", () => {
-    expect(validateReportFilter(valid)).toEqual({});
-    expect(validateReportFilter({ ...valid, startDate: "2026-09-05", endDate: "2026-09-05" })).toEqual({});
-  });
-
-  it("rejects an end date before the start date, on the end field", () => {
-    expect(validateReportFilter({ ...valid, startDate: "2026-09-30", endDate: "2026-09-01" })).toEqual({
-      endDate: "End date must be on or after the start date",
-    });
+  it("is empty when at least one wallet is selected", () => {
+    expect(validateReportFilter({ walletIds: ["w1"] })).toEqual({});
   });
 
   it("requires at least one wallet", () => {
-    expect(validateReportFilter({ ...valid, walletIds: [] })).toEqual({ walletIds: "Select at least 1 wallet" });
-  });
-
-  it("flags missing or impossible dates and reports every problem at once", () => {
-    expect(validateReportFilter({ walletIds: [], startDate: "", endDate: "2026-02-31" })).toEqual({
-      walletIds: "Select at least 1 wallet",
-      startDate: "Choose a start date",
-      endDate: "Choose an end date",
-    });
+    expect(validateReportFilter({ walletIds: [] })).toEqual({ walletIds: "Select at least 1 wallet" });
   });
 });
 
