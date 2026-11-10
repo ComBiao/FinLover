@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { objectId, transactionAttribution } from './api';
+import { objectId, sharedCategoryKey, transactionAttribution } from './api';
 
 export const SCHEDULER_FREQUENCIES = ['daily', 'weekly', 'monthly', 'yearly'] as const;
 export const SCHEDULER_STATUSES = ['active', 'paused', 'completed', 'cancelled'] as const;
@@ -30,6 +30,7 @@ export const schedulerEndResponse = z.discriminatedUnion('type', [
 export const schedulerInput = z.object({
   walletId: objectId,
   categoryId: objectId.optional(),
+  categoryKey: sharedCategoryKey.optional(),
   type: z.enum(['income', 'expense']),
   amount: z.number().min(0.01),
   title: z.string().trim().min(1).max(100),
@@ -54,7 +55,8 @@ export const schedulerListQuery = z.object({ walletId: objectId.optional(), stat
 export const schedulerResponse = z.object({
   id: objectId,
   walletId: objectId,
-  categoryId: objectId,
+  categoryId: objectId.optional(),
+  categoryKey: sharedCategoryKey.optional(),
   type: z.enum(['income', 'expense']),
   amount: z.number(),
   title: z.string(),

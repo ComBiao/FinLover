@@ -19,6 +19,7 @@ import { DELETE } from '@/app/api/v1/wallets/[id]/members/[userId]/route';
 import { POST as leaveRoute } from '@/app/api/v1/wallets/[id]/leave/route';
 import { POST as transferRoute } from '@/app/api/v1/wallets/[id]/transfer-ownership/route';
 import { MongoUnitOfWork } from '@/server/db/unit-of-work';
+import { SchedulerRepository } from '@/server/modules/schedulers/repositories/SchedulerRepository';
 import { WalletMembersRepository } from '@/server/modules/wallets/repositories/WalletMembersRepository';
 import { WalletMembershipRepository } from '@/server/modules/wallets/repositories/WalletMembershipRepository';
 import { WalletRepository } from '@/server/modules/wallets/repositories/WalletRepository';
@@ -153,7 +154,7 @@ describe('E7-07 membership APIs on a real replica set', () => {
   });
   it('rolls back transfer and removal when a later operation fails', async () => {
     const { wallet } = await seed(); const id = String(wallet._id);
-    const members = new WalletMembersRepository();
+    const members = new WalletMembersRepository(new SchedulerRepository());
     const presentation = new WalletPresentationService(membership, users);
     const service = new WalletMembersService(members, membership, repo, users, presentation, uow);
     vi.spyOn(presentation, 'execute').mockRejectedValue(new Error('after transfer'));

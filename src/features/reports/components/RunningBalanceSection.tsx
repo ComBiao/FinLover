@@ -2,10 +2,9 @@
 
 import { useState } from "react";
 
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ReportSection } from "@/features/reports/components/ReportSection";
 import { RunningBalanceChart } from "@/features/reports/components/RunningBalanceChart";
-import { segmentedGroupClass, segmentedItemClass } from "@/features/reports/components/segmented";
+import { SlidingToggle } from "@/features/reports/components/SlidingToggle";
 import type { RunningBalanceInterval } from "@/shared/contracts";
 import { useRunningBalance } from "@/features/reports/hooks/useRunningBalance";
 import { MAX_BUCKETS, isIntervalAllowed } from "@/features/reports/period";
@@ -34,31 +33,22 @@ export function RunningBalanceSection({ walletIds, startDate, endDate }: ReportF
   const query = useRunningBalance(filter, active);
 
   const toggle = (
-    <ToggleGroup
+    <SlidingToggle
       aria-label="Interval"
-      size="sm"
-      spacing={1}
-      className={segmentedGroupClass}
-      value={[active]}
-      onValueChange={(next) => {
-        const chosen = next[0] as RunningBalanceInterval | undefined;
-        if (chosen && chosen !== active) setPick({ key, interval: chosen });
+      value={active}
+      onValueChange={(chosen) => {
+        if (chosen !== active) setPick({ key, interval: chosen });
       }}
-    >
-      {INTERVALS.map(({ value, label }) => {
+      options={INTERVALS.map(({ value, label }) => {
         const allowed = isIntervalAllowed(startDate, endDate, value);
-        return (
-          <span
-            key={value}
-            title={allowed ? undefined : `Too many ${label.toLowerCase()} points for this range (max ${MAX_BUCKETS})`}
-          >
-            <ToggleGroupItem value={value} disabled={!allowed} className={segmentedItemClass}>
-              {label}
-            </ToggleGroupItem>
-          </span>
-        );
+        return {
+          value,
+          label,
+          disabled: !allowed,
+          title: allowed ? undefined : `Too many ${label.toLowerCase()} points for this range (max ${MAX_BUCKETS})`,
+        };
       })}
-    </ToggleGroup>
+    />
   );
 
   return (

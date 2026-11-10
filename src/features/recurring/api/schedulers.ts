@@ -4,6 +4,7 @@ import { deleteApi, getApi, patchApi, postApi, putApi, ApiClientError } from "@/
 import { WALLETS_QUERY_KEY } from "@/features/wallets/hooks/useWallets";
 import { TRANSACTIONS_QUERY_KEY } from "@/features/transactions/hooks/useTransactions";
 import type { IntervalUnit, EndConditionType } from "@/features/recurring/types";
+import type { SharedCategoryKey } from "@/shared/contracts";
 import type { SchedulerResponse, SchedulerInput } from "@/shared/contracts/schedulers";
 
 // --- Types & Interfaces ---
@@ -43,8 +44,10 @@ export interface SchedulerRule {
   id: string;
   walletId: string;
   wallet_id: string;
-  categoryId: string | null;
-  category_id: string | null;
+  categoryId?: string | null;
+  category_id?: string | null;
+  categoryKey?: SharedCategoryKey | null;
+  category_key?: SharedCategoryKey | null;
   type: "income" | "expense";
   amount: number;
   title: string;
@@ -84,6 +87,8 @@ export interface CreateSchedulerPayload {
   wallet_id?: string;
   categoryId?: string | null;
   category_id?: string | null;
+  categoryKey?: SharedCategoryKey | null;
+  category_key?: SharedCategoryKey | null;
   type: "income" | "expense";
   amount: number;
   title?: string;
@@ -190,6 +195,8 @@ export function mapSchedulerResponseToRule(dto: SchedulerResponse): SchedulerRul
     wallet_id: dto.walletId,
     categoryId: dto.categoryId ?? null,
     category_id: dto.categoryId ?? null,
+    categoryKey: dto.categoryKey ?? null,
+    category_key: dto.categoryKey ?? null,
     type: dto.type,
     amount: dto.amount,
     title: dto.title,
@@ -219,7 +226,7 @@ export function mapSchedulerResponseToRule(dto: SchedulerResponse): SchedulerRul
     created_at: now,
     updatedAt: now,
     updated_at: now,
-    isShared: false,
+    isShared: Boolean(dto.categoryKey),
     authorName: dto.createdBy?.name,
   };
 }
@@ -236,6 +243,11 @@ export function normalizeSchedulerPayload(
     payload.categoryId !== undefined
       ? (payload.categoryId ?? undefined)
       : (payload.category_id ?? undefined);
+
+  const categoryKey =
+    payload.categoryKey !== undefined
+      ? (payload.categoryKey ?? undefined)
+      : (payload.category_key ?? undefined);
 
   const { type, amount } = payload;
   // PUT replaces the whole rule, so a missing field must fail here, not fall back to a default.
@@ -270,6 +282,7 @@ export function normalizeSchedulerPayload(
   return {
     walletId,
     categoryId: categoryId || undefined,
+    categoryKey: (categoryKey as SharedCategoryKey | undefined) || undefined,
     type,
     amount,
     title,

@@ -5,7 +5,6 @@ import { createWalletInvitationRouter } from '../modules/wallets/invitation-rout
 import { WalletInvitationService } from '../modules/wallets/services/WalletInvitationService';
 import { WalletInvitationRepository } from '../modules/wallets/repositories/WalletInvitationRepository';
 import { WalletPresentationService } from '../modules/wallets/services/WalletPresentationService';
-import { PersonalWalletAccess } from '../modules/wallets/repositories/PersonalWalletAccess';
 import { WalletMembershipRepository } from '@/server/modules/wallets/repositories/WalletMembershipRepository';
 import { logged } from '@/server/shared/http/logging';
 import { secure, configureAccountCheck } from '@/server/shared/http/policy';
@@ -24,7 +23,6 @@ const walletMembershipRepository = new WalletMembershipRepository();
 export const userRepository = new UserRepository();
 export const walletRepository = new WalletRepository(walletMembershipRepository);
 const categoryRepository = new CategoryRepository();
-const personalWalletAccess = new PersonalWalletAccess(walletRepository);
 const transactionRepository = new TransactionRepository(walletRepository, categoryRepository);
 export const rawAuth = createAuthRouter(userRepository, { hash: hashPassword, compare: comparePassword }, categoryRepository, new MongoUnitOfWork(), walletRepository);
 const schedulerRepository = new SchedulerRepository();
@@ -45,7 +43,7 @@ export const rawTransactions = createTransactionRouter(walletRepository, categor
 import { createSchedulerRouter } from '../modules/schedulers/router';
 import { CreateTransactionService } from '../modules/transactions/services/CreateTransactionService';
 export const rawSchedulers = createSchedulerRouter(
-  schedulerRepository, personalWalletAccess, categoryRepository,
+  schedulerRepository, walletRepository, categoryRepository,
   new CreateTransactionService(transactionRepository, walletRepository, categoryRepository, new MongoUnitOfWork(), walletMembershipRepository, userRepository),
   new MongoUnitOfWork(),
 );
@@ -88,7 +86,7 @@ configureAccountCheck(accountExists);
 
 export const rawInvitations = createWalletInvitationRouter(new WalletInvitationService(new WalletInvitationRepository(), walletMembershipRepository, walletRepository, userRepository, new MongoUnitOfWork()));
 
-export const rawMembers = createWalletMembersRouter(new WalletMembersService(new WalletMembersRepository(), walletMembershipRepository, walletRepository, userRepository, new WalletPresentationService(walletMembershipRepository, userRepository), new MongoUnitOfWork()));
+export const rawMembers = createWalletMembersRouter(new WalletMembersService(new WalletMembersRepository(schedulerRepository), walletMembershipRepository, walletRepository, userRepository, new WalletPresentationService(walletMembershipRepository, userRepository), new MongoUnitOfWork()));
 
 import { createUserRouter } from '../modules/users/router';
 export const rawUsers = createUserRouter(userRepository);

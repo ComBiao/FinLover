@@ -14,8 +14,11 @@ export const NO_COLOR = "var(--muted-foreground)";
 
 export const sliceColor = (item: CategoryDistributionItem) => item.color ?? NO_COLOR;
 
-/** `categoryId` is null for the synthetic "no category" row, so fall back to a fixed key. */
-export const itemKey = (item: CategoryDistributionItem) => item.categoryId ?? "no-category";
+/**
+ * `categoryId` is null for the "no category" row and for a shared wallet's preset categories, so fall back to
+ * the name, which is unique within one type's list (the API merges rows that share a name).
+ */
+export const itemKey = (item: CategoryDistributionItem) => item.categoryId ?? `name:${item.name}`;
 
 const percentLabel = (percentage: number) => `${percentage.toFixed(1)}%`;
 

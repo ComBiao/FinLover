@@ -130,7 +130,7 @@ export const reportSummaryResponse = z.object({ totalIncome: z.number(), totalEx
 export const cashFlowBucket = z.object({ label: z.string(), start: z.iso.date(), end: z.iso.date(), income: z.number(), expense: z.number() });
 export const cashFlowResponse = z.object({ interval: reportInterval, suggestedInterval: reportInterval, buckets: z.array(cashFlowBucket) });
 export const categoryDistributionItem = z.object({
-  // null only when the user has no seeded Others of that type to collect category-less transactions.
+  // null when the user has no seeded Others of that type to collect category-less transactions, or for a shared wallet's preset category (shared wallets have no category documents).
   categoryId: objectId.nullable(), name: z.string(), icon: z.string().nullable(), color: z.string().nullable(),
   amount: z.number(), percentage: z.number(),
 });

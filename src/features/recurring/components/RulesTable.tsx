@@ -52,6 +52,8 @@ import {
 } from "@/components/ui/tooltip";
 import { CATEGORY_STYLES, resolveChipTone, WALLET_TYPE_STYLES } from "@/components/chipColor";
 import { FALLBACK_CATEGORY_NAME, isFallbackCategory } from "@/features/categories/categoriesService";
+import { resolveCategoryIcon } from "@/features/categories/categoryIcons";
+import { SHARED_CATEGORY_PRESETS, defaultSharedCategoryKey } from "@/shared/contracts";
 import { cn, formatBaht, todayISODate } from "@/lib/utils";
 import type { Category } from "@/types/category";
 import type { Wallet } from "@/types/wallet";
@@ -130,11 +132,29 @@ export function RulesTable({
     return true;
   });
 
-  const categoryOf = (rule: RecurringRule) =>
-    categories.find(({ id }) => id === rule.categoryId) ??
-    (rule.categoryId
-      ? undefined
-      : categories.find((c) => c.type === rule.type && isFallbackCategory(c)));
+  const categoryOf = (rule: RecurringRule) => {
+    if (rule.categoryKey) {
+      const preset =
+        SHARED_CATEGORY_PRESETS.find((p) => p.key === rule.categoryKey) ??
+        SHARED_CATEGORY_PRESETS.find((p) => p.key === defaultSharedCategoryKey(rule.type));
+      if (preset) {
+        return {
+          id: preset.key,
+          name: preset.name,
+          color: preset.color,
+          icon: resolveCategoryIcon(preset.icon),
+          type: preset.type,
+          isSystem: true,
+        };
+      }
+    }
+    return (
+      categories.find(({ id }) => id === rule.categoryId) ??
+      (rule.categoryId
+        ? undefined
+        : categories.find((c) => c.type === rule.type && isFallbackCategory(c)))
+    );
+  };
 
   const confirmDelete = () => {
     if (deleteCandidate) {
@@ -154,6 +174,8 @@ export function RulesTable({
   const ruleView = (rule: RecurringRule) => {
     const category = categoryOf(rule);
     const wallet = wallets.find(({ id }) => id === rule.walletId);
+    // Gone from the list (e.g. the Creator left the shared wallet), so do not pass it off as another wallet.
+    const walletName = wallet?.name ?? "Unavailable wallet";
     const CategoryIcon = category?.icon;
     const WalletIcon = wallet?.icon;
     const categoryTone = category
@@ -167,7 +189,7 @@ export function RulesTable({
     const cadence = formatCadenceString(rule);
     const endSummary = formatEndConditionSummary(rule);
 
-    return { category, wallet, CategoryIcon, WalletIcon, categoryTone, walletTone, isDue, cadence, endSummary };
+    return { category, walletName, CategoryIcon, WalletIcon, categoryTone, walletTone, isDue, cadence, endSummary };
   };
 
   const renderStatusBadge = (rule: RecurringRule) => (
@@ -350,7 +372,7 @@ export function RulesTable({
         {filteredRules.length > 0 ? (
           <ul className="flex flex-col gap-3 md:hidden" aria-label="Recurring rules">
             {filteredRules.map((rule) => {
-              const { category, wallet, CategoryIcon, WalletIcon, categoryTone, walletTone, isDue, cadence, endSummary } =
+              const { category, walletName, CategoryIcon, WalletIcon, categoryTone, walletTone, isDue, cadence, endSummary } =
                 ruleView(rule);
 
               return (
@@ -381,9 +403,11 @@ export function RulesTable({
                           variant="secondary"
                           className={cn("border-transparent text-xs py-0.5", walletTone?.className)}
                           style={walletTone?.style}
+                          aria-label={`Target: ${walletName}`}
+                          title={`Target: ${walletName}`}
                         >
                           {WalletIcon ? <WalletIcon className="size-3 mr-1" /> : null}
-                          {wallet?.name ?? "Main Bank"}
+                          {walletName}
                         </Badge>
                       </div>
                     </div>
@@ -477,7 +501,7 @@ export function RulesTable({
               </TableHeader>
               <TableBody>
                 {filteredRules.map((rule) => {
-                  const { category, wallet, CategoryIcon, WalletIcon, categoryTone, walletTone, isDue, cadence, endSummary } = ruleView(rule);
+                  const { category, walletName, CategoryIcon, WalletIcon, categoryTone, walletTone, isDue, cadence, endSummary } = ruleView(rule);
 
                   return (
                     <TableRow
@@ -526,9 +550,11 @@ export function RulesTable({
                           variant="secondary"
                           className={cn("border-transparent text-xs py-0.5", walletTone?.className)}
                           style={walletTone?.style}
+                          aria-label={`Target: ${walletName}`}
+                          title={`Target: ${walletName}`}
                         >
                           {WalletIcon ? <WalletIcon className="size-3 mr-1" /> : null}
-                          {wallet?.name ?? "Main Bank"}
+                          {walletName}
                         </Badge>
                       </TableCell>
 

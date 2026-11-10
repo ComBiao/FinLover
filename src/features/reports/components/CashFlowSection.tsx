@@ -2,11 +2,10 @@
 
 import { useState } from "react";
 
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { CashFlowChart } from "@/features/reports/components/CashFlowChart";
 import { ReportSection } from "@/features/reports/components/ReportSection";
 import { errorMessageOf } from "@/features/reports/components/ReportStates";
-import { segmentedGroupClass, segmentedItemClass } from "@/features/reports/components/segmented";
+import { SlidingToggle } from "@/features/reports/components/SlidingToggle";
 import { RANGE_TOO_LARGE_MESSAGE, isCashFlowEmpty } from "@/features/reports/cashFlowFormat";
 import { useCashFlow } from "@/features/reports/hooks/useCashFlow";
 import { isIntervalAllowed, MAX_BUCKETS } from "@/features/reports/period";
@@ -41,31 +40,22 @@ export function CashFlowSection({ filter }: { filter: ReportFilter }) {
   const active = override ?? query.data?.suggestedInterval;
 
   const toggle = (
-    <ToggleGroup
+    <SlidingToggle
       aria-label="Interval"
-      size="sm"
-      spacing={1}
-      className={segmentedGroupClass}
-      value={active ? [active] : []}
-      onValueChange={(next) => {
-        const chosen = next[0] as ReportInterval | undefined;
-        if (chosen && chosen !== active) setPick({ key, interval: chosen });
+      value={active}
+      onValueChange={(chosen) => {
+        if (chosen !== active) setPick({ key, interval: chosen });
       }}
-    >
-      {INTERVALS.map(({ value, label }) => {
+      options={INTERVALS.map(({ value, label }) => {
         const allowed = isIntervalAllowed(filter.startDate, filter.endDate, value);
-        return (
-          <span
-            key={value}
-            title={allowed ? undefined : `Too many ${label.toLowerCase()} buckets for this range (max ${MAX_BUCKETS})`}
-          >
-            <ToggleGroupItem value={value} disabled={!allowed} className={segmentedItemClass}>
-              {label}
-            </ToggleGroupItem>
-          </span>
-        );
+        return {
+          value,
+          label,
+          disabled: !allowed,
+          title: allowed ? undefined : `Too many ${label.toLowerCase()} buckets for this range (max ${MAX_BUCKETS})`,
+        };
       })}
-    </ToggleGroup>
+    />
   );
 
   return (

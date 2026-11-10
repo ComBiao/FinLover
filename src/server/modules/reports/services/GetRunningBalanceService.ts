@@ -1,6 +1,6 @@
 import type { RunningBalanceQuery } from '@/shared/contracts';
 import type { TransactionReportReader, TransactionSummaryReader } from '@/server/shared/ports/transactions';
-import type { ReportWalletScope } from './ReportWalletScope';
+import { walletFilterOf, type ReportWalletScope } from './ReportWalletScope';
 import { assertBucketLimit, buildBuckets, totalsPerBucket, utcDate } from './report-period';
 import { fromCents, toCents } from './report-math';
 
@@ -16,11 +16,11 @@ export class GetRunningBalanceService {
   async execute(userId: string, { walletIds, startDate, endDate, interval }: RunningBalanceQuery) {
     assertBucketLimit(startDate, endDate, interval);
     const wallets = await this.scope.resolve(userId, walletIds);
-    const ids = wallets.map(wallet => wallet.id);
+    const scoped = walletFilterOf(wallets);
     const start = utcDate(startDate);
     const [days, sinceStart] = await Promise.all([
-      this.transactions.totalsByDay(userId, { start, end: utcDate(endDate, 1), walletIds: ids }),
-      this.transactions.sumByType(userId, { start, walletIds: ids }),
+      this.transactions.totalsByDay(userId, { start, end: utcDate(endDate, 1), ...scoped }),
+      this.transactions.sumByType(userId, { start, ...scoped }),
     ]);
     const currentCents = wallets.reduce((sum, wallet) => sum + toCents(wallet.balance), 0);
     const openingCents = currentCents - (toCents(sinceStart.income) - toCents(sinceStart.expense));

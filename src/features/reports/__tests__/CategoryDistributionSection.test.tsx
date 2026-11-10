@@ -52,7 +52,7 @@ describe("donut item mapping", () => {
   it("uses grey for a missing colour and a fixed key for a missing category id", () => {
     expect(sliceColor(noCategory)).toBe(NO_COLOR);
     expect(sliceColor(food)).toBe("#EA580C");
-    expect(itemKey(noCategory)).toBe("no-category");
+    expect(itemKey(noCategory)).toBe(`name:${noCategory.name}`);
     expect(itemKey(noCategory)).not.toBe(itemKey(food));
   });
 });

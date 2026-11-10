@@ -1,7 +1,7 @@
 import { formatEnglishDate, formatEnglishDayMonth, toLocalISODate } from "@/lib/utils";
 import type { ReportInterval } from "@/features/reports/types";
 
-/** Weekly = this Monday–Sunday, Monthly = this calendar month, Annual = this year, Custom = two free dates. */
+/** Weekly = a Monday–Sunday week, Monthly = a calendar month, Annual = a calendar year, Custom = any run of days. */
 export type ReportPreset = "weekly" | "monthly" | "annual" | "custom";
 export type PeriodPreset = Exclude<ReportPreset, "custom">;
 
@@ -12,7 +12,6 @@ export type DateRangeStrings = { startDate: string; endDate: string };
 export const MAX_BUCKETS = 400;
 
 const MS_PER_DAY = 86_400_000;
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const LONG_MONTHS = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
@@ -38,11 +37,6 @@ function fromDayNumber(dayNumber: number) {
 /** 1970-01-01 was a Thursday, so a day number's offset from its Monday is (n + 3) mod 7. */
 function mondayOf(dayNumber: number) {
   return dayNumber - (((dayNumber + 3) % 7) + 7) % 7;
-}
-
-/** True for a real calendar date written `YYYY-MM-DD` (rejects `2026-02-31`, `""`, `26-1-1`). */
-export function isValidISODate(value: string) {
-  return ISO_DATE.test(value) && fromDayNumber(toDayNumber(value)) === value;
 }
 
 /** A local-time `Date` for a `YYYY-MM-DD` string (noon avoids any midnight edge). */
@@ -89,9 +83,8 @@ export function shiftPresetRange(preset: PeriodPreset, range: DateRangeStrings, 
   return presetRange("annual", `${pad(year + direction, 4)}-01-01`);
 }
 
-/** "12 Oct – 18 Oct 2026", "October 2026", "2026", or the custom span written out. */
+/** "12 Oct – 18 Oct 2026" for a week, "October 2026" for a month, "2026" for a year, or the custom span written out. */
 export function rangeLabel(preset: ReportPreset, range: DateRangeStrings) {
-  if (!isValidISODate(range.startDate) || !isValidISODate(range.endDate)) return "Select dates";
   const [year, month] = range.startDate.split("-").map(Number);
   if (preset === "monthly") return `${LONG_MONTHS[month - 1]} ${year}`;
   if (preset === "annual") return String(year);
@@ -102,19 +95,12 @@ export function rangeLabel(preset: ReportPreset, range: DateRangeStrings) {
   return `${fromLabel} – ${formatEnglishDate(to)}`;
 }
 
-export type FilterErrors = { walletIds?: string; startDate?: string; endDate?: string };
+export type FilterErrors = { walletIds?: string };
 
-/** Field-level problems that stop a filter from being applied (US8-1). Empty object = valid. */
-export function validateReportFilter(filter: { walletIds: string[] } & DateRangeStrings): FilterErrors {
+/** Problems that stop a filter from being applied (US8-1). Empty object = valid. The period pickers only produce real ranges. */
+export function validateReportFilter(filter: { walletIds: string[] }): FilterErrors {
   const errors: FilterErrors = {};
   if (filter.walletIds.length === 0) errors.walletIds = "Select at least 1 wallet";
-  const startOk = isValidISODate(filter.startDate);
-  const endOk = isValidISODate(filter.endDate);
-  if (!startOk) errors.startDate = "Choose a start date";
-  if (!endOk) errors.endDate = "Choose an end date";
-  if (startOk && endOk && filter.endDate < filter.startDate) {
-    errors.endDate = "End date must be on or after the start date";
-  }
   return errors;
 }
 

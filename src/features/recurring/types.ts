@@ -13,6 +13,8 @@ export interface RecurringRule {
   type: "income" | "expense";
   walletId: string;
   categoryId?: string | null;
+  /** Shared wallets only: key of SHARED_CATEGORY_PRESETS */
+  categoryKey?: string | null;
   note?: string;
 
   /** Interval count, e.g. every 1, 2, 3... */

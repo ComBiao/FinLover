@@ -13,8 +13,8 @@ export class UpdateSchedulerService {
       const current = await this.repo.findOwned(id, userId, context);
       if (!current) throw new AppError('NOT_FOUND', 'Scheduler not found');
       assertOpen(current);
-      const categoryId = await resolveCategory(cmd, userId, this.wallets, this.categories, context);
-      const { base, first } = describe(cmd, categoryId, todayBangkok(this.now()));
+      const category = await resolveCategory(cmd, userId, this.wallets, this.categories, context, current.categoryKey);
+      const { base, first } = describe(cmd, category, todayBangkok(this.now()));
       const sameCadence = base.startDate.getTime() === current.startDate.getTime() && base.frequency === current.frequency && base.interval === current.interval;
       const nextDueDate = sameCadence ? current.nextDueDate! : first;
       // An edited end may already be met: finish rather than leave a Scheduler that would never run.

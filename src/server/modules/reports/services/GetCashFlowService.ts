@@ -1,6 +1,6 @@
 import type { CashFlowQuery } from '@/shared/contracts';
 import type { TransactionReportReader } from '@/server/shared/ports/transactions';
-import type { ReportWalletScope } from './ReportWalletScope';
+import { walletFilterOf, type ReportWalletScope } from './ReportWalletScope';
 import { assertBucketLimit, buildBuckets, suggestedInterval, totalsPerBucket, utcDate } from './report-period';
 import { fromCents } from './report-math';
 
@@ -16,7 +16,7 @@ export class GetCashFlowService {
     const days = await this.transactions.totalsByDay(userId, {
       start: utcDate(startDate),
       end: utcDate(endDate, 1),
-      walletIds: wallets.map(wallet => wallet.id),
+      ...walletFilterOf(wallets),
     });
     const buckets = totalsPerBucket(buildBuckets(startDate, endDate, interval), days)
       .map(bucket => ({ ...bucket, income: fromCents(bucket.income), expense: fromCents(bucket.expense) }));

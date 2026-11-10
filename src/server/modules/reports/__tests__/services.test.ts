@@ -13,7 +13,11 @@ const wallet = (id: string, balance = 0, overrides: Partial<WalletRecord> = {}):
 });
 
 const WALLETS = [wallet('cash', 1000), wallet('bank', 2000), wallet('saving', 500, { isSaving: true, goalAmount: 1000 }), wallet('shared', 9999, { isShared: true })];
-const scope = (wallets = WALLETS) => new ReportWalletScope({ list: vi.fn(async () => wallets) });
+/** A shared wallet owned by someone else that the caller has accepted membership of. */
+const TEAM = wallet('team', 300, { userId: 'owner-2', isShared: true });
+// list = what the caller owns; listAccessible = owned plus accepted shared memberships (never pending or foreign wallets)
+const scope = (wallets = WALLETS, accessible = [...wallets, TEAM]) =>
+  new ReportWalletScope({ list: vi.fn(async () => wallets), listAccessible: vi.fn(async () => accessible) });
 const expectNotFound = async (promise: Promise<unknown>) => {
   await expect(promise).rejects.toBeInstanceOf(AppError);
   await expect(promise).rejects.toMatchObject({ code: 'NOT_FOUND' });
@@ -28,9 +32,19 @@ describe('ReportWalletScope', () => {
     expect((await scope().resolve('user-1', ['bank', 'cash'])).map(w => w.id)).toEqual(['bank', 'cash']);
   });
 
-  it('rejects a missing or foreign wallet and, until Epic 7, a shared one with 404', async () => {
+  it('leaves shared wallets out of the default, even ones the caller is a member of', async () => {
+    expect((await scope().resolve('user-1')).map(w => w.id)).not.toContain('shared');
+    expect((await scope().resolve('user-1')).map(w => w.id)).not.toContain('team');
+  });
+
+  it('allows a named shared wallet that the caller owns or has accepted membership of', async () => {
+    expect((await scope().resolve('user-1', ['cash', 'shared', 'team'])).map(w => w.id)).toEqual(['cash', 'shared', 'team']);
+  });
+
+  it('rejects a missing, foreign or pending wallet with 404', async () => {
     await expectNotFound(scope().resolve('user-1', ['cash', 'someone-elses']));
-    await expectNotFound(scope().resolve('user-1', ['shared']));
+    // a pending invitation or a shared wallet the caller is not in never shows up in listAccessible
+    await expectNotFound(scope(WALLETS, WALLETS).resolve('user-1', ['team']));
   });
 });
 
@@ -41,7 +55,7 @@ describe('GetReportSummaryService (US8-2)', () => {
 
     expect(result).toEqual({ totalIncome: 45000, totalExpense: 30000, netCashFlow: 15000, transactionCount: 12 });
     expect(sumByType).toHaveBeenCalledWith('user-1', {
-      start: new Date('2026-09-01T00:00:00.000Z'), end: new Date('2026-10-01T00:00:00.000Z'), walletIds: ['cash', 'bank'],
+      start: new Date('2026-09-01T00:00:00.000Z'), end: new Date('2026-10-01T00:00:00.000Z'), walletIds: ['cash', 'bank'], sharedWalletIds: [],
     });
   });
 
@@ -71,7 +85,7 @@ describe('GetCashFlowService (US8-3)', () => {
       suggestedInterval: 'weekly',
       buckets: expect.any(Array),
     });
-    expect(totalsByDay).toHaveBeenCalledWith('user-1', { start: new Date('2026-07-01T00:00:00.000Z'), end: new Date('2026-10-01T00:00:00.000Z'), walletIds: ['cash', 'bank', 'saving'] });
+    expect(totalsByDay).toHaveBeenCalledWith('user-1', { start: new Date('2026-07-01T00:00:00.000Z'), end: new Date('2026-10-01T00:00:00.000Z'), walletIds: ['cash', 'bank', 'saving'], sharedWalletIds: [] });
   });
 
   it('uses the requested interval, keeping income at 0 for an expense-only bucket', async () => {
@@ -105,8 +119,13 @@ describe('GetCategoryDistributionService (US8-4)', () => {
     { _id: 'transport', name: 'Transport', type: 'expense', icon: 'Car', color: '#6366F1' },
     { _id: 'othersExpense', name: 'Others', type: 'expense', isSystem: true, icon: 'MoreHorizontal', color: '#9CA3AF' },
   ];
-  const run = (rows: { categoryId: string | null; type: 'income' | 'expense'; amount: number }[], list = categories) =>
-    new GetCategoryDistributionService(scope(), { totalsByCategory: async () => rows }, { list: async () => list }).execute('user-1', { startDate: '2026-09-01', endDate: '2026-09-30' });
+  type Row = { categoryId: string | null; type: 'income' | 'expense'; amount: number; categoryKey?: string | null; shared?: boolean };
+  const run = (rows: Row[], list = categories, walletIds?: string[]) =>
+    new GetCategoryDistributionService(
+      scope(),
+      { totalsByCategory: async () => rows.map(row => ({ categoryKey: null, shared: false, ...row })) },
+      { list: async () => list },
+    ).execute('user-1', { walletIds, startDate: '2026-09-01', endDate: '2026-09-30' });
 
   it('splits both types largest first with icon, color and percentages adding up to 100.0', async () => {
     const result = await run([
@@ -148,6 +167,39 @@ describe('GetCategoryDistributionService (US8-4)', () => {
     expect(result.income).toEqual({ total: 250, items: [{ categoryId: null, name: 'Other (No Category)', icon: null, color: null, amount: 250, percentage: 100 }] });
     expect(result.expense).toEqual({ total: 0, items: [] });
   });
+
+  it('names shared wallet rows after their preset and merges them with a personal category of the same name', async () => {
+    const result = await run([
+      { categoryId: 'food', type: 'expense', amount: 100 },
+      { categoryId: null, categoryKey: 'food-drinks', shared: true, type: 'expense', amount: 300 },
+      { categoryId: null, categoryKey: 'transportation', shared: true, type: 'expense', amount: 100 },
+    ], categories, ['cash', 'team']);
+
+    expect(result.expense.total).toBe(500);
+    // "Food" the personal category has another name than the preset "Food & Drinks", so they stay apart
+    const names = result.expense.items.map(item => item.name);
+    expect(names).toEqual(['Food & Drinks', 'Food', 'Transportation']);
+    expect(result.expense.items[0]).toMatchObject({ categoryId: null, icon: 'Utensils', color: '#EA580C', amount: 300, percentage: 60 });
+  });
+
+  it('merges a personal category and a preset that share a name, keeping the personal id, icon and color', async () => {
+    const list = [...categories, { _id: 'foodDrinks', name: 'Food & Drinks', type: 'expense' as const, icon: 'Coffee', color: '#111111' }];
+    const result = await run([
+      { categoryId: null, categoryKey: 'food-drinks', shared: true, type: 'expense', amount: 300 },
+      { categoryId: 'foodDrinks', type: 'expense', amount: 100 },
+    ], list, ['cash', 'team']);
+
+    expect(result.expense.items).toEqual([
+      { categoryId: 'foodDrinks', name: 'Food & Drinks', icon: 'Coffee', color: '#111111', amount: 400, percentage: 100 },
+    ]);
+  });
+
+  it('counts a shared row without a stored key as the shared Others of its type', async () => {
+    const result = await run([{ categoryId: null, categoryKey: null, shared: true, type: 'income', amount: 50 }], [], ['team']);
+    expect(result.income.items).toEqual([
+      { categoryId: null, name: 'Others', icon: 'MoreHorizontal', color: '#4B5563', amount: 50, percentage: 100 },
+    ]);
+  });
 });
 
 describe('GetRunningBalanceService (US8-5)', () => {
@@ -166,7 +218,7 @@ describe('GetRunningBalanceService (US8-5)', () => {
 
     const result = await running.execute('user-1', { startDate: '2026-10-01', endDate: '2026-10-05', interval: 'daily' });
 
-    expect(sumByType).toHaveBeenCalledWith('user-1', { start: new Date('2026-10-01T00:00:00.000Z'), walletIds: ['cash', 'bank'] });
+    expect(sumByType).toHaveBeenCalledWith('user-1', { start: new Date('2026-10-01T00:00:00.000Z'), walletIds: ['cash', 'bank'], sharedWalletIds: [] });
     expect(result).toEqual({
       interval: 'daily',
       openingBalance: 12400,

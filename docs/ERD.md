@@ -83,6 +83,7 @@ erDiagram
     ObjectId userId
     ObjectId walletId
     ObjectId categoryId
+    String categoryKey
     String type
     Number amount
     String title

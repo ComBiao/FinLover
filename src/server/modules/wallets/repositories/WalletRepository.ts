@@ -33,6 +33,9 @@ export class WalletRepository implements WalletAccess, WalletRepositoryPort {
     if (!role && wallet.isShared) throw new AppError('FORBIDDEN', 'Only wallet members can access this wallet');
     return role !== null;
   }
+  async lockMembership(id: string, context: TransactionContext) {
+    await this.memberships.lockWallet(id, context);
+  }
   async adjust(id: string, userId: string, delta: number, context: TransactionContext) {
     if (!await this.exists(id, userId, context)) throw new AppError('NOT_FOUND', 'Wallet not found');
     const result = await Wallet.updateOne({ _id: id }, { $inc: { balance: delta } }, { session: sessionOf(context) });
