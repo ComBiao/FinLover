@@ -51,8 +51,12 @@ test('private pages use the bottom bar, fit the screen, and More opens a sheet',
   await page.getByRole('button', { name: 'New transaction' }).click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
-  const box = await dialog.boundingBox();
   const viewport = page.viewportSize();
-  expect(box && viewport && Math.round(box.y + box.height)).toBe(viewport?.height);
-  expect(box?.width).toBe(viewport?.width);
+  // Poll: the sheet slides in from the bottom, so the first measurement can land mid-animation.
+  await expect
+    .poll(async () => {
+      const box = await dialog.boundingBox();
+      return box && { bottom: Math.round(box.y + box.height), width: box.width };
+    })
+    .toEqual({ bottom: viewport?.height, width: viewport?.width });
 });
