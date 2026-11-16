@@ -22,13 +22,22 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
 
 /** Authenticate and adapt an atomic category deletion to the application service. */
 export async function DELETE(req: NextRequest, { params }: RouteContext) {
+  console.log('[DELETE] Request received');
   try {
     const auth = authenticateRequest(req);
     if (auth.errorRes) return auth.errorRes;
+    
     const { id } = await params;
+    console.log('[DELETE] Awaiting DB connection...');
     await connectDB();
-    return NextResponse.json({ data: await deleteCategory(id, auth.userId) });
+    
+    console.log('[DELETE] Calling deleteCategory...');
+    const data = await deleteCategory(id, auth.userId);
+    
+    console.log('[DELETE] Success, returning response');
+    return NextResponse.json({ data });
   } catch (error) {
+    console.log('[DELETE] Error caught:', error);
     return categoryErrorResponse(error);
   }
 }
